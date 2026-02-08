@@ -6,12 +6,14 @@ use bevy::prelude::*;
 use genesis_core::TimeIntegrationPlugin;
 use genesis_core::epoch::EpochManagerPlugin;
 use genesis_core::time::TimeAccumulator;
+use genesis_render::input::InputPlugin;
 
 fn main() {
     App::new()
         .add_plugins(DefaultPlugins)
         .add_plugins(TimeIntegrationPlugin)
         .add_plugins(EpochManagerPlugin)
+        .add_plugins(InputPlugin)
         .init_resource::<TimeAccumulator>()
         .run();
 }
