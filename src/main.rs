@@ -14,6 +14,5 @@ fn main() {
         .add_plugins(TimeIntegrationPlugin)
         .add_plugins(EpochManagerPlugin)
         .add_plugins(InputPlugin)
-        .init_resource::<TimeAccumulator>()
         .run();
 }
