@@ -50,3 +50,9 @@
 
 ### Particle Rendering
 - [x] Implement point sprite rendering with size attenuation
+
+## [2026-02-08]
+
+### Camera System
+- [x] Implement free-flight camera (WASD + mouse look) system
+- [x] Implement orbit camera (click-drag rotation) system

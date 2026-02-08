@@ -1,3 +1,21 @@
+# Drift Detection
+
+Critical drift items identified from PRD analysis:
+
+## Feature Drift (Missing PRD Features)
+- feat: Implement PRD feature bevy_egui panels - Actual implementation only has resource definitions with "not yet implemented" comments; no actual UI panels or widgets exist for timeline and overlays
+- feat: Implement PRD feature TOML configuration system - No Config struct, no TOML loading, no command-line arguments for --config flag or "Standard Model" preset
+- feat: Implement PRD feature epoch plugins - EpochPlugin trait and EpochManager exist, but NO actual epoch plugins are registered or implemented
+- feat: Implement PRD feature logarithmic timeline scrubber UI - Only PlaybackState.speed field exists, no actual timeline widget or logarithmic mapping spanning 13.8 billion years
+
+## Implementation Drift (Contradicts PRD)
+- fix: Align particle system with PRD requirements - genesis-core::physics::Particle uses [f32; 3] arrays while genesis-render::particle::Particle uses Vec3 and Color Bevy types; they are completely disconnected with no synchronization between simulation and rendering
+- fix: Align singularity visualization with PRD requirements - PRD specifies particles spawned at origin with outward velocity and color-mapped by energy (white-hot core fading to red); implementation uses random particle spawning in a sphere with mostly white/blue colors, no energy mapping
+- fix: Align resource initialization with PRD requirements - CameraState, OverlayState, PlaybackState resources are defined but not initialized in main.rs
+- fix: Align camera systems with PRD requirements - PRD requires smooth interpolation between positions and camera transition crossfade for epoch changes; implementation only has basic free-flight and orbit movement, no interpolation or crossfade
+
+---
+
 # TODO - Current Sprint (Phase 1: The Singularity)
 
 **Sprint Goal:** A running Bevy application with a 3D particle system, camera controls, and a time slider.
@@ -18,8 +36,6 @@
 ## Sprint 1 - Phase 1: The Singularity
 
 ### Camera System
-- [x] Implement free-flight camera (WASD + mouse look) system
-- [x] Implement orbit camera (click-drag rotation) system
 - [ ] Add smooth camera interpolation between positions
 - [ ] Implement camera transition crossfade for epoch changes
 - [ ] Add zoom and pan controls

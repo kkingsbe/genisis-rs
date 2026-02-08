@@ -9,6 +9,7 @@ use genesis_render::input::InputPlugin;
 use genesis_render::particle::ParticlePlugin;
 use genesis_render::CameraPlugin;
 use genesis_render::camera::OrbitController;
+use genesis_ui::UIPlugin;
 
 fn main() {
     App::new()
@@ -18,6 +19,7 @@ fn main() {
         .add_plugins(InputPlugin)
         .add_plugins(ParticlePlugin)
         .add_plugins(CameraPlugin)
+        .add_plugins(UIPlugin)
         .add_systems(Startup, setup_camera)
         .run();
 }

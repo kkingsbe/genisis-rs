@@ -4,6 +4,62 @@ This document contains tasks for future sprints. Items here are not yet schedule
 
 ---
 
+## Sprint 1 - Phase 1: The Singularity
+#### Window, Particle Engine & Time
+
+### Core Visualization
+- [ ] Implement procedural singularity visualization: spawn particles at origin with radial outward velocity vectors
+- [ ] Implement energy-based color mapping for singularity visualization (map particle energy to white-hot → yellow → red gradient)
+- [ ] Create cooling model tied to particle distance from origin or elapsed time
+- [ ] Replace random particle spawning with procedural singularity generation
+
+### Camera Controls
+- [ ] Implement scroll wheel zoom controls for free-flight camera (move along forward vector)
+- [ ] Implement scroll wheel zoom controls for orbit camera (adjust distance with clamping to min/max bounds)
+- [ ] Add pan controls for both camera modes
+
+### UI Implementation
+- [ ] Create epoch indicator UI panel showing era name, temperature (Kelvin), scale factor a(t), and cosmic time
+- [ ] Build FPS counter overlay system using bevy_egui (display in corner, update every frame using time diagnostics)
+- [ ] Create particle count overlay system (query with<Particle> component, display count)
+- [ ] Build time control UI (play/pause button, speed slider, reset button)
+- [ ] Implement logarithmic timeline scrubber using bevy_egui Slider widget (span 0 to 13.8e9 years, map slider to cosmic time)
+
+### Configuration System
+- [ ] Create genesis-config module with Config struct defining Phase 1 parameters (particle_count, time_acceleration, camera_movement_speed, mouse_sensitivity)
+- [ ] Implement TOML deserialization for Config struct using serde
+- [ ] Create default Config constants for "Standard Model" preset (Planck 2018 best-fit cosmological parameters)
+- [ ] Implement config file loader with path resolution (default: genesis.toml, fallback: embedded defaults)
+- [ ] Implement clap argument parser for --config flag to override default config path
+- [ ] Add ConfigResource and insert into main.rs via `.insert_resource(config)`
+
+### Epoch Plugin System
+- [ ] Implement epoch plugin registration system (actual plugin trait and registration, not just documentation)
+- [ ] Define EpochPlugin trait with required methods: on_enter(), on_exit(), update_systems()
+- [ ] Create SingularityEpoch plugin implementing the Singularity epoch from Planck Boundary to Inflation
+- [ ] Implement EpochManager resource to track active epoch and handle transitions
+- [ ] Add epoch transition crossfade system (handle epoch change events, trigger camera and visual transitions)
+
+### Core System Integration
+- [ ] Implement pause() method in TimeAccumulator resource (add `paused: bool` field and pause/play methods)
+- [ ] Implement smooth camera interpolation system (camera_tween_resource with start/end positions, duration, easing function)
+
+### Documentation
+- [ ] Update ARCHITECTURE.md with final crate structure and responsibilities
+- [ ] Document epoch plugin architecture design patterns (trait-based plugin system)
+- [ ] Add inline documentation for genesis-core public APIs (time::TimeAccumulator, epoch::EpochPlugin trait, physics::Particle)
+- [ ] Add inline documentation for genesis-render public APIs (camera::CameraMode/State, input::InputState, particle::Particle component)
+- [ ] Add inline documentation for genesis-ui public APIs (overlay::OverlayState, timeline::PlaybackState)
+
+### Build System
+- [ ] Set up cross-platform build configuration for Linux, macOS, Windows
+- [ ] Configure Cargo.toml for platform-specific dependencies (e.g., Apple Silicon support)
+
+### Testing
+- [ ] SPRINT QA: Run full build and test suite. Fix ALL errors. If green, create/update '.sprint_complete' with the current date.
+
+---
+
 ## Sprint 2 - Phase 2: Inflation & Quantum Seeds
 
 ### Physics Integration
@@ -232,47 +288,6 @@ This document contains tasks for future sprints. Items here are not yet schedule
 
 ### Testing
 - [ ] SPRINT QA: Run full build and test suite. Fix ALL errors. If green, create/update '.sprint_complete' with the current date.
-
----
-
-## Phase 1 Missing Tasks (Gap Analysis)
-
-### Core System Integration
-- [ ] Implement pause() method in TimeAccumulator resource (add `paused: bool` field and pause/play methods)
-- [ ] Create genesis-config module with Config struct defining Phase 1 parameters (particle_count, time_acceleration, camera_movement_speed, mouse_sensitivity)
-- [ ] Implement TOML deserialization for Config struct using serde
-- [ ] Create default Config constants for "Standard Model" preset
-- [ ] Implement config file loader with path resolution (default: genesis.toml, fallback: embedded defaults)
-- [ ] Implement clap argument parser for --config flag to override default config path
-- [ ] Add ConfigResource and insert into main.rs via .insert_resource(config)
-
-### UI Implementation Tasks (Specific)
-- [ ] Create FPS counter overlay system using bevy_egui (display in corner, update every frame using time diagnostics)
-- [ ] Create particle count overlay system (query with<Particle> component, display count)
-- [ ] Build time control UI (play/pause button, speed slider, reset button)
-- [ ] Implement logarithmic timeline scrubber using bevy_egui Slider widget (span 0 to 13.8e9 years, map slider to cosmic time)
-- [ ] Implement timeline scrubbing to pause playback when dragging and reverse time when dragging backwards
-
-### Camera Enhancement Tasks
-- [ ] Implement orbit camera movement system (update OrbitController based on mouse drag input)
-- [ ] Add orbit camera system to CameraPlugin
-- [ ] Add scroll wheel zoom controls for free-flight camera (move along forward vector)
-- [ ] Add scroll wheel zoom controls for orbit camera (adjust distance with clamping to min/max bounds)
-
-### Transition & Visual Enhancement Tasks
-- [ ] Implement smooth camera interpolation system (camera_tween_resource with start/end positions, duration, easing function)
-- [ ] Create camera transition crossfade system (handle epoch change events, trigger camera transitions)
-- [ ] Implement epoch transition crossfade (fade singularity → QGP in Phase 2, QGP → elements in Phase 3)
-- [ ] Implement energy-based color mapping for singularity visualization (map particle energy to white-hot → yellow → red gradient)
-- [ ] Create cooling model tied to particle distance from origin or elapsed time
-- [ ] Replace random particle spawning with procedural singularity generation (spawn at origin with radial outward velocities)
-
-### Documentation Tasks
-- [ ] Update ARCHITECTURE.md with final crate structure and responsibilities
-- [ ] Document epoch plugin architecture design patterns (trait-based plugin system)
-- [ ] Add inline documentation for genesis-core public APIs (time::TimeAccumulator, epoch::EpochPlugin trait, physics::Particle)
-- [ ] Add inline documentation for genesis-render public APIs (camera::CameraMode/State, input::InputState, particle::Particle component)
-- [ ] Add inline documentation for genesis-ui public APIs (overlay::OverlayState, timeline::PlaybackState)
 
 ---
 
