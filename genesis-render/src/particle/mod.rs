@@ -7,13 +7,16 @@
 //! efficient rendering of thousands of particles.
 
 use bevy::prelude::*;
-use bevy::render::mesh::PrimitiveTopology;
+use bevy::render::mesh::{PrimitiveTopology, VertexAttribute, VertexFormat};
 use bevy::render::render_asset::RenderAssetUsages;
 use bevy::render::render_resource::ShaderRef;
 use bevy::render::alpha::AlphaMode;
 use bevy::render::render_resource::AsBindGroup;
 use bevy::asset::Asset;
 use bevy::pbr::Material;
+
+/// Custom vertex attribute for per-instance particle size
+const ATTRIBUTE_INSTANCE_SIZE: VertexAttribute = VertexAttribute::new("instance_size", VertexFormat::Float32);
 
 /// Point sprite material for efficient particle rendering
 ///
@@ -30,6 +33,11 @@ pub struct PointSpriteMaterial {
     /// Base size of particles in pixels before attenuation
     #[uniform(1)]
     pub base_size: f32,
+    /// Attenuation factor for size attenuation
+    /// Controls how quickly particles shrink with distance
+    /// Formula: size = base_size / (1.0 + distance * attenuation_factor)
+    #[uniform(2)]
+    pub attenuation_factor: f32,
 }
 
 impl Material for PointSpriteMaterial {
@@ -76,6 +84,9 @@ pub struct Particle {
 /// This mesh is reused by all particle entities for efficient rendering.
 /// The Transform component on each particle entity provides the actual
 /// position in world space.
+/// 
+/// The mesh includes an instance_size attribute for per-instance particle size.
+/// This allows the vertex shader to apply size attenuation based on each particle's size.
 pub fn init_point_mesh(mut commands: Commands, mut meshes: ResMut<Assets<Mesh>>) {
     // Create a simple point mesh with PointList topology
     // Single vertex at origin since Transform provides actual position
@@ -88,6 +99,13 @@ pub fn init_point_mesh(mut commands: Commands, mut meshes: ResMut<Assets<Mesh>>)
     mesh.insert_attribute(
         Mesh::ATTRIBUTE_POSITION,
         vec![[0.0, 0.0, 0.0]],
+    );
+    
+    // Add instance_size attribute for per-instance particle size
+    // This will be at location(1) to match the shader's VertexInput
+    mesh.insert_attribute(
+        ATTRIBUTE_INSTANCE_SIZE,
+        vec![1.0f32],  // Default size, will be updated per-instance
     );
     
     let mesh_handle = meshes.add(mesh);
@@ -119,6 +137,7 @@ pub fn spawn_particles(
     let particle_material = PointSpriteMaterial {
         color: LinearRgba::new(1.0, 1.0, 1.0, 1.0),
         base_size: 100.0,  // Base size in pixels before attenuation
+        attenuation_factor: 0.01,  // Size attenuation factor
     };
     let material_handle = materials.add(particle_material);
 
@@ -144,8 +163,8 @@ pub fn spawn_particles(
 
         let color = Color::srgba(r, g, b, 1.0);
 
-        // Uniform particle size
-        let size = 0.1;
+        // Random particle size in range [0.5, 2.0]
+        let size = 0.5 + ((fi * 567.891).fract()) * 1.5;
 
         // Spawn particle entity with shared mesh/material handles
         // Bevy 0.15 automatically batches entities with same mesh/material for GPU instancing

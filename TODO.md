@@ -7,7 +7,7 @@
 ## Sprint 1 - Phase 1: The Singularity
 
 ### Particle Rendering
-- [ ] Implement point sprite rendering with size attenuation
+- [x] Implement point sprite rendering with size attenuation
 
 ### Camera System
 - [ ] Implement free-flight camera (WASD + mouse look) system

@@ -4,6 +4,7 @@
 // Vertex input from mesh
 struct VertexInput {
     @location(0) position: vec3<f32>,
+    @location(1) instance_size: f32,
 }
 
 // Vertex output to fragment shader
@@ -17,6 +18,7 @@ struct VertexOutput {
 struct PointSpriteMaterial {
     color: vec4<f32>,
     base_size: f32,
+    attenuation_factor: f32,
 }
 
 @group(0) @binding(0)
@@ -26,14 +28,18 @@ var<uniform> material: PointSpriteMaterial;
 @group(0) @binding(1)
 var<uniform> view: ViewUniform;
 
+// Model/Transform matrix for converting mesh position to world position
+@group(0) @binding(2)
+var<uniform> model: mat4x4<f32>;
+
 // Vertex shader
 @vertex
 fn vertex(input: VertexInput) -> VertexOutput {
     var output: VertexOutput;
     
     // Calculate world position from input position and model matrix
-    // Bevy provides the model matrix automatically at @location(1) for position
-    let world_pos = vec4<f32>(input.position, 1.0);
+    // Apply entity's Transform to convert mesh position (at origin for PointMesh) to world position
+    let world_pos = model * vec4<f32>(input.position, 1.0);
     
     // Transform position to clip space for rendering
     output.clip_position = view.view_proj * world_pos;
@@ -43,9 +49,8 @@ fn vertex(input: VertexInput) -> VertexOutput {
     
     // Apply size attenuation formula
     // Particles appear smaller as they move farther from the camera
-    // Formula: size = base_size / (1.0 + distance * attenuation_factor)
-    let attenuation_factor: f32 = 0.01;
-    let attenuated_size = material.base_size / (1.0 + distance * attenuation_factor);
+    // Formula: size = instance_size / (1.0 + distance * attenuation_factor)
+    let attenuated_size = input.instance_size / (1.0 + distance * material.attenuation_factor);
     
     // Clamp to minimum size (1.0 pixel) to prevent particles from vanishing
     output.point_size = max(attenuated_size, 1.0);
