@@ -8,13 +8,13 @@
 
 ### Core Infrastructure
 - [x] Implement basic input handling (keyboard events for WASD, mouse events for camera)
-- [ ] Register TimeIntegrationPlugin in main.rs for cosmic time updates
+- [x] Register TimeIntegrationPlugin in main.rs for cosmic time updates
 
 ### Particle Rendering
-- [ ] Implement instanced particle renderer using Bevy PBR materials
-- [ ] Create particle component with position, color, size attributes
-- [ ] Implement particle spawner system for 100K-1M particles
-- [ ] Add GPU instancing support for efficient rendering
+- [x] Implement instanced particle renderer using Bevy PBR materials
+- [x] Create particle component with position, color, size attributes
+- [x] Implement particle spawner system for 100K-1M particles
+- [x] Add GPU instancing support for efficient rendering
 - [ ] Implement point sprite rendering with size attenuation
 
 ### Camera System
@@ -28,6 +28,7 @@
 - [ ] Create cosmic time accumulator (f64) with adjustable acceleration
 - [ ] Implement time controls: play/pause, reset, speed adjustment (1x to 10¹²x)
 - [ ] Add pause() method to TimeAccumulator resource
+- [ ] FIX CRITICAL BUG: Remove duplicate TimeAccumulator initialization from main.rs (TimeIntegrationPlugin already initializes it)
 - [ ] Build logarithmic timeline scrubber UI using bevy_egui
 - [ ] Map timeline scrubbing to cosmic time simulation state
 - [ ] Add epoch indicator display (current era, temperature, scale factor)
@@ -46,19 +47,29 @@
 - [ ] Add timeline scrubber widget
 
 ### Configuration & Initialization
-- [ ] Create TOML configuration system
-- [ ] Implement config file loading and default values
-- [ ] Add command-line argument parsing for config override
+- [ ] Define Config struct with all Phase 1 parameters (particle_count, time_acceleration, etc.)
+- [ ] Implement TOML deserialization for Config struct
+- [ ] Create default Config constants for "Standard Model" preset
+- [ ] Implement config file loader with path resolution (default: genesis.toml, fallback: embedded defaults)
+- [ ] Implement clap argument parser for --config flag to override default config path
+- [ ] Create ConfigResource and add to main.rs via .insert_resource(config)
 
 ### Architecture & Documentation
-- [ ] Write ARCHITECTURE.md with crate structure and responsibilities
-- [ ] Document epoch plugin architecture
-- [ ] Add inline code documentation for all public APIs
+- [ ] Update ARCHITECTURE.md with final crate structure and responsibilities
+- [ ] Document epoch plugin architecture design patterns (trait-based plugin system)
+- [ ] Add inline documentation for genesis-core public APIs (time::TimeAccumulator, epoch::EpochPlugin trait, physics::Particle)
+- [ ] Add inline documentation for genesis-render public APIs (camera::CameraMode/State, input::InputState, particle::Particle component)
+- [ ] Add inline documentation for genesis-ui public APIs (overlay::OverlayState, timeline::PlaybackState)
 
 ### Plugin Registration
-- [ ] Register genesis-render plugin in main.rs (add .add_plugins(RenderPlugin))
-- [ ] Register genesis-ui plugin in main.rs (add .add_plugins(UIPlugin))
-- [ ] Initialize all required resources (CameraState, OverlayState, PlaybackState) in main.rs
+- [ ] Create genesis-render::RenderPlugin (aggregates camera, input, particle systems)
+- [ ] Add .add_plugins(genesis_render::RenderPlugin) to main.rs
+- [ ] Create genesis-ui::UIPlugin (aggregates timeline, overlay systems)
+- [ ] Add .add_plugins(genesis_ui::UIPlugin) to main.rs
+- [ ] Add .init_resource::<CameraState>() to main.rs
+- [ ] Add .init_resource::<OverlayState>() to main.rs
+- [ ] Add .init_resource::<PlaybackState>() to main.rs
+- [ ] Remove duplicate .init_resource::<TimeAccumulator>() from main.rs (already initialized by TimeIntegrationPlugin)
 
 ### Sprint QA
 - [ ] SPRINT QA: Run full build and test suite. Fix ALL errors. If green, create/update '.sprint_complete' with the current date.
@@ -77,21 +88,27 @@
 - fix: Align genesis-ui/src/timeline/mod.rs with PRD requirements - module doc claims "UI widgets for controlling cosmic time flow, including logarithmic timeline scrubber and playback controls" but only PlaybackState resource exists, no actual timeline UI implementation -> EXISTING TODO covers this
 - fix: Align genesis-ui/src/overlay/mod.rs with PRD requirements - module doc claims "FPS counter, particle count display, epoch info panels, and other HUD elements" but only OverlayState resource exists, no actual overlay implementation -> EXISTING TODO covers this
 
+### Refined Task Definitions
+- refined: Configuration & Initialization tasks broken down into 6 atomic subtasks
+- refined: Architecture & Documentation tasks broken down into 5 atomic subtasks
+- refined: Plugin Registration tasks broken down into 8 atomic subtasks
+
 ---
 
-## Runtime Issues / Bugs
+## Critical Bug: Duplicate TimeAccumulator Initialization
 
-### TimeAccumulator Resource Initialization Panic
-**Error:** `genesis_core::epoch::update_epoch_transition could not access system parameter Res<TimeAccumulator>`
+### Description
+The `TimeAccumulator` resource is being initialized twice:
+1. In `genesis-core/src/time/mod.rs` via `TimeIntegrationPlugin` which has a startup system `initialize_time_accumulator` that calls `commands.insert_resource(TimeAccumulator::default())`
+2. In `src/main.rs` via `.init_resource::<TimeAccumulator>()`
 
-**Description:** The application crashes with a runtime panic when `cargo run` is executed. The `update_epoch_transition` system in `genesis_core::epoch` attempts to access the `TimeAccumulator` resource, but the resource has not been registered or initialized in the Bevy App before the system runs.
+### Root Cause
+The `TimeIntegrationPlugin` already initializes the `TimeAccumulator` through its startup system. Adding `.init_resource::<TimeAccumulator>()` in `main.rs` creates a duplicate initialization path.
 
-**Root Cause:** The `TimeAccumulator` resource is defined in `genesis_core::time` but is not being added to the app's world resource registry during initialization.
+### Impact
+This creates potential resource conflicts and violates Bevy's resource management patterns. While Bevy may handle this gracefully by ignoring duplicate init_resource calls, it's architecturally incorrect.
 
-**Status:** TASK ADDED - "FIX BLOCKER: Initialize TimeAccumulator resource in main.rs (add `.init_resource::<TimeAccumulator>()`)"
+### Solution
+Remove `.init_resource::<TimeAccumulator>()` from `main.rs` since `TimeIntegrationPlugin` already handles initialization properly. The startup system `initialize_time_accumulator` in the plugin should be the sole initialization point.
 
-**Remaining Actions:**
-1. Register TimeIntegrationPlugin in main.rs for cosmic time updates
-2. Ensure resources are initialized before dependent systems run
-
-**Priority:** BLOCKER - Prevents application from running
+**Priority:** HIGH - Architectural inconsistency
