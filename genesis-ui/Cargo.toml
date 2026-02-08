@@ -7,3 +7,4 @@ edition.workspace = true
 bevy = { workspace = true }
 bevy_egui = { workspace = true }
 genesis-core = { path = "../genesis-core" }
+genesis-render = { path = "../genesis-render" }

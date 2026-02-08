@@ -45,6 +45,7 @@
 
 ### Plugin Registration
 - [x] Remove duplicate .init_resource::<TimeAccumulator>() from main.rs (already initialized by TimeIntegrationPlugin)
+- [x] Add pause() method to TimeAccumulator resource
 
 ## [2026-02-08]
 
@@ -56,3 +57,8 @@
 ### Camera System
 - [x] Implement free-flight camera (WASD + mouse look) system
 - [x] Implement orbit camera (click-drag rotation) system
+
+## [2026-02-08]
+
+### UI Overlay
+- ✅ Overlay UI (FPS counter, particle count display) - Implemented bevy_egui integration with overlay UI displaying FPS counter, particle count, and epoch information. Added UIPlugin, update_overlay_ui system, and initialized OverlayState resource.

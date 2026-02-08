@@ -4,7 +4,7 @@
 //! Actual overlay UI rendering and display systems are not yet implemented.
 
 use bevy::prelude::*;
-use bevy_egui::EguiContexts;
+use bevy_egui::{egui, EguiContexts};
 
 /// Resource tracking overlay visibility
 ///

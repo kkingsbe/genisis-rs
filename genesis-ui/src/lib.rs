@@ -1,17 +1,29 @@
 //! GENESIS UI - User interface state and components
 //!
 //! This crate contains UI state resources and data structures.
-//! Actual UI rendering using bevy_egui is not yet implemented.
+//! Provides bevy_egui integration and timeline controls.
 
 use bevy::prelude::*;
+use bevy_egui::EguiPlugin;
 
 pub mod timeline;
 pub mod overlay;
 
+use timeline::TimelinePlugin;
+
 /// Version of the UI library
 pub const VERSION: &str = env!("CARGO_PKG_VERSION");
 
-/// Plugin that initializes the UI system with bevy_egui
-pub fn UIPlugin(app: &mut App) {
-    app.add_plugins(bevy_egui::EguiPlugin);
+/// Plugin that initializes the UI system with bevy_egui and timeline controls
+pub struct GenesisUiPlugin;
+
+impl Plugin for GenesisUiPlugin {
+    fn build(&self, app: &mut App) {
+        app.add_plugins(EguiPlugin)
+            .add_plugins(TimelinePlugin)
+            .add_systems(Update, overlay::update_overlay_ui);
+    }
 }
+
+/// Type alias for GenesisUiPlugin for backwards compatibility
+pub use GenesisUiPlugin as UIPlugin;

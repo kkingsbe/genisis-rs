@@ -9,7 +9,8 @@ use genesis_render::input::InputPlugin;
 use genesis_render::particle::ParticlePlugin;
 use genesis_render::CameraPlugin;
 use genesis_render::camera::OrbitController;
-use genesis_ui::UIPlugin;
+use genesis_ui::GenesisUiPlugin;
+use genesis_ui::overlay::OverlayState;
 
 fn main() {
     App::new()
@@ -19,7 +20,12 @@ fn main() {
         .add_plugins(InputPlugin)
         .add_plugins(ParticlePlugin)
         .add_plugins(CameraPlugin)
-        .add_plugins(UIPlugin)
+        .add_plugins(GenesisUiPlugin)
+        .insert_resource(OverlayState {
+            show_fps: true,
+            show_particle_count: true,
+            show_epoch_info: true,
+        })
         .add_systems(Startup, setup_camera)
         .run();
 }

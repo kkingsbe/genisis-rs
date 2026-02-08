@@ -25,7 +25,7 @@ Critical drift items identified from PRD analysis:
 ## Missing Features (Drift Analysis - Phase 1)
 
 - [ ] implement: Add timeline scrubber UI - Create bevy_egui panel with logarithmic scale spanning 13.8 billion years, allowing playback control and scrubbing
-- [ ] implement: Add overlay UI - Create FPS counter and particle count display using bevy_egui
+- [x] implement: Add overlay UI - Create FPS counter and particle count display using bevy_egui
 - [ ] implement: Implement orbit camera mode - Add click-drag orbit camera functionality to complement free-flight mode
 - [ ] implement: Add pause/reset UI controls - Expose TimeAccumulator pause/reset functionality through UI
 - [ ] implement: Create procedural singularity visualization - Replace random particle spawning with energy-mapped coloring (white-hot core to red edges) as specified
@@ -42,7 +42,6 @@ Critical drift items identified from PRD analysis:
 
 ### Time & Timeline
 - [ ] Implement time controls: play/pause, reset, speed adjustment (1x to 10¹²x)
-- [x] Add pause() method to TimeAccumulator resource
 - [ ] Build logarithmic timeline scrubber UI using bevy_egui
 - [ ] Map timeline scrubbing to cosmic time simulation state
 - [ ] Add epoch indicator display (current era, temperature, scale factor)
