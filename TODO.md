@@ -24,7 +24,7 @@ Critical drift items identified from PRD analysis:
 
 ## Missing Features (Drift Analysis - Phase 1)
 
-- [ ] implement: Add timeline scrubber UI - Create bevy_egui panel with logarithmic scale spanning 13.8 billion years, allowing playback control and scrubbing
+- [x] implement: Add timeline scrubber UI - Create bevy_egui panel with logarithmic scale spanning 13.8 billion years, allowing playback control and scrubbing
 - [x] implement: Add overlay UI - Create FPS counter and particle count display using bevy_egui
 - [ ] implement: Implement orbit camera mode - Add click-drag orbit camera functionality to complement free-flight mode
 - [ ] implement: Add pause/reset UI controls - Expose TimeAccumulator pause/reset functionality through UI
