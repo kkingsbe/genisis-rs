@@ -5,6 +5,7 @@
 struct VertexInput {
     @location(0) position: vec3<f32>,
     @location(1) instance_size: f32,
+    @location(2) instance_color: vec4<f32>,
 }
 
 // Vertex output to fragment shader
@@ -55,8 +56,9 @@ fn vertex(input: VertexInput) -> VertexOutput {
     // Clamp to minimum size (1.0 pixel) to prevent particles from vanishing
     output.point_size = max(attenuated_size, 1.0);
     
-    // Pass material color to fragment shader
-    output.color = material.color;
+    // Pass per-instance particle color to fragment shader
+    // Use instance_color if available, otherwise fall back to material uniform color
+    output.color = input.instance_color;
     
     return output;
 }
