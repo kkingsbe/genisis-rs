@@ -5,11 +5,10 @@
 use bevy::prelude::*;
 use genesis_core::TimeIntegrationPlugin;
 use genesis_core::epoch::EpochManagerPlugin;
-use genesis_core::time::TimeAccumulator;
 use genesis_render::input::InputPlugin;
 use genesis_render::particle::ParticlePlugin;
 use genesis_render::CameraPlugin;
-use genesis_render::camera::CameraController;
+use genesis_render::camera::OrbitController;
 
 fn main() {
     App::new()
@@ -27,6 +26,6 @@ fn setup_camera(mut commands: Commands) {
     commands.spawn((
         Camera3d::default(),
         Transform::from_xyz(0.0, 0.0, 50.0).looking_at(Vec3::ZERO, Vec3::Y),
-        CameraController::default(),
+        OrbitController::default(),
     ));
 }

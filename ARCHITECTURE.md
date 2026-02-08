@@ -64,8 +64,8 @@ The application registers the following plugins and resources:
   - Particles are spawned with Mesh3d, MeshMaterial3d<PointSpriteMaterial>, Transform, and Particle components
 - **Resources**: Global state (EpochManager, TimeAccumulator, CameraState, InputState, OverlayState, PlaybackState)
 - **Systems**:
-  - Core: update_epoch_transition, update_particles (stub)
-  - Particle: init_point_mesh, spawn_particles, update_particles (stub)
+  - Core: update_epoch_transition, update_particles (implemented - basic outward expansion animation)
+  - Particle: init_point_mesh, spawn_particles, update_particles (implemented - basic outward expansion animation)
   - Input: handle_keyboard_input, handle_mouse_input
   - Time: initialize_time_accumulator, update_cosmic_time
 - **Plugins**:
@@ -81,7 +81,7 @@ The application registers the following plugins and resources:
   - Point sprite rendering with custom shader: **Implemented**
   - Particle spawning system (spawn_particles): **Implemented**
   - Shared mesh resource initialization: **Implemented**
-  - Physics-based particle updates: **Pending (stub exists)**
+  - Physics-based particle updates: **Implemented (basic outward expansion animation)**
 
 ### 3.1 Two-Level Particle Architecture
 
@@ -146,7 +146,7 @@ Currently, the rendering-level Particle is directly populated in [`spawn_particl
 - **State Tracking**: CameraState resource with mode and target fields
 - **Status**: 
   - Camera setup (setup_camera system): Implemented - spawns 3D camera at z=50.0 looking at origin
-  - Camera movement controls: Pending (input handling is separate and implemented via InputPlugin)
+  - Camera movement controls: Implemented (free-flight via update_free_flight_camera)
 
 ### 6. Input System Architecture
 - **InputState Resource**: Tracks keyboard direction vector, mouse delta, and mouse button states
@@ -183,8 +183,8 @@ A running Bevy application with a 3D particle system, camera controls, and a tim
 - Particle spawning system (spawn_particles) that creates test cluster
 
 **Pending:**
-- Physics-based particle updates (update_particles system stub - TODO)
-- Free-flight and orbit camera systems (CameraMode enum and CameraState resource, no movement systems)
+- Physics-based particle updates (update_particles - basic outward expansion animation)
+- Free-flight and orbit camera systems (CameraMode enum and CameraState resource, free-flight movement implemented via update_free_flight_camera)
 - Time controls (PlaybackState resource defined, UI not implemented)
 - Timeline scrubber UI (PlaybackState resource defined, UI not implemented)
 - Basic overlays (OverlayState resource defined, UI not implemented)

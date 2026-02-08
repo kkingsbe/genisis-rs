@@ -4,11 +4,22 @@
 
 ---
 
+## Missing Features (Drift Analysis - Phase 1)
+
+- [ ] implement: Add timeline scrubber UI - Create bevy_egui panel with logarithmic scale spanning 13.8 billion years, allowing playback control and scrubbing
+- [ ] implement: Add overlay UI - Create FPS counter and particle count display using bevy_egui
+- [ ] implement: Implement orbit camera mode - Add click-drag orbit camera functionality to complement free-flight mode
+- [ ] implement: Add pause/reset UI controls - Expose TimeAccumulator pause/reset functionality through UI
+- [ ] implement: Create procedural singularity visualization - Replace random particle spawning with energy-mapped coloring (white-hot core to red edges) as specified
+- [ ] implement: Implement epoch plugins - Create actual epoch plugins (e.g., SingularityEpoch, InflationEpoch) and register them with EpochManager
+
+---
+
 ## Sprint 1 - Phase 1: The Singularity
 
 ### Camera System
 - [x] Implement free-flight camera (WASD + mouse look) system
-- [ ] Implement orbit camera (click-drag rotation) system
+- [x] Implement orbit camera (click-drag rotation) system
 - [ ] Add smooth camera interpolation between positions
 - [ ] Implement camera transition crossfade for epoch changes
 - [ ] Add zoom and pan controls

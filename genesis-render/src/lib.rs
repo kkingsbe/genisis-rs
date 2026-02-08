@@ -1,7 +1,7 @@
 //! GENESIS Render - Rendering components and systems
 //!
 //! This crate contains rendering-related components and system definitions.
-//! Full GPU-accelerated rendering systems are not yet implemented.
+//! GPU-accelerated rendering systems are implemented (custom point sprite shader with WGSL).
 
 pub mod particle;
 pub mod camera;

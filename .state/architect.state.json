@@ -1,10 +1,10 @@
 {
-  "lastRun": "2026-02-08T22:28:51.588Z",
+  "lastRun": "2026-02-08T23:11:30.555Z",
   "lastSuccess": "2026-02-08T22:40:50.572Z",
   "lastFailure": "2026-02-08T22:31:30.650Z",
   "errorCount": 5,
   "consecutiveFailures": 0,
-  "status": "success",
+  "status": "running",
   "lastTerminationReason": null,
   "earlyTerminationCount": 0,
   "totalExecutionTimeMs": 718978,

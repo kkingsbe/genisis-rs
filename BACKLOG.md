@@ -7,33 +7,36 @@ This document contains tasks for future sprints. Items here are not yet schedule
 ## Sprint 2 - Phase 2: Inflation & Quantum Seeds
 
 ### Physics Integration
-- [ ] Implement Friedmann equation integrator for scale factor a(t)
-- [ ] Add slow-roll inflaton potential V(φ) model
-- [ ] Implement metric expansion during inflation (exponential)
-- [ ] Implement decelerating expansion post-inflation
-- [ ] Couple particle positions to scale factor a(t)
+- [ ] Implement Friedmann equation integrator for scale factor a(t) using RK4 solver
+- [ ] Add slow-roll inflaton potential V(φ) model (quadratic potential: V(φ) = ½m²φ²)
+- [ ] Implement metric expansion during inflation (exponential: a(t) = a₀e^(Ht))
+- [ ] Implement decelerating expansion post-inflation (a(t) ∝ t^(2/3) for matter-dominated era)
+- [ ] Couple particle positions to scale factor a(t) (multiply positions by current a(t))
 
 ### Density Perturbations
-- [ ] Implement 3D Gaussian random field generator
-- [ ] Create nearly scale-invariant power spectrum P(k) ∝ k^(n_s – 1)
-- [ ] Implement Zel'dovich approximation for density-to-displacement mapping
-- [ ] Map density perturbations to particle displacement
-- [ ] Map density perturbations to particle color intensity
+- [ ] Implement 3D Gaussian random field generator using Box-Muller transform
+- [ ] Create power spectrum generator P(k) ∝ k^(n_s – 1) with configurable n_s parameter
+- [ ] Implement Zel'dovich approximation for density-to-displacement mapping (displacement = ∇ψ where ∇²ψ = -δ)
+- [ ] Map density perturbations to particle displacement (add displacement vectors to particle positions)
+- [ ] Map density perturbations to particle color intensity (brighter = higher density)
 
 ### Visualization
-- [ ] Implement procedural QGP visualization (glowing plasma blobs)
-- [ ] Create temperature-mapped color ramp (blue-white → yellow → orange)
-- [ ] Add epoch transition crossfade (singularity → QGP)
-- [ ] Visualize density variations as brightness clumps
+- [ ] Implement procedural QGP visualization using glowing point sprite material with temperature-based color
+- [ ] Create temperature-to-color ramp function (map temperature T to color: T > 10¹⁵K → blue-white, 10¹⁴K → white, 10¹³K → yellow, 10¹²K → orange)
+- [ ] Implement epoch transition crossfade system (fade singularity → QGP using alpha blending over transition period)
+- [ ] Visualize density variations as brightness clumps (scale particle size and brightness by local density)
+- [ ] Add SingularityEpoch plugin implementing epoch transition from Planck Boundary to Inflation
+- [ ] Add InflationEpoch plugin implementing epoch transition from Inflation to Quark-Gluon Plasma
 
 ### UI & Configuration
-- [ ] Update epoch indicator with inflation → QGP transition
-- [ ] Add temperature readout (10²⁷ K through cooling)
-- [ ] Create parameter panel (bevy_egui sidebar)
-- [ ] Add n_s (spectral index) adjustment control
-- [ ] Add inflation duration adjustment control
-- [ ] Add initial energy scale adjustment control
-- [ ] Implement simulation restart on parameter changes
+- [ ] Update epoch indicator display to show inflation → QGP transition (display epoch name, time range, current scale factor)
+- [ ] Add temperature readout display (show temperature in Kelvin, update each frame based on cosmic time)
+- [ ] Create parameter panel layout in bevy_egui sidebar (collapsible panel on right side of screen)
+- [ ] Add n_s (spectral index) adjustment control (slider from 0.90 to 1.05, default 0.96)
+- [ ] Add inflation duration adjustment control (slider from 10⁻³⁵s to 10⁻³⁰s in log scale)
+- [ ] Add initial energy scale adjustment control (slider for V(φ)₀ parameter in GeV)
+- [ ] Implement simulation restart function (reset TimeAccumulator, respawn particles, re-seed perturbations)
+- [ ] Connect parameter panel controls to config update function (update config and trigger restart)
 
 ### Testing
 - [ ] SPRINT QA: Run full build and test suite. Fix ALL errors. If green, create/update '.sprint_complete' with the current date.
@@ -43,22 +46,28 @@ This document contains tasks for future sprints. Items here are not yet schedule
 ## Sprint 3 - Phase 3: Nucleosynthesis & First Elements
 
 ### Physics - Nuclear Reaction Network
-- [ ] Implement stiff ODE solver (implicit Rosenbrock method)
-- [ ] Create 12-species nuclear reaction network (n, p, D, T, ³He, ⁴He, ⁷Li, ⁷Be, intermediates)
-- [ ] Integrate NACRE II reaction rate compilation (temperature-dependent)
-- [ ] Implement reaction rate interpolation tables
+- [ ] Implement stiff ODE solver using implicit Rosenbrock method for nuclear reaction network
+- [ ] Define NuclearReaction struct with reactants, products, and reaction rate coefficient
+- [ ] Create 12-species nuclear reaction network data structure (n, p, D, T, ³He, ⁴He, ⁷Li, ⁷Be, intermediates)
+- [ ] Implement NACRE II reaction rate compilation lookup table (temperature-dependent rates)
+- [ ] Implement reaction rate interpolation function (linear interpolation in log space for T and rates)
+- [ ] Implement nuclear reaction network update system (solve ODE system dY_i/dt = Σ reactions)
 
 ### Visualization - Composition
-- [ ] Create live composition pie/bar chart overlay
-- [ ] Add real-time element abundance tracking
-- [ ] Implement particle color-coding by dominant composition (H=blue, He=yellow, Li=pink)
-- [ ] Add epoch transition crossfade (QGP → element-colored particles)
+- [ ] Create composition data structure tracking element abundances (Y_i for each species)
+- [ ] Implement live composition bar chart overlay using bevy_egui (show H, He, Li abundances as percentages)
+- [ ] Add real-time element abundance tracking system (update from nuclear reaction network each frame)
+- [ ] Implement particle color-coding by dominant composition (map dominant element to color: H=blue, He=yellow, Li=pink)
+- [ ] Add epoch transition crossfade system (fade QGP → element-colored particles over transition period)
+- [ ] Add NucleosynthesisEpoch plugin implementing epoch transition from QGP to Nucleosynthesis
 
 ### Configuration & Validation
-- [ ] Create TOML configuration presets ("Standard Model", "High Baryon Density")
-- [ ] Implement validation overlay with observed primordial abundances
-- [ ] Add Y_p ≈ 0.245 comparison line for ⁴He
-- [ ] Add toggle-able validation overlay
+- [ ] Create ConfigPreset enum for "Standard Model" (Planck 2018 best-fit) and "High Baryon Density" presets
+- [ ] Implement preset configuration loading (load from TOML or embedded defaults based on preset name)
+- [ ] Create validation overlay panel using bevy_egui (show simulated vs observed abundances side-by-side)
+- [ ] Add Y_p ≈ 0.245 comparison line for ⁴He (horizontal reference line in abundance chart)
+- [ ] Implement toggleable validation overlay (show/hide validation comparison overlay)
+- [ ] Add element abundance accuracy percentage display (show % deviation from observed values)
 
 ### Testing
 - [ ] SPRINT QA: Run full build and test suite. Fix ALL errors. If green, create/update '.sprint_complete' with the current date.
@@ -68,24 +77,27 @@ This document contains tasks for future sprints. Items here are not yet schedule
 ## Sprint 4 - Phase 4: Recombination & CMB
 
 ### Physics - Recombination
-- [ ] Implement Saha equation solver
-- [ ] Track ionization fraction x_e as function of temperature
-- [ ] Implement photon mean free path calculation
-- [ ] Model temperature evolution through recombination (3000 K → 2.725 K)
+- [ ] Implement Saha equation solver for ionization fraction x_e(T) (solve for electron fraction given temperature)
+- [ ] Create IonizationState resource tracking ionization fraction x_e, free electron density, and recombination progress
+- [ ] Implement photon mean free path calculation (λ_mfp = 1 / (n_e σ_T) where n_e is free electron density and σ_T is Thomson cross-section)
+- [ ] Model temperature evolution through recombination (T ∝ 1/a for adiabatic expansion, from 3000 K to 2.725 K)
+- [ ] Add RecombinationEpoch plugin implementing epoch transition from Nucleosynthesis to Recombination
 
 ### Visualization - Fog & CMB
-- [ ] Implement volumetric fog renderer
-- [ ] Create fog density based on ionization fraction
-- [ ] Implement fog clearing as x_e drops below threshold
-- [ ] Create CMB surface projection (spherical shell at last-scattering surface)
-- [ ] Generate CMB temperature anisotropies from Phase 2 density perturbations
-- [ ] Implement camera transition (fog lifts, camera pulls back)
+- [ ] Implement volumetric fog renderer using Bevy fog or custom shader (global fog with density varying by ionization fraction)
+- [ ] Create fog density function mapping ionization fraction x_e to fog density (fog_density = x_e when x_e > 0.1, drops to 0 when x_e < 0.01)
+- [ ] Implement fog clearing system (gradually reduce fog density as x_e drops below threshold)
+- [ ] Create CMB surface projection mesh (spherical shell at last-scattering surface radius ~46 billion light years)
+- [ ] Generate CMB temperature anisotropy texture (2D spherical harmonics from Phase 2 density perturbations)
+- [ ] Implement camera transition system (pull camera back smoothly from center to view CMB sphere when recombination completes)
+- [ ] Add CMB sphere material with temperature anisotropy mapping (color map from cold dark blue to hot bright red)
 
 ### UI & Analysis
-- [ ] Add temperature readout (3000 K → 2.725 K)
-- [ ] Create CMB angular power spectrum C_ℓ display
-- [ ] Add qualitative Planck data comparison lines
-- [ ] Implement toggle overlay for power spectrum
+- [ ] Update temperature readout to show 3000 K → 2.725 K range (display current temperature during recombination epoch)
+- [ ] Create CMB angular power spectrum C_ℓ display chart (plot C_ℓ vs ℓ up to ℓ=1000)
+- [ ] Add qualitative Planck data comparison lines (overlay observational data points on simulated power spectrum)
+- [ ] Implement toggle overlay for power spectrum (show/hide CMB power spectrum chart in corner)
+- [ ] Add last-scattering surface indicator (display "Last Scattering Surface at ~46 Gly" label pointing to CMB sphere)
 
 ### Testing
 - [ ] SPRINT QA: Run full build and test suite. Fix ALL errors. If green, create/update '.sprint_complete' with the current date.
@@ -220,6 +232,47 @@ This document contains tasks for future sprints. Items here are not yet schedule
 
 ### Testing
 - [ ] SPRINT QA: Run full build and test suite. Fix ALL errors. If green, create/update '.sprint_complete' with the current date.
+
+---
+
+## Phase 1 Missing Tasks (Gap Analysis)
+
+### Core System Integration
+- [ ] Implement pause() method in TimeAccumulator resource (add `paused: bool` field and pause/play methods)
+- [ ] Create genesis-config module with Config struct defining Phase 1 parameters (particle_count, time_acceleration, camera_movement_speed, mouse_sensitivity)
+- [ ] Implement TOML deserialization for Config struct using serde
+- [ ] Create default Config constants for "Standard Model" preset
+- [ ] Implement config file loader with path resolution (default: genesis.toml, fallback: embedded defaults)
+- [ ] Implement clap argument parser for --config flag to override default config path
+- [ ] Add ConfigResource and insert into main.rs via .insert_resource(config)
+
+### UI Implementation Tasks (Specific)
+- [ ] Create FPS counter overlay system using bevy_egui (display in corner, update every frame using time diagnostics)
+- [ ] Create particle count overlay system (query with<Particle> component, display count)
+- [ ] Build time control UI (play/pause button, speed slider, reset button)
+- [ ] Implement logarithmic timeline scrubber using bevy_egui Slider widget (span 0 to 13.8e9 years, map slider to cosmic time)
+- [ ] Implement timeline scrubbing to pause playback when dragging and reverse time when dragging backwards
+
+### Camera Enhancement Tasks
+- [ ] Implement orbit camera movement system (update OrbitController based on mouse drag input)
+- [ ] Add orbit camera system to CameraPlugin
+- [ ] Add scroll wheel zoom controls for free-flight camera (move along forward vector)
+- [ ] Add scroll wheel zoom controls for orbit camera (adjust distance with clamping to min/max bounds)
+
+### Transition & Visual Enhancement Tasks
+- [ ] Implement smooth camera interpolation system (camera_tween_resource with start/end positions, duration, easing function)
+- [ ] Create camera transition crossfade system (handle epoch change events, trigger camera transitions)
+- [ ] Implement epoch transition crossfade (fade singularity → QGP in Phase 2, QGP → elements in Phase 3)
+- [ ] Implement energy-based color mapping for singularity visualization (map particle energy to white-hot → yellow → red gradient)
+- [ ] Create cooling model tied to particle distance from origin or elapsed time
+- [ ] Replace random particle spawning with procedural singularity generation (spawn at origin with radial outward velocities)
+
+### Documentation Tasks
+- [ ] Update ARCHITECTURE.md with final crate structure and responsibilities
+- [ ] Document epoch plugin architecture design patterns (trait-based plugin system)
+- [ ] Add inline documentation for genesis-core public APIs (time::TimeAccumulator, epoch::EpochPlugin trait, physics::Particle)
+- [ ] Add inline documentation for genesis-render public APIs (camera::CameraMode/State, input::InputState, particle::Particle component)
+- [ ] Add inline documentation for genesis-ui public APIs (overlay::OverlayState, timeline::PlaybackState)
 
 ---
 
