@@ -26,7 +26,7 @@
 
 ### Time & Timeline
 - [ ] Implement time controls: play/pause, reset, speed adjustment (1x to 10¹²x)
-- [ ] Add pause() method to TimeAccumulator resource
+- [x] Add pause() method to TimeAccumulator resource
 - [ ] Build logarithmic timeline scrubber UI using bevy_egui
 - [ ] Map timeline scrubbing to cosmic time simulation state
 - [ ] Add epoch indicator display (current era, temperature, scale factor)
