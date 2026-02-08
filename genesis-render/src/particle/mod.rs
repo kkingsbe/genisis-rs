@@ -7,7 +7,53 @@
 //! efficient rendering of thousands of particles.
 
 use bevy::prelude::*;
-use bevy::render::mesh::{SphereMeshBuilder, SphereKind};
+use bevy::render::mesh::PrimitiveTopology;
+use bevy::render::render_asset::RenderAssetUsages;
+use bevy::render::render_resource::ShaderRef;
+use bevy::render::alpha::AlphaMode;
+use bevy::render::render_resource::AsBindGroup;
+use bevy::asset::Asset;
+use bevy::pbr::Material;
+
+/// Point sprite material for efficient particle rendering
+///
+/// Uses a custom WGSL shader to render particles as GPU point sprites
+/// instead of mesh spheres. This is significantly more efficient for
+/// rendering large numbers of particles (100K-1M).
+///
+/// The material uses additive blending for a glowing effect.
+#[derive(Asset, TypePath, Clone, AsBindGroup)]
+pub struct PointSpriteMaterial {
+    /// Uniform color for all particles using this material
+    #[uniform(0)]
+    pub color: LinearRgba,
+    /// Base size of particles in pixels before attenuation
+    #[uniform(1)]
+    pub base_size: f32,
+}
+
+impl Material for PointSpriteMaterial {
+    fn fragment_shader() -> ShaderRef {
+        "point_sprite.wgsl".into()
+    }
+
+    fn vertex_shader() -> ShaderRef {
+        "point_sprite.wgsl".into()
+    }
+
+    fn alpha_mode(&self) -> AlphaMode {
+        AlphaMode::Add
+    }
+}
+
+/// Resource storing the shared point mesh for all particles
+///
+/// Point sprites use a minimal mesh with a single vertex at the origin.
+/// The Transform component provides the actual position for each particle.
+/// This resource is initialized once at startup and shared across all
+/// particle entities for efficient rendering.
+#[derive(Resource, Clone)]
+pub struct PointMesh(pub Handle<Mesh>);
 
 /// Component representing a particle in the simulation
 ///
@@ -22,6 +68,30 @@ pub struct Particle {
     pub color: Color,
     /// Particle size in world units
     pub size: f32,
+}
+
+/// Startup system to initialize the shared point mesh resource
+///
+/// Creates a simple point mesh with a single vertex at the origin.
+/// This mesh is reused by all particle entities for efficient rendering.
+/// The Transform component on each particle entity provides the actual
+/// position in world space.
+pub fn init_point_mesh(mut commands: Commands, mut meshes: ResMut<Assets<Mesh>>) {
+    // Create a simple point mesh with PointList topology
+    // Single vertex at origin since Transform provides actual position
+    let mut mesh = Mesh::new(
+        PrimitiveTopology::PointList,
+        RenderAssetUsages::default(),
+    );
+    
+    // Add a single vertex at the origin
+    mesh.insert_attribute(
+        Mesh::ATTRIBUTE_POSITION,
+        vec![[0.0, 0.0, 0.0]],
+    );
+    
+    let mesh_handle = meshes.add(mesh);
+    commands.insert_resource(PointMesh(mesh_handle));
 }
 
 /// System to spawn a cluster of particles around the origin
@@ -40,18 +110,15 @@ pub struct Particle {
 /// instance components.
 pub fn spawn_particles(
     mut commands: Commands,
-    mut meshes: ResMut<Assets<Mesh>>,
-    mut materials: ResMut<Assets<StandardMaterial>>,
+    mut materials: ResMut<Assets<PointSpriteMaterial>>,
+    point_mesh: Res<PointMesh>,
 ) {
-    // Create a simple sphere mesh for particles (single mesh shared by all)
-    let sphere_mesh = SphereMeshBuilder::new(1.0, SphereKind::Ico { subdivisions: 2 }).build();
-    let mesh_handle = meshes.add(sphere_mesh);
-
-    // Create an unlit emissive material for visibility (single material shared by all)
-    let particle_material = StandardMaterial {
-        unlit: true,
-        emissive: LinearRgba::new(1.0, 1.0, 1.0, 1.0),
-        ..default()
+    // Create point sprite material for all particles (single material shared by all)
+    // Using white color for visibility - individual particle colors will be
+    // handled by the shader in future updates
+    let particle_material = PointSpriteMaterial {
+        color: LinearRgba::new(1.0, 1.0, 1.0, 1.0),
+        base_size: 100.0,  // Base size in pixels before attenuation
     };
     let material_handle = materials.add(particle_material);
 
@@ -83,8 +150,8 @@ pub fn spawn_particles(
         // Spawn particle entity with shared mesh/material handles
         // Bevy 0.15 automatically batches entities with same mesh/material for GPU instancing
         commands.spawn((
-            Mesh3d(mesh_handle.clone()),      // Shared mesh handle
-            MeshMaterial3d(material_handle.clone()),  // Shared material handle
+            Mesh3d(point_mesh.0.clone()),  // Shared point mesh from resource
+            MeshMaterial3d(material_handle.clone()),  // Shared point sprite material
             Transform::from_translation(position),  // Per-instance transform
             Particle { position, color, size },
         ));
@@ -93,12 +160,35 @@ pub fn spawn_particles(
 
 /// System to update particle positions based on physics
 ///
-/// Currently a stub - actual particle physics updates need to be implemented.
+/// Currently implements basic outward expansion animation where particles
+/// move away from the origin at a constant speed. This is a simple demonstration
+/// of particle movement capability - full physics sync is a future TODO item.
 pub fn update_particles(
-    _query: Query<&mut Transform, With<Particle>>,
-    _time: Res<Time>,
+    mut query: Query<(Entity, &mut Transform), With<Particle>>,
+    time: Res<Time>,
 ) {
-    // TODO: Implement particle physics updates
+    let speed = 0.5;  // units per second
+    let delta = time.delta_secs();
+    
+    for (entity, mut transform) in query.iter_mut() {
+        let pos = transform.translation;
+        
+        // Calculate direction: normalize position to get outward direction
+        let direction = if pos.length_squared() > f32::EPSILON {
+            // Particle is away from origin - move outward along position vector
+            pos.normalize()
+        } else {
+            // At origin - use pseudo-random direction based on entity index
+            let index = entity.index() as f32;
+            let x = ((index * 123.456).fract() - 0.5) * 2.0;
+            let y = ((index * 789.012).fract() - 0.5) * 2.0;
+            let z = ((index * 345.678).fract() - 0.5) * 2.0;
+            Vec3::new(x, y, z).normalize()
+        };
+        
+        // Move particle outward along its direction
+        transform.translation += direction * speed * delta;
+    }
 }
 
 /// Plugin for registering particle systems with the Bevy app
@@ -123,6 +213,9 @@ pub struct ParticlePlugin;
 
 impl Plugin for ParticlePlugin {
     fn build(&self, app: &mut App) {
-        app.add_systems(Startup, spawn_particles);
+        app.add_plugins(MaterialPlugin::<PointSpriteMaterial>::default())
+            .add_systems(Startup, init_point_mesh)
+            .add_systems(Startup, spawn_particles)
+            .add_systems(Update, update_particles);
     }
 }

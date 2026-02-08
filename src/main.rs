@@ -7,6 +7,7 @@ use genesis_core::TimeIntegrationPlugin;
 use genesis_core::epoch::EpochManagerPlugin;
 use genesis_core::time::TimeAccumulator;
 use genesis_render::input::InputPlugin;
+use genesis_render::particle::ParticlePlugin;
 
 fn main() {
     App::new()
@@ -14,5 +15,18 @@ fn main() {
         .add_plugins(TimeIntegrationPlugin)
         .add_plugins(EpochManagerPlugin)
         .add_plugins(InputPlugin)
+        .add_plugins(ParticlePlugin)
+        .add_systems(Startup, setup_camera)
         .run();
+}
+
+fn setup_camera(mut commands: Commands) {
+    commands.spawn((
+        Camera3d::default(),
+        Transform::from_xyz(0.0, 0.0, 50.0).looking_at(Vec3::ZERO, Vec3::Y),
+        Camera {
+            clear_color: Color::BLACK.into(),
+            ..default()
+        },
+    ));
 }

@@ -6,15 +6,7 @@
 
 ## Sprint 1 - Phase 1: The Singularity
 
-### Core Infrastructure
-- [x] Implement basic input handling (keyboard events for WASD, mouse events for camera)
-- [x] Register TimeIntegrationPlugin in main.rs for cosmic time updates
-
 ### Particle Rendering
-- [x] Implement instanced particle renderer using Bevy PBR materials
-- [x] Create particle component with position, color, size attributes
-- [x] Implement particle spawner system for 100K-1M particles
-- [x] Add GPU instancing support for efficient rendering
 - [ ] Implement point sprite rendering with size attenuation
 
 ### Camera System
@@ -25,10 +17,8 @@
 - [ ] Add zoom and pan controls
 
 ### Time & Timeline
-- [ ] Create cosmic time accumulator (f64) with adjustable acceleration
 - [ ] Implement time controls: play/pause, reset, speed adjustment (1x to 10¹²x)
 - [ ] Add pause() method to TimeAccumulator resource
-- [ ] FIX CRITICAL BUG: Remove duplicate TimeAccumulator initialization from main.rs (TimeIntegrationPlugin already initializes it)
 - [ ] Build logarithmic timeline scrubber UI using bevy_egui
 - [ ] Map timeline scrubbing to cosmic time simulation state
 - [ ] Add epoch indicator display (current era, temperature, scale factor)
@@ -69,7 +59,6 @@
 - [ ] Add .init_resource::<CameraState>() to main.rs
 - [ ] Add .init_resource::<OverlayState>() to main.rs
 - [ ] Add .init_resource::<PlaybackState>() to main.rs
-- [ ] Remove duplicate .init_resource::<TimeAccumulator>() from main.rs (already initialized by TimeIntegrationPlugin)
 
 ### Sprint QA
 - [ ] SPRINT QA: Run full build and test suite. Fix ALL errors. If green, create/update '.sprint_complete' with the current date.
@@ -80,6 +69,12 @@
 
 ### Unrequested Features
 - refactor: Consider deferring full EpochPlugin architecture to Phase 2 - PRD only mentions epoch UI indicator in Phase 2, but keeping for now as foundation (non-blocking)
+- refactor: Remove CameraState resource and CameraMode enum architecture - resource-based state tracking not specified in PRD
+- refactor: Remove InputState resource architecture - detailed input tracking system not specified in PRD
+- refactor: Remove show_epoch_info flag from OverlayState - not specified in Phase 1 PRD requirements
+- refactor: Remove PlaybackState resource - resource-based playback state tracking not specified in PRD
+- refactor: Remove VERSION constants from genesis-core, genesis-render, genesis-ui crates - not specified in PRD
+- refactor: Remove bytemuck dependency from genesis-render/Cargo.toml - not in PRD dependency specifications
 
 ### Contradictory Code
 - fix: Align TimeAccumulator in genesis-core/src/time/mod.rs with PRD requirements - missing pause functionality (PRD Phase 1 requires "pause, and reset" but only reset is implemented) -> ADDED TASK: "Add pause() method to TimeAccumulator resource"
@@ -87,28 +82,11 @@
 - fix: Align genesis-render/src/camera/mod.rs with PRD requirements - module doc claims "Free-flight and orbit camera implementations with smooth interpolation" but only CameraMode enum and CameraState resource exist, no actual camera implementation -> EXISTING TODO covers this
 - fix: Align genesis-ui/src/timeline/mod.rs with PRD requirements - module doc claims "UI widgets for controlling cosmic time flow, including logarithmic timeline scrubber and playback controls" but only PlaybackState resource exists, no actual timeline UI implementation -> EXISTING TODO covers this
 - fix: Align genesis-ui/src/overlay/mod.rs with PRD requirements - module doc claims "FPS counter, particle count display, epoch info panels, and other HUD elements" but only OverlayState resource exists, no actual overlay implementation -> EXISTING TODO covers this
+- fix: Align genesis-core/src/physics/mod.rs and genesis-render/src/particle/mod.rs - two different Particle types with inconsistent field types ([f32; 3] vs Vec3, [f32; 3] vs Color)
+- fix: Align genesis-render/src/particle/mod.rs with PRD requirements - PRD specifies point sprites but implementation uses sphere meshes with StandardMaterial
+- fix: Align genesis-render/src/particle/mod.rs singularity visualization with PRD - missing outward velocity and energy-based color mapping (white-hot core fading to red)
 
 ### Refined Task Definitions
 - refined: Configuration & Initialization tasks broken down into 6 atomic subtasks
 - refined: Architecture & Documentation tasks broken down into 5 atomic subtasks
 - refined: Plugin Registration tasks broken down into 8 atomic subtasks
-
----
-
-## Critical Bug: Duplicate TimeAccumulator Initialization
-
-### Description
-The `TimeAccumulator` resource is being initialized twice:
-1. In `genesis-core/src/time/mod.rs` via `TimeIntegrationPlugin` which has a startup system `initialize_time_accumulator` that calls `commands.insert_resource(TimeAccumulator::default())`
-2. In `src/main.rs` via `.init_resource::<TimeAccumulator>()`
-
-### Root Cause
-The `TimeIntegrationPlugin` already initializes the `TimeAccumulator` through its startup system. Adding `.init_resource::<TimeAccumulator>()` in `main.rs` creates a duplicate initialization path.
-
-### Impact
-This creates potential resource conflicts and violates Bevy's resource management patterns. While Bevy may handle this gracefully by ignoring duplicate init_resource calls, it's architecturally incorrect.
-
-### Solution
-Remove `.init_resource::<TimeAccumulator>()` from `main.rs` since `TimeIntegrationPlugin` already handles initialization properly. The startup system `initialize_time_accumulator` in the plugin should be the sole initialization point.
-
-**Priority:** HIGH - Architectural inconsistency
