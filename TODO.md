@@ -6,11 +6,8 @@
 
 ## Sprint 1 - Phase 1: The Singularity
 
-### Particle Rendering
-- [x] Implement point sprite rendering with size attenuation
-
 ### Camera System
-- [ ] Implement free-flight camera (WASD + mouse look) system
+- [x] Implement free-flight camera (WASD + mouse look) system
 - [ ] Implement orbit camera (click-drag rotation) system
 - [ ] Add smooth camera interpolation between positions
 - [ ] Implement camera transition crossfade for epoch changes

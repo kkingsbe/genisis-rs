@@ -1,15 +1,15 @@
 {
-  "lastRun": "2026-02-08T22:41:47.068Z",
-  "lastSuccess": "2026-02-08T22:51:18.531Z",
-  "lastFailure": "2026-02-08T22:36:47.079Z",
-  "errorCount": 1,
-  "consecutiveFailures": 0,
-  "status": "success",
+  "lastRun": "2026-02-08T22:56:18.521Z",
+  "lastSuccess": "2026-02-08T22:56:18.315Z",
+  "lastFailure": "2026-02-08T23:02:27.353Z",
+  "errorCount": 5,
+  "consecutiveFailures": 4,
+  "status": "failed",
   "lastTerminationReason": null,
   "earlyTerminationCount": 0,
-  "totalExecutionTimeMs": 1366621,
-  "averageExecutionTimeMs": 1366621,
+  "totalExecutionTimeMs": 2237858,
+  "averageExecutionTimeMs": 2237858,
   "successfulTerminations": 0,
   "failedTerminations": 0,
-  "error": "CLI execution failed with exit code null"
+  "error": "Failed to acquire lock for task 'prompt' after 3 attempts: Failed to acquire lock for task 'prompt': timeout after 5000ms"
 }

@@ -45,3 +45,8 @@
 
 ### Plugin Registration
 - [x] Remove duplicate .init_resource::<TimeAccumulator>() from main.rs (already initialized by TimeIntegrationPlugin)
+
+## [2026-02-08]
+
+### Particle Rendering
+- [x] Implement point sprite rendering with size attenuation
