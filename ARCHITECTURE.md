@@ -36,78 +36,75 @@ genesis/
 ### Application Structure
 ```
 src/
-├── main.rs              # Application entry point
-├── plugins/             # Bevy plugins
-│   ├── epoch.rs         # Epoch manager and phase transitions
-│   ├── camera.rs        # Camera system registration
-│   ├── particle.rs      # Particle system registration
-│   └── ui.rs            # UI system registration
-└── resources/           # Global resources
-    ├── config.toml      # Configuration file
-    └── assets/          # Shaders, textures, etc.
+└── main.rs              # Application entry point
 ```
+
+Note: The application is currently minimal, with only the basic Bevy app setup
+and EpochManagerPlugin registered. Most plugin files and resources are not yet
+created.
 
 ## Core Architectural Decisions
 
 ### 1. Modular Crate Architecture
 - **Rationale**: Separates concerns into core, render, and UI domains
 - **Benefit**: Clear dependency boundaries, easier testing, parallel development
-- **genesis-core**: Pure simulation logic, no rendering dependencies
-- **genesis-render**: Rendering systems using Bevy ECS
-- **genesis-ui**: UI components using bevy_egui
+- **genesis-core**: Pure simulation logic (epoch, physics, time), depends on Bevy for Resource trait
+- **genesis-render**: Rendering systems using Bevy ECS (camera, particle components)
+- **genesis-ui**: UI state resources using Bevy ECS (timeline, overlay)
 
 ### 2. Bevy ECS Pattern
-- **Components**: Particle, CameraState, Epoch, Time
-- **Systems**: Update positions, render particles, handle input
-- **Resources**: Global state (config, time accumulator)
-- **Plugins**: Encapsulated systems for epoch, camera, particles, UI
+- **Components**: ParticleComponent (marker), CameraState (resource), EpochManager (resource), TimeAccumulator (resource)
+- **Systems**: update_epoch_transition, update_particles (stub)
+- **Resources**: Global state (EpochManager, TimeAccumulator, CameraState, OverlayState, PlaybackState)
+- **Plugins**: EpochManagerPlugin (implemented)
 
 ### 3. Instanced Particle Rendering
-- **Technique**: GPU instancing with Bevy PBR materials
-- **Capacity**: 100K - 1M particles
+- **Design**: GPU instancing with Bevy PBR materials
+- **Capacity**: 100K - 1M particles (planned)
 - **Attributes**: Position (Vec3), Color (Vec4), Size (f32)
-- **Benefit**: Efficient rendering of large particle counts
+- **Status**: Basic ParticleComponent marker and update_particles system stub defined; actual GPU rendering not yet implemented
 
 ### 4. Cosmic Time System
 - **Type**: f64 accumulator for precision over 13.8B years
-- **Acceleration**: 1x to 10¹²x time scaling
-- **UI Control**: Logarithmic timeline scrubber
-- **Epoch Tracking**: Current era, temperature, scale factor
+- **Acceleration**: 1x to 10¹²x time scaling (with bounds checking)
+- **Status**: Basic TimeAccumulator resource defined; UI controls and epoch tracking not yet implemented
 
 ### 5. Camera System Design
-- **Free-flight Camera**: WASD + mouse look for exploration
-- **Orbit Camera**: Click-drag rotation around focal point
-- **Transitions**: Smooth interpolation + crossfade for epoch changes
-- **Controls**: Zoom, pan, smooth camera movement
+- **Camera Modes**: FreeFlight and Orbit enum variants defined
+- **State Tracking**: CameraState resource with mode and target fields
+- **Status**: Basic structure defined; input handling and camera movement systems not yet implemented
 
 ### 6. Epoch Plugin Architecture
-- **Registration System**: Plugins register for specific epoch ranges
-- **Lifecycle**: Pre-epoch, during-epoch, post-epoch hooks
-- **Phase Support**: 7 phases from Singularity to Dark Energy Era
+- **Registration System**: EpochPlugin trait for defining epoch time ranges and building systems
+- **EpochManager**: Resource that tracks registered epochs and manages transitions
+- **update_epoch_transition**: System that automatically transitions epochs based on cosmic time
 - **Benefit**: Extensible for adding new cosmic epochs
 
-### 7. Configuration Management
+### 7. Configuration Management (Planned)
 - **Format**: TOML for human-readable configuration
 - **Override**: Command-line arguments can override config values
 - **Defaults**: Embedded default configuration
-- **Loading**: On startup, with validation
+- **Status**: Configuration system not yet implemented
 
 ## Phase 1 Scope (Current Sprint)
 
 ### Goal
 A running Bevy application with a 3D particle system, camera controls, and a time slider.
 
-### Features
+### Implementation Status
+**Implemented:**
 - Core infrastructure setup (workspace, Cargo.toml)
 - Bevy 0.15+ application scaffold with window and event loop
+- Epoch manager plugin architecture (EpochManager, EpochPlugin trait)
+
+**Pending:**
 - Basic input handling (keyboard, mouse)
-- Epoch manager plugin architecture
-- Time integration system with f64 accumulator
-- Instanced particle renderer with GPU support
-- Free-flight and orbit camera systems
-- Time controls (play/pause, reset, speed adjustment)
-- Timeline scrubber UI
-- Basic overlays (FPS, particle count, epoch info)
+- Time integration system with f64 accumulator (TimeAccumulator defined, not integrated)
+- Instanced particle renderer with GPU support (ParticleComponent stub, TODO in update_particles)
+- Free-flight and orbit camera systems (CameraMode enum and CameraState resource, no movement systems)
+- Time controls (PlaybackState resource defined, UI not implemented)
+- Timeline scrubber UI (PlaybackState resource defined, UI not implemented)
+- Basic overlays (OverlayState resource defined, UI not implemented)
 
 ## Dependency Graph
 

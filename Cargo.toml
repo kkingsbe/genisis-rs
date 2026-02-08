@@ -24,3 +24,5 @@ license.workspace = true
 [dependencies]
 bevy.workspace = true
 genesis-core = { path = "genesis-core" }
+genesis-render = { path = "genesis-render" }
+genesis-ui = { path = "genesis-ui" }

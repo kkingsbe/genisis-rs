@@ -1,7 +1,7 @@
-//! GENESIS UI - User interface components
+//! GENESIS UI - User interface state and components
 //!
-//! This crate contains all UI elements using bevy_egui, including
-//! timeline scrubbers, time controls, and information overlays.
+//! This crate contains UI state resources and data structures.
+//! Actual UI rendering using bevy_egui is not yet implemented.
 
 pub mod timeline;
 pub mod overlay;

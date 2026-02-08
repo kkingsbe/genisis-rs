@@ -1,7 +1,7 @@
-//! Camera systems
+//! Camera mode definitions
 //!
-//! Free-flight and orbit camera implementations with smooth
-//! interpolation and transition effects.
+//! Defines camera mode enums and state tracking resources.
+//! Actual camera movement and input handling systems are not yet implemented.
 
 use bevy::prelude::*;
 
@@ -14,6 +14,9 @@ pub enum CameraMode {
 }
 
 /// Resource tracking camera state
+///
+/// Stores the current camera mode and optional target point.
+/// Camera movement and input handling systems need to be implemented separately.
 #[derive(Resource)]
 pub struct CameraState {
     pub mode: CameraMode,

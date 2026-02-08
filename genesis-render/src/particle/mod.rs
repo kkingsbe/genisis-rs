@@ -1,7 +1,8 @@
-//! Instanced particle rendering
+//! Particle rendering components
 //!
-//! GPU-accelerated rendering of up to 1M particles using Bevy's
-//! instancing system with PBR materials.
+//! Defines the ParticleComponent marker for entities that represent
+//! particles in the simulation. GPU-accelerated instanced rendering
+//! is planned but not yet implemented.
 
 use bevy::prelude::*;
 
@@ -10,9 +11,11 @@ use bevy::prelude::*;
 pub struct ParticleComponent;
 
 /// System to update particle positions based on physics
+///
+/// Currently a stub - actual particle physics updates need to be implemented.
 pub fn update_particles(
-    mut query: Query<&mut Transform, With<ParticleComponent>>,
-    time: Res<Time>,
+    _query: Query<&mut Transform, With<ParticleComponent>>,
+    _time: Res<Time>,
 ) {
     // TODO: Implement particle physics updates
 }

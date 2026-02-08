@@ -1,9 +1,12 @@
-//! Particle physics and interactions
+//! Particle physics data structures
 //!
-//! Core physics calculations for particle movement, expansion,
-//! and cosmological evolution.
+//! Defines basic particle data structure for simulation state.
+//! Physics calculations and cosmological evolution systems are not yet implemented.
 
 /// A single particle in the simulation
+///
+/// Basic particle data structure storing position, velocity, color, and size.
+/// Physics movement and interaction systems need to be implemented separately.
 pub struct Particle {
     /// Position in 3D space
     pub position: [f32; 3],

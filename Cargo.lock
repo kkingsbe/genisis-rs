@@ -2717,8 +2717,21 @@ dependencies = [
 ]
 
 [[package]]
+name = "genesis"
+version = "0.1.0"
+dependencies = [
+ "bevy 0.15.3",
+ "genesis-core",
+ "genesis-render",
+ "genesis-ui",
+]
+
+[[package]]
 name = "genesis-core"
 version = "0.1.0"
+dependencies = [
+ "bevy 0.15.3",
+]
 
 [[package]]
 name = "genesis-render"
