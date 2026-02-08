@@ -3,7 +3,9 @@
 ## [2026-02-08]
 
 ### Core Infrastructure
+- ✅ Fix TimeAccumulator resource initialization in main.rs (commit 5eee48f)
 - [x] Set up time integration system with f64 accumulator - Added add_time() method to TimeAccumulator, created TimeIntegrationPlugin with startup system initializing the resource and update system accumulating cosmic time each frame using Bevy's Time resource. Exported plugin from genesis-core and registered in main.rs. Verified with cargo check and cargo run. Resolved runtime blocker with TimeAccumulator resource initialization.
+- [x] Set up time integration system with f64 accumulator
 - [x] Fix root workspace binary target - Added [package] section to root Cargo.toml with dependencies on genesis-core, genesis-render, genesis-ui. Verified with cargo check and cargo run.
 - [x] Set up Rust project workspace with Cargo.toml for genesis-core, genesis-render, genesis-ui crates
 - [x] Initialize Bevy 0.15+ application scaffold with window creation and event loop
