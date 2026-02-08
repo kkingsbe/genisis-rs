@@ -1,0 +1,13 @@
+/workspace/target/debug/deps/bevy_utils-877effbdea3a237d.d: /root/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/bevy_utils-0.14.2/src/lib.rs /root/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/bevy_utils-0.14.2/src/futures.rs /root/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/bevy_utils-0.14.2/src/short_names.rs /root/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/bevy_utils-0.14.2/src/synccell.rs /root/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/bevy_utils-0.14.2/src/syncunsafecell.rs /root/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/bevy_utils-0.14.2/src/cow_arc.rs /root/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/bevy_utils-0.14.2/src/default.rs /root/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/bevy_utils-0.14.2/src/once.rs /root/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/bevy_utils-0.14.2/src/parallel_queue.rs
+
+/workspace/target/debug/deps/libbevy_utils-877effbdea3a237d.rmeta: /root/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/bevy_utils-0.14.2/src/lib.rs /root/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/bevy_utils-0.14.2/src/futures.rs /root/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/bevy_utils-0.14.2/src/short_names.rs /root/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/bevy_utils-0.14.2/src/synccell.rs /root/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/bevy_utils-0.14.2/src/syncunsafecell.rs /root/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/bevy_utils-0.14.2/src/cow_arc.rs /root/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/bevy_utils-0.14.2/src/default.rs /root/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/bevy_utils-0.14.2/src/once.rs /root/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/bevy_utils-0.14.2/src/parallel_queue.rs
+
+/root/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/bevy_utils-0.14.2/src/lib.rs:
+/root/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/bevy_utils-0.14.2/src/futures.rs:
+/root/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/bevy_utils-0.14.2/src/short_names.rs:
+/root/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/bevy_utils-0.14.2/src/synccell.rs:
+/root/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/bevy_utils-0.14.2/src/syncunsafecell.rs:
+/root/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/bevy_utils-0.14.2/src/cow_arc.rs:
+/root/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/bevy_utils-0.14.2/src/default.rs:
+/root/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/bevy_utils-0.14.2/src/once.rs:
+/root/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/bevy_utils-0.14.2/src/parallel_queue.rs:

@@ -1,0 +1,13 @@
+/workspace/target/debug/deps/bevy_winit-f98dc4b0f628e4f2.d: /root/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/bevy_winit-0.15.3/src/lib.rs /root/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/bevy_winit-0.15.3/src/accessibility.rs /root/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/bevy_winit-0.15.3/src/converters.rs /root/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/bevy_winit-0.15.3/src/cursor.rs /root/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/bevy_winit-0.15.3/src/state.rs /root/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/bevy_winit-0.15.3/src/system.rs /root/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/bevy_winit-0.15.3/src/winit_config.rs /root/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/bevy_winit-0.15.3/src/winit_monitors.rs /root/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/bevy_winit-0.15.3/src/winit_windows.rs
+
+/workspace/target/debug/deps/libbevy_winit-f98dc4b0f628e4f2.rmeta: /root/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/bevy_winit-0.15.3/src/lib.rs /root/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/bevy_winit-0.15.3/src/accessibility.rs /root/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/bevy_winit-0.15.3/src/converters.rs /root/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/bevy_winit-0.15.3/src/cursor.rs /root/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/bevy_winit-0.15.3/src/state.rs /root/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/bevy_winit-0.15.3/src/system.rs /root/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/bevy_winit-0.15.3/src/winit_config.rs /root/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/bevy_winit-0.15.3/src/winit_monitors.rs /root/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/bevy_winit-0.15.3/src/winit_windows.rs
+
+/root/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/bevy_winit-0.15.3/src/lib.rs:
+/root/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/bevy_winit-0.15.3/src/accessibility.rs:
+/root/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/bevy_winit-0.15.3/src/converters.rs:
+/root/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/bevy_winit-0.15.3/src/cursor.rs:
+/root/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/bevy_winit-0.15.3/src/state.rs:
+/root/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/bevy_winit-0.15.3/src/system.rs:
+/root/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/bevy_winit-0.15.3/src/winit_config.rs:
+/root/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/bevy_winit-0.15.3/src/winit_monitors.rs:
+/root/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/bevy_winit-0.15.3/src/winit_windows.rs:

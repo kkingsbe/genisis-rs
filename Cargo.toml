@@ -1,0 +1,16 @@
+[workspace]
+members = [
+    "genesis-core",
+    "genesis-render",
+    "genesis-ui",
+]
+resolver = "2"
+
+[workspace.package]
+version = "0.1.0"
+edition = "2021"
+license = "MIT OR Apache-2.0"
+
+[workspace.dependencies]
+bevy = { version = "0.15", default-features = false, features = ["bevy_asset", "bevy_color", "bevy_core_pipeline", "bevy_gizmos", "bevy_pbr", "bevy_render", "bevy_scene", "bevy_sprite", "bevy_text", "bevy_ui", "bevy_window", "bevy_winit", "multi_threaded", "png", "tonemapping_luts", "x11"] }
+bevy_egui = "0.28"
