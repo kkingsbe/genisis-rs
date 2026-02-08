@@ -9,6 +9,7 @@
 ### Core Infrastructure
 - [x] Create epoch manager plugin architecture with registration system
 - [ ] Set up time integration system with f64 accumulator
+- [x] **CRITICAL: Fix root workspace binary target** - Root Cargo.toml is configured as workspace-only manifest without a [package] section, preventing `cargo run` from working at the root level. The src/main.rs exists but is orphaned without a package to link to. Solution: Add [package] section to root Cargo.toml with appropriate dependencies (name, version, bevy dependency, and member workspace crates) to enable running the application directly from project root
 
 ### Particle Rendering
 - [ ] Implement instanced particle renderer using Bevy PBR materials
