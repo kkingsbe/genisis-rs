@@ -5,11 +5,13 @@
 use bevy::prelude::*;
 use genesis_core::TimeIntegrationPlugin;
 use genesis_core::epoch::EpochManagerPlugin;
+use genesis_core::time::TimeAccumulator;
 
 fn main() {
     App::new()
         .add_plugins(DefaultPlugins)
         .add_plugins(TimeIntegrationPlugin)
         .add_plugins(EpochManagerPlugin)
+        .init_resource::<TimeAccumulator>()
         .run();
 }

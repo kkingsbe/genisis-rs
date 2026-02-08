@@ -7,8 +7,7 @@
 ## Sprint 1 - Phase 1: The Singularity
 
 ### Core Infrastructure
-- [x] Set up time integration system with f64 accumulator
-- [ ] FIX BLOCKER: Initialize TimeAccumulator resource in main.rs (add `.init_resource::<TimeAccumulator>()`)
+- [x] FIX BLOCKER: Initialize TimeAccumulator resource in main.rs (add `.init_resource::<TimeAccumulator>()`)
 - [ ] Implement basic input handling (keyboard events for WASD, mouse events for camera)
 - [ ] Register TimeIntegrationPlugin in main.rs for cosmic time updates
 
