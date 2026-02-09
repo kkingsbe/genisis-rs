@@ -188,6 +188,8 @@ pub struct OrbitController {
     pub rotation_sensitivity: f32,
     /// Scroll wheel zoom sensitivity
     pub zoom_sensitivity: f32,
+    /// Middle mouse button pan sensitivity
+    pub pan_sensitivity: f32,
 }
 
 impl Default for OrbitController {
@@ -201,6 +203,7 @@ impl Default for OrbitController {
             max_distance: 200.0,
             rotation_sensitivity: 0.005,
             zoom_sensitivity: 0.1,
+            pan_sensitivity: 0.5,
         }
     }
 }
@@ -365,6 +368,38 @@ fn handle_orbit_zoom(
         orbit.distance -= event.y * orbit.zoom_sensitivity;
         orbit.distance = orbit.distance.clamp(orbit.min_distance, orbit.max_distance);
     }
+}
+
+/// System to handle orbit camera pan via middle or right mouse button
+///
+/// Moves the orbit target based on mouse drag when middle or right mouse button
+/// is pressed. Pans horizontally and vertically relative to camera view.
+fn handle_orbit_pan(
+    mut orbit_q: Query<&mut OrbitController>,
+    input: Res<InputState>,
+) {
+    // Check if middle or right mouse button is pressed
+    let middle_pressed = input.mouse_buttons.get(&MouseButton::Middle).copied().unwrap_or(false);
+    let right_pressed = input.mouse_buttons.get(&MouseButton::Right).copied().unwrap_or(false);
+
+    if !middle_pressed && !right_pressed {
+        return;
+    }
+
+    let mut orbit = orbit_q.single_mut();
+
+    // Calculate right vector from yaw (projected onto XZ plane)
+    let right = Vec3::new(orbit.yaw.cos(), 0.0, -orbit.yaw.sin()).normalize();
+
+    // Calculate pan movement
+    let scale = orbit.pan_sensitivity * 0.01;
+    let pan_right = right * (input.mouse_delta.x * scale);
+    let pan_up = Vec3::Y * (input.mouse_delta.y * scale);
+
+    // Update target (subtract because we pan opposite to drag direction)
+    orbit.target.x -= pan_right.x + pan_up.x;
+    orbit.target.y -= pan_right.y + pan_up.y;
+    orbit.target.z -= pan_right.z + pan_up.z;
 }
 
 /// System to handle camera interpolation
@@ -542,6 +577,7 @@ impl Plugin for CameraPlugin {
             .add_systems(Update, update_free_flight_camera)
             .add_systems(Update, update_orbit_camera)
             .add_systems(Update, handle_orbit_zoom)
+            .add_systems(Update, handle_orbit_pan)
             .add_systems(Update, handle_epoch_change_transition)
             .add_systems(PostUpdate, update_camera_targets)
             .add_systems(
