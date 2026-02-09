@@ -11,7 +11,7 @@
 ### Camera System
 
 ### Time & Timeline
-- [ ] Implement time controls: play/pause, reset, speed adjustment (1x to 10¹²x)
+- [x] Implement time controls: play/pause, reset, speed adjustment (1x to 10¹²x)
 - [ ] Build logarithmic timeline scrubber UI using bevy_egui
 - [ ] Map timeline scrubbing to cosmic time simulation state
 - [ ] Add epoch indicator display (current era, temperature, scale factor)
@@ -30,7 +30,6 @@
 - [ ] Add timeline scrubber widget
 
 ### Configuration & Initialization
-- [x] Define Config struct with all Phase 1 parameters (particle_count, time_acceleration, etc.)
 - [ ] Implement TOML deserialization for Config struct
 - [ ] Create default Config constants for "Standard Model" preset
 - [ ] Implement config file loader with path resolution (default: genesis.toml, fallback: embedded defaults)
