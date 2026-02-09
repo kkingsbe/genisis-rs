@@ -239,9 +239,9 @@ fn lerp_rgb(r1: f32, g1: f32, b1: f32, r2: f32, g2: f32, b2: f32, t: f32) -> Col
 ///
 /// # Configuration Note
 ///
-/// main.rs references a non-existent `ParticleConfigResource` wrapper, but
-/// ParticleConfig itself has `#[derive(Resource)]` and can be used directly.
-/// This system receives ParticleConfig as a Bevy Resource.
+/// This system receives ParticleConfig as a Bevy Resource. ParticleConfig
+/// has `#[derive(Resource)]` and is used directly in main.rs via
+/// `config.particle.clone()`. Field names match genesis.toml configuration.
 pub fn spawn_particles(
     mut commands: Commands,
     mut materials: ResMut<Assets<PointSpriteMaterial>>,

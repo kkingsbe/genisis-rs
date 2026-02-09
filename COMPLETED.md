@@ -241,3 +241,9 @@
 
 ### Test Health Tracking
 - [x] fix: Failing test compilation in genesis-render/src/particle/mod.rs - unresolved import `genesis_core::config::ParticleConfigResource` (type does not exist in genesis-core::config module)
+
+### Particle System Scaling
+- [x] feature: Scale particle system from 1000 to 100K-1M particles
+  - Implement adaptive particle spawning based on config.particle.initial_count
+  - Add performance monitoring to ensure target FPS with increasing particle counts
+  - Optimize spawn_particles() to handle 100K+ entities efficiently

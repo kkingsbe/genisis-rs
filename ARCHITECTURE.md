@@ -60,10 +60,10 @@ The application registers the following plugins and resources:
 - **ParticlePlugin** (genesis-render): Particle system initialization and spawning (with PointSpriteMaterial and PointMesh resources)
 - **CameraPlugin** (genesis-render): Camera control systems (free-flight, orbit, interpolation, orbit pan/zoom) with CameraState resource
 - **GenesisUiPlugin** (genesis-ui): UI system with bevy_egui integration, overlay, and timeline controls (includes TimelinePlugin internally)
-- **ConfigResource** (main.rs): Wrapper for Config as a Bevy Resource (NOTE: Config::load() is NOT implemented - uses Config::default())
+- **ConfigResource** (main.rs): Wrapper for Config as a Bevy Resource (NOTE: Config::load() IS implemented - reads from genesis.toml with file path search logic)
 - **ParticleConfig** (genesis-core): Resource for particle spawning configuration (correctly used directly with Resource derive in main.rs line 48)
 - **CameraState** (genesis-render): Resource for tracking camera mode, target, and interpolation state (initialized from CameraConfig)
-- **OverlayState** (genesis-ui): Resource for overlay visibility (initialized from DisplayConfig: show_fps, show_particle_count; NOTE: show_epoch_info field is missing from OverlayState struct but present in DisplayConfig and genesis.toml)
+- **OverlayState** (genesis-ui): Resource for overlay visibility (initialized from DisplayConfig: show_fps, show_particle_count, show_epoch_info)
 - **CosmicTime** (genesis-ui): Resource for timeline state management with logarithmic slider mapping (auto-initialized by TimelinePlugin)
 - **PlaybackState** (genesis-ui): Resource for playback control (auto-initialized by TimelinePlugin)
 - **TimeAccumulator** (genesis-core): Resource for tracking cosmic years (auto-initialized by TimeIntegrationPlugin)
@@ -190,7 +190,7 @@ Currently, the rendering-level Particle is directly populated in [`spawn_particl
   - **Synchronization**: The sync_time_resources system synchronizes:
     - TimeAccumulator's paused state with PlaybackState.playing
     - PlaybackState.speed to TimeAccumulator.acceleration (logarithmic mapping)
-  - **Known Issue**: Timeline scrubbing updates CosmicTime.cosmic_time but does NOT sync back to TimeAccumulator.years. The two resources can become desynchronized when the user scrubs the timeline.
+  - **Timeline Scrubbing**: Timeline scrubbing updates CosmicTime.cosmic_time and syncs back to TimeAccumulator.years via timeline_panel_ui system.
 - **Acceleration**:
   - TimeAccumulator.acceleration handles the actual 1x-10¹²x scaling
   - TimeAccumulator provides pause() and resume() methods for playback control
@@ -205,7 +205,7 @@ Currently, the rendering-level Particle is directly populated in [`spawn_particl
   - Timeline UI controls fully implemented with logarithmic slider mapping
   - Time synchronization between UI playback controls and accumulator fully implemented
   - Speed-to-acceleration mapping: **Implemented** - PlaybackState.speed (0.1-10.0) maps to TimeAccumulator.acceleration (1.0-1e12) using logarithmic scaling
-  - Timeline scrubbing to TimeAccumulator synchronization: **NOT IMPLEMENTED** - slider changes only affect CosmicTime resource
+  - Timeline scrubbing to TimeAccumulator synchronization: **Implemented** - slider changes update both CosmicTime resource and TimeAccumulator.years via timeline_panel_ui
 
 ### 5. Camera System Design
 - **Camera Modes**: FreeFlight and Orbit enum variants defined (Orbit is default)
@@ -258,20 +258,18 @@ The following infrastructure is planned for future phases and does NOT exist in 
 
 ### 8. Configuration Management
 - **Format**: TOML for human-readable configuration
-- **Status**: Configuration system partially implemented with field name mismatches
+- **Status**: Configuration system implemented with file loading support
   - Config struct with WindowConfig, ParticleConfig, CameraConfig, TimeConfig, DisplayConfig fully defined
   - Default implementations provided for all config structs
   - ConfigResource wrapper for Bevy integration
-- **Missing**: Config::load() method is referenced in main.rs but not implemented in genesis-core/src/config.rs
-  - TOML serialization/deserialization via serde is defined but load() method not implemented
-  - CLI argument parsing via clap (--config flag) is defined but not connected
-  - Default location search logic not implemented
+  - Config::load() method implemented - reads from genesis.toml with file path search logic
+  - Searches ./genesis.toml, ~/.config/genesis/config.toml, /etc/genesis/config.toml in order
 - **Configuration Field Mismatches**:
-  - **ParticleConfig**: genesis.toml has `initial_count`, `max_count`, `base_size` but ParticleConfig struct has `particle_count`, `particle_size_base`, `particle_size_variation`, `color_hot`, `color_cool`
+  - **ParticleConfig**: Field names match correctly between genesis.toml and ParticleConfig struct (initial_count, max_count, base_size)
   - **CameraConfig**: genesis.toml has `initial_mode`, `orbit_distance` but CameraConfig struct has `initial_position`, `initial_target`, `camera_mode` (String), `movement_speed`, `orbit_distance`
-  - **DisplayConfig**: genesis.toml has `show_epoch_info` but OverlayState struct does not have this field
-  - **TimeConfig**: genesis.toml has `initial_time_acceleration` but TimeConfig struct has `default_time_acceleration`
-- **Note**: Configuration loading infrastructure needs to be implemented to enable external TOML configuration, and field names need to be reconciled between genesis.toml and Config structs
+  - **DisplayConfig**: genesis.toml has `show_epoch_info` and OverlayState struct also has this field
+  - **TimeConfig**: genesis.toml has `initial_time_acceleration` but TimeConfig struct has `initial_time_acceleration`
+- **Note**: Configuration loading infrastructure is implemented. Some field name mismatches remain (CameraConfig.initial_position, initial_target fields are not in genesis.toml)
 
 ## Phase 1 Scope (Current Implementation)
 
@@ -308,16 +306,16 @@ A running Bevy application with a 3D particle system, camera controls, and a tim
 - Dual time system (TimeAccumulator.years + CosmicTime.cosmic_time) - both exist but timeline scrubbing doesn't sync back to TimeAccumulator.years
 
 **Pending (Phase 1 Completion Items):**
-- Config::load() method implementation for external TOML configuration (main.rs calls Config::load() but method doesn't exist)
+- Config::load() method implemented for external TOML configuration (reads from genesis.toml with file path search logic)
 - Full physics-based particle updates with simulation-level particle sync (update_particles has basic outward expansion, full physics sync pending)
 - Per-instance particle color and size synchronization with GPU instance attributes (Particle component → GPU attributes)
 - OverlayState.show_epoch_info field addition to struct and UI rendering
-- Timeline scrubbing to TimeAccumulator synchronization with state restoration for reverse/replay (slider changes CosmicTime but not TimeAccumulator.years)
+- Timeline scrubbing to TimeAccumulator synchronization with state restoration for reverse/replay (slider changes update both CosmicTime and TimeAccumulator.years)
 - ParticleConfigResource definition in genesis-core (main.rs references it but ParticleConfig has Resource derive - should use ParticleConfig directly)
 - Configuration field name reconciliation between genesis.toml and Config structs:
   - ParticleConfig: reconcile genesis.toml fields (initial_count, max_count, base_size) with struct fields (particle_count, particle_size_base, particle_size_variation, color_hot, color_cool)
   - CameraConfig: reconcile genesis.toml fields (initial_mode, orbit_distance) with struct fields (camera_mode, orbit_radius) and CameraMode enum usage
-  - OverlayState.show_epoch_info field addition to struct and UI rendering (main.rs line 58 attempts to set this field but it doesn't exist in OverlayState struct)
+  - OverlayState.show_epoch_info field exists in struct and UI rendering (main.rs line 51 correctly sets this field)
 
 **Deferred to Future Phases (Phase 2+):**
 - Epoch management system implementation (EpochPlugin trait, EpochManager resource, EpochManagerPlugin, EpochChangeEvent, update_epoch_transition system, handle_epoch_change_transition system)
@@ -599,13 +597,13 @@ The gap analysis was conducted by:
 
 12. **ParticleConfig field names**
     - **Status:** genesis.toml uses `initial_count`, `max_count`, `base_size` which match ParticleConfig struct
-    - **Gap:** None - field names correctly match
-    - **Impact:** None - configuration loading will work correctly once Config::load() is implemented
+    - **Gap:** None - field names correctly match, Config::load() is implemented
+    - **Impact:** None - configuration loading works correctly
 
 13. **DisplayConfig.show_epoch_info vs OverlayState.show_epoch_info**
-    - **Status:** DisplayConfig has `show_epoch_info` field and genesis.toml has it, but OverlayState struct also has it
-    - **Gap:** No task to verify consistency
-    - **Impact:** Both have the field, should work correctly
+    - **Status:** Both DisplayConfig and OverlayState struct have `show_epoch_info` field
+    - **Gap:** None - both structs have the field correctly
+    - **Impact:** None - field exists and works correctly
 
 ### Phase 2 (Inflation & Quantum Seeds) - Gap Analysis
 

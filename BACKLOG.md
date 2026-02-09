@@ -1367,8 +1367,47 @@ Note: Epoch transition crossfade system is Phase 2+ scope (moved to Sprint 2 bel
 ### Release & Documentation
 - [ ] Create cross-platform release builds (Linux, macOS including Apple Silicon, Windows)
 - [ ] Write comprehensive user documentation
-- [ ] Create README with getting-started guide
-- [ ] Write tutorial walkthrough for key features
+  - [ ] Create docs/USER_GUIDE.md with complete user manual
+    - [ ] Document installation procedures for all platforms (Linux, macOS, Windows)
+    - [ ] Document system requirements and supported hardware
+    - [ ] Provide getting started walkthrough (first launch, basic controls)
+    - [ ] Document camera controls (free-flight WASD+mouse, orbit click-drag)
+    - [ ] Document timeline controls (play/pause, speed adjustment, scrubbing)
+    - [ ] Document epoch transitions and what to expect in each phase
+    - [ ] Document cosmological parameters and their effects
+    - [ ] Document keyboard shortcuts and mouse controls
+    - [ ] Document troubleshooting common issues
+  - [ ] Create README.md with project overview and quick start
+    - [ ] Write project description and feature summary
+    - [ ] Add build instructions for developers (Cargo commands)
+    - [ ] Add quick start guide for users (download, install, run)
+    - [ ] Include screenshots from each epoch (singularity, inflation, nucleosynthesis, recombination, dark ages, cosmic dawn)
+    - [ ] List keyboard shortcuts and controls
+    - [ ] Add links to full documentation
+    - [ ] Include license and credits
+  - [ ] Write tutorial walkthrough for key features
+    - [ ] Create docs/TUTORIALS.md with step-by-step guides
+    - [ ] Write "Your First Simulation" tutorial (launch app, watch evolution, use timeline)
+    - [ ] Write "Exploring the Cosmic Timeline" tutorial (scrub through epochs)
+    - [ ] Write "Adjusting Cosmological Parameters" tutorial (modify Ωₘ, ΩΛ, H₀, n_s, σ₈)
+    - [ ] Write "Using Cinematic Mode" tutorial (play full story, understand narration)
+    - [ ] Write "Exporting Data" tutorial (HDF5 snapshots, CSV summaries, screenshots)
+    - [ ] Write "Creating Custom Presets" tutorial (TOML configuration files)
+  - [ ] Create API documentation for developers
+    - [ ] Add rustdoc comments to all public APIs
+    - [ ] Generate documentation with `cargo doc --open`
+    - [ ] Document crate structure and module organization
+    - [ ] Document epoch plugin system for extending the simulator
+  - [ ] Create CONTRIBUTING.md with contribution guidelines
+    - [ ] Document development environment setup
+    - [ ] Document code style and conventions
+    - [ ] Document pull request process
+    - [ ] Document testing procedures
+    - [ ] Add template for issue reporting
+  - [ ] Create CHANGELOG.md tracking version history
+    - [ ] Document unreleased changes
+    - [ ] Document version 1.0.0 release notes
+    - [ ] Follow Keep a Changelog format (Added, Changed, Deprecated, Removed, Fixed, Security)
 - [ ] Implement preset configuration sharing via TOML files
 - [ ] Add version information and changelog
 - [ ] Create installation scripts or packages for each platform (deb, rpm, dmg, msi)

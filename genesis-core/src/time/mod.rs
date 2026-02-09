@@ -5,7 +5,7 @@
 //!
 //! # Dual Time System
 //!
-//! The application uses two separate time resources that can become desynchronized:
+//! The application uses two separate time resources that are synchronized:
 //!
 //! - **TimeAccumulator.years** (this module): Tracks accumulated cosmic time in years,
 //!   updated each frame via [`add_time()`] based on delta time and acceleration factor.
@@ -17,12 +17,9 @@
 //! - TimeAccumulator's paused state with PlaybackState.playing
 //! - PlaybackState.speed to TimeAccumulator.acceleration (logarithmic mapping)
 //!
-//! **Known Issue**: Timeline scrubbing updates CosmicTime.cosmic_time but does NOT sync back
-//! to TimeAccumulator.years. The two resources can become desynchronized when the user
-//! scrubs the timeline. This is a TODO item for future implementation.
-//!
-//! # TODO
-//! - Add synchronization from CosmicTime.cosmic_time to TimeAccumulator.years when timeline is scrubbed
+//! Timeline scrubbing in [`timeline_panel_ui()`](genesis_ui::timeline::timeline_panel_ui) updates
+//! both CosmicTime.cosmic_time and TimeAccumulator.years, ensuring the two resources remain
+//! synchronized when the user scrubs the timeline.
 
 use bevy::prelude::{Commands, Plugin, Res, ResMut, Resource, Startup, Update};
 use bevy::time::Time;
