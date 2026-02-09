@@ -28,10 +28,19 @@ use genesis_core::time::TimeAccumulator;
 ///
 /// Stores playing state and speed factor for time control.
 /// Timeline UI is implemented via timeline_panel_ui system with egui.
-#[derive(Resource, Default)]
+#[derive(Resource)]
 pub struct PlaybackState {
     pub playing: bool,
     pub speed: f32, // 1.0 to 1e12 for logarithmic playback speed control
+}
+
+impl Default for PlaybackState {
+    fn default() -> Self {
+        Self {
+            playing: false,
+            speed: 1.0, // Default to 1x real time
+        }
+    }
 }
 
 /// Resource for cosmic timeline state management
@@ -217,9 +226,8 @@ pub fn sync_time_resources(
     }
 
     // Map PlaybackState.speed (1.0-1e12) to TimeAccumulator.acceleration (1.0-1e12)
-    // using logarithmic scaling: acceleration = 10^((log10(speed) + 1.0) * 6.0)
     let speed = playback_state.speed as f64;
-    let acceleration = 10_f64.powf((speed.log10() + 1.0) * 6.0);
+    let acceleration = speed as f64;
     time_accumulator.set_acceleration(acceleration);
 }
 
