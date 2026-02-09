@@ -18,9 +18,6 @@ use genesis_ui::GenesisUiPlugin;
 pub struct ConfigResource(pub Config);
 
 fn main() {
-    // TODO: Config::load() method is not yet implemented in genesis-core/src/config.rs
-    // Currently this will fail to compile. Need to implement Config::load() method
-    // to load from ./genesis.toml, ~/.config/genesis/config.toml, or /etc/genesis/config.toml
     let config = Config::load();
 
     App::new()
@@ -46,16 +43,12 @@ fn main() {
         .add_plugins(CameraPlugin)
         .insert_resource(ConfigResource(config.clone()))
         .insert_resource(config.particle.clone())
-        // TODO: CameraState::from_config() expects config.initial_mode (CameraMode enum) but
-        // CameraConfig has camera_mode (String). Either convert String to CameraMode or
-        // change CameraConfig to use CameraMode enum directly.
         .insert_resource(CameraState::from_config(&config.camera))
         .add_plugins(GenesisUiPlugin)
-        // TODO: OverlayState does not have show_epoch_info field (defined in genesis-ui/src/overlay/mod.rs)
-        // Either add show_epoch_info to OverlayState struct or remove this field from config.display
         .insert_resource(OverlayState {
             show_fps: config.display.show_fps,
             show_particle_count: config.display.show_particle_count,
+            show_epoch_info: config.display.show_epoch_info,
         })
         .add_systems(Startup, setup_camera)
         .run();
