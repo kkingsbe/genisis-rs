@@ -15,7 +15,7 @@ use bevy::prelude::*;
 use bevy::render::alpha::AlphaMode;
 use bevy::render::mesh::{Mesh, PrimitiveTopology};
 use bevy::render::render_resource::ShaderRef;
-use genesis_render::particle::{PointSpriteMaterial, ATTRIBUTE_INSTANCE_COLOR, ATTRIBUTE_INSTANCE_SIZE};
+use genesis_render::particle::PointSpriteMaterial;
 use std::path::PathBuf;
 
 // The shader file is located in the genesis-render/src/particle directory
@@ -383,67 +383,135 @@ fn test_vertex_attribute_location_0_position() {
     );
 }
 
-/// Test 12: Verify @location(1) for instance_size exists
+/// Test 12: Verify @group(0) @binding(3) contains storage buffer for instance data
 #[test]
-fn test_vertex_attribute_location_1_instance_size() {
+fn test_storage_buffer_binding_3() {
     use std::fs;
     
     let shader_path = get_shader_path();
     let content = fs::read_to_string(&shader_path)
         .expect("Failed to read shader file");
     
-    // Check for location 1
+    // Check for binding 3 declaration
     assert!(
-        content.contains("@location(1) instance_size: f32"),
-        "VertexInput must have @location(1) instance_size: f32 for per-instance size. \
-         This must match the ATTRIBUTE_INSTANCE_SIZE mesh attribute."
+        content.contains("@group(0) @binding(3)"),
+        "Shader must have @group(0) @binding(3) for particle instance storage buffer"
+    );
+    
+    // Verify it binds to a storage buffer
+    let next_line = content.lines()
+        .skip_while(|line| !line.contains("@group(0) @binding(3)"))
+        .nth(1)
+        .expect("Could not find variable declaration after binding 3");
+    
+    assert!(
+        next_line.contains("var<storage, read>") && next_line.contains("particle_instances"),
+        "Binding 3 should bind to a storage buffer named 'particle_instances', got: {}",
+        next_line.trim()
     );
 }
 
-/// Test 13: Verify @location(2) for instance_color exists
+/// Test 13: Verify ParticleInstanceData struct matches instance_buffer.rs layout
 #[test]
-fn test_vertex_attribute_location_2_instance_color() {
+fn test_storage_buffer_particle_instance_data_struct() {
     use std::fs;
     
     let shader_path = get_shader_path();
     let content = fs::read_to_string(&shader_path)
         .expect("Failed to read shader file");
     
-    // Check for location 2
+    // Verify ParticleInstanceData struct is defined
     assert!(
-        content.contains("@location(2) instance_color: vec4<f32>"),
-        "VertexInput must have @location(2) instance_color: vec4<f32> for per-instance color. \
-         This must match the ATTRIBUTE_INSTANCE_COLOR mesh attribute."
+        content.contains("struct ParticleInstanceData"),
+        "Shader must define ParticleInstanceData struct to match Rust struct"
+    );
+    
+    // Verify struct has size field (bytes 0-3)
+    assert!(
+        content.contains("size: f32"),
+        "ParticleInstanceData must have 'size: f32' field (bytes 0-3)"
+    );
+    
+    // Verify struct has padding fields (bytes 4-15)
+    assert!(
+        content.contains("padding0: f32"),
+        "ParticleInstanceData must have 'padding0: f32' field for 16-byte alignment (bytes 4-7)"
+    );
+    
+    assert!(
+        content.contains("padding1: f32"),
+        "ParticleInstanceData must have 'padding1: f32' field for 16-byte alignment (bytes 8-11)"
+    );
+    
+    assert!(
+        content.contains("padding2: f32"),
+        "ParticleInstanceData must have 'padding2: f32' field for 16-byte alignment (bytes 12-15)"
+    );
+    
+    // Verify struct has color field (bytes 16-31)
+    assert!(
+        content.contains("color: vec4<f32>"),
+        "ParticleInstanceData must have 'color: vec4<f32>' field for RGBA color (bytes 16-31)"
     );
 }
 
-/// Test 14: Verify mesh attribute constants have correct properties
+/// Test 14: Verify vertex shader uses @builtin(instance_index)
 #[test]
-fn test_mesh_attribute_properties() {
-    // Check ATTRIBUTE_INSTANCE_SIZE properties
-    assert_eq!(
-        ATTRIBUTE_INSTANCE_SIZE.name,
-        "instance_size",
-        "ATTRIBUTE_INSTANCE_SIZE name should be 'instance_size'"
+fn test_vertex_shader_uses_instance_index() {
+    use std::fs;
+    
+    let shader_path = get_shader_path();
+    let content = fs::read_to_string(&shader_path)
+        .expect("Failed to read shader file");
+    
+    // Verify vertex function takes instance_index as parameter
+    assert!(
+        content.contains("@builtin(instance_index)"),
+        "Vertex shader must use @builtin(instance_index) to index into storage buffer"
     );
     
-    assert_eq!(
-        ATTRIBUTE_INSTANCE_SIZE.format,
-        bevy::render::render_resource::VertexFormat::Float32,
-        "ATTRIBUTE_INSTANCE_SIZE format should be Float32 to match WGSL f32"
+    // Verify the instance_index parameter is used in the vertex function signature
+    assert!(
+        content.contains("fn vertex(input: VertexInput, @builtin(instance_index) instance_idx: u32)") ||
+        content.contains("fn vertex(input: VertexInput,@builtin(instance_index)instance_idx: u32)") ||
+        content.contains("fn vertex(input: VertexInput, @builtin(instance_index) instance_idx:u32)"),
+        "Vertex shader function must accept instance_idx: u32 parameter with @builtin(instance_index)"
+    );
+}
+
+/// Test 15: Verify storage buffer reads instance data using instance index
+#[test]
+fn test_storage_buffer_reads_instance_data() {
+    use std::fs;
+    
+    let shader_path = get_shader_path();
+    let content = fs::read_to_string(&shader_path)
+        .expect("Failed to read shader file");
+    
+    // Verify shader reads particle_instances array with instance_idx
+    assert!(
+        content.contains("particle_instances[instance_idx]") ||
+        content.contains("particle_instances[ instance_idx]") ||
+        content.contains("particle_instances[instance_idx ]"),
+        "Vertex shader must read instance data from storage buffer using particle_instances[instance_idx]"
     );
     
-    // Check ATTRIBUTE_INSTANCE_COLOR properties
-    assert_eq!(
-        ATTRIBUTE_INSTANCE_COLOR.name,
-        "instance_color",
-        "ATTRIBUTE_INSTANCE_COLOR name should be 'instance_color'"
+    // Verify the instance data is assigned to a variable
+    assert!(
+        content.contains("instance_data") && (content.contains("let instance_data") || content.contains("var instance_data")),
+        "Vertex shader should assign storage buffer read to instance_data variable"
     );
     
-    assert_eq!(
-        ATTRIBUTE_INSTANCE_COLOR.format,
-        bevy::render::render_resource::VertexFormat::Float32x4,
-        "ATTRIBUTE_INSTANCE_COLOR format should be Float32x4 to match WGSL vec4<f32>"
+    // Verify instance_data.size is used
+    assert!(
+        content.contains("instance_data.size"),
+        "Vertex shader should use instance_data.size for size attenuation"
+    );
+    
+    // Verify instance_data.color is used
+    assert!(
+        content.contains("instance_data.color"),
+        "Vertex shader should use instance_data.color to pass to fragment shader"
     );
 }
 
@@ -592,7 +660,7 @@ fn test_vertex_shader_uses_attributes() {
         "Shader must have @vertex shader stage"
     );
     
-    // Verify vertex shader uses input.position
+    // Verify vertex shader uses input.position from @location(0)
     assert!(
         content.contains("input.position"),
         "Vertex shader must use input.position from @location(0)"
@@ -608,6 +676,20 @@ fn test_vertex_shader_uses_attributes() {
     assert!(
         content.contains("view.view_proj"),
         "Vertex shader must use view.view_proj from binding 1"
+    );
+    
+    // Verify vertex shader uses storage buffer for instance data
+    assert!(
+        content.contains("particle_instances[instance_idx]") ||
+        content.contains("particle_instances[ instance_idx]") ||
+        content.contains("particle_instances[instance_idx ]"),
+        "Vertex shader must read instance data from storage buffer using particle_instances[instance_idx]"
+    );
+    
+    // Verify vertex shader uses @builtin(instance_index)
+    assert!(
+        content.contains("@builtin(instance_index)"),
+        "Vertex shader must use @builtin(instance_index) to index into storage buffer"
     );
 }
 
@@ -670,69 +752,31 @@ fn test_material_plugin_in_app() {
 #[test]
 fn test_point_mesh_creation() {
     // Create a point mesh with the correct vertex attributes
+    // Note: Instance data (size, color) comes from storage buffer at binding 3,
+    // not from vertex attributes. The mesh only needs position data.
     let mut mesh = Mesh::new(
         PrimitiveTopology::PointList, 
         bevy::render::render_asset::RenderAssetUsages::default()
     );
     
-    // Add position attribute (location 0)
+    // Add position attribute (location 0) - this is the only vertex attribute needed
     mesh.insert_attribute(
         Mesh::ATTRIBUTE_POSITION,
         vec![[0.0, 0.0, 0.0]]
     );
     
-    // Add instance_size attribute (location 1)
-    mesh.insert_attribute(
-        ATTRIBUTE_INSTANCE_SIZE,
-        vec![1.0f32]
-    );
-    
-    // Add instance_color attribute (location 2)
-    mesh.insert_attribute(
-        ATTRIBUTE_INSTANCE_COLOR,
-        vec![[1.0, 1.0, 1.0, 1.0]]
-    );
-    
-    // Verify attributes were added
+    // Verify position attribute was added
     assert!(
         mesh.attribute(Mesh::ATTRIBUTE_POSITION).is_some(),
-        "Mesh must have POSITION attribute"
+        "Mesh must have POSITION attribute at location 0"
     );
     
-    assert!(
-        mesh.attribute(ATTRIBUTE_INSTANCE_SIZE).is_some(),
-        "Mesh must have INSTANCE_SIZE attribute at custom location"
+    // Verify mesh uses PointList topology
+    assert_eq!(
+        mesh.primitive_topology(),
+        PrimitiveTopology::PointList,
+        "Point sprites should use PointList topology"
     );
-    
-    assert!(
-        mesh.attribute(ATTRIBUTE_INSTANCE_COLOR).is_some(),
-        "Mesh must have INSTANCE_COLOR attribute at custom location"
-    );
-    
-    // Verify instance attributes exist and have correct formats
-    let instance_size_attr = mesh.attribute(ATTRIBUTE_INSTANCE_SIZE);
-    let instance_color_attr = mesh.attribute(ATTRIBUTE_INSTANCE_COLOR);
-    
-    assert!(
-        instance_size_attr.is_some(),
-        "INSTANCE_SIZE attribute should exist"
-    );
-    assert!(
-        instance_color_attr.is_some(),
-        "INSTANCE_COLOR attribute should exist"
-    );
-    
-    // Check formats match expectations
-    if let Some(_attr) = instance_size_attr {
-        // Format should be Float32 for f32 values
-        // We can check this exists without inspecting exact variant
-        assert!(true, "Instance size attribute exists with correct format");
-    }
-    
-    if let Some(_attr) = instance_color_attr {
-        // Format should be Float32x4 for vec4<f32> values
-        assert!(true, "Instance color attribute exists with correct format");
-    }
 }
 
 /// Test 24: Test vertex attribute location alignment
@@ -746,7 +790,7 @@ fn test_vertex_attribute_locations_match() {
     
     // Bevy's built-in attributes:
     // - Mesh::ATTRIBUTE_POSITION is always at location 0
-    // - Custom attributes are assigned locations sequentially
+    // - Instance data comes from storage buffer at binding 3, not from vertex attributes
     
     // Verify shader location 0 is position (matches Mesh::ATTRIBUTE_POSITION)
     assert!(
@@ -754,16 +798,22 @@ fn test_vertex_attribute_locations_match() {
         "WGSL @location(0) must be 'position' to match Bevy's built-in POSITION attribute"
     );
     
-    // Verify shader location 1 is instance_size (matches ATTRIBUTE_INSTANCE_SIZE)
+    // Verify there are no vertex attributes at locations 1 or 2 for instance data
+    // Instance data is accessed via storage buffer at binding 3 using @builtin(instance_index)
     assert!(
-        content.contains("@location(1) instance_size"),
-        "WGSL @location(1) must be 'instance_size' to match ATTRIBUTE_INSTANCE_SIZE"
+        !content.contains("@location(1) instance_size"),
+        "WGSL should NOT have @location(1) instance_size - instance data comes from storage buffer at binding 3"
     );
     
-    // Verify shader location 2 is instance_color (matches ATTRIBUTE_INSTANCE_COLOR)
     assert!(
-        content.contains("@location(2) instance_color"),
-        "WGSL @location(2) must be 'instance_color' to match ATTRIBUTE_INSTANCE_COLOR"
+        !content.contains("@location(2) instance_color"),
+        "WGSL should NOT have @location(2) instance_color - instance data comes from storage buffer at binding 3"
+    );
+    
+    // Verify storage buffer at binding 3 is used for instance data
+    assert!(
+        content.contains("@group(0) @binding(3)") && content.contains("particle_instances"),
+        "WGSL must have storage buffer at @group(0) @binding(3) for particle instance data"
     );
 }
 
@@ -788,23 +838,31 @@ fn test_shader_syntax_completeness() {
     assert!(content.contains("struct PointSpriteMaterial"), "Missing PointSpriteMaterial struct");
     assert!(content.contains("struct ViewUniform"), "Missing ViewUniform struct");
     
-    // 4. All three bindings
-    assert!(content.contains("@group(0) @binding(0)"), "Missing binding 0");
-    assert!(content.contains("@group(0) @binding(1)"), "Missing binding 1 (CRITICAL)");
-    assert!(content.contains("@group(0) @binding(2)"), "Missing binding 2");
+    // 4. Instance data struct (storage buffer)
+    assert!(content.contains("struct ParticleInstanceData"), "Missing ParticleInstanceData struct");
     
-    // 5. Vertex shader stage
+    // 5. All four bindings
+    assert!(content.contains("@group(0) @binding(0)"), "Missing binding 0");
+    assert!(content.contains("@group(0) @binding(1)"), "Missing binding 1");
+    assert!(content.contains("@group(0) @binding(2)"), "Missing binding 2");
+    assert!(content.contains("@group(0) @binding(3)"), "Missing binding 3 (storage buffer for instance data)");
+    
+    // 6. Vertex shader stage
     assert!(content.contains("@vertex"), "Missing @vertex shader");
     assert!(content.contains("fn vertex"), "Missing vertex function");
     
-    // 6. Fragment shader stage
+    // 7. Fragment shader stage
     assert!(content.contains("@fragment"), "Missing @fragment shader");
     assert!(content.contains("fn fragment"), "Missing fragment function");
     
-    // 7. Return statements
+    // 8. Return statements
     assert!(content.contains("return output"), "Missing return in vertex shader");
     assert!(content.contains("return input.color") || content.contains("return  input.color"), 
             "Missing return in fragment shader");
+    
+    // 9. Storage buffer access
+    assert!(content.contains("@builtin(instance_index)"), "Missing @builtin(instance_index) for storage buffer access");
+    assert!(content.contains("particle_instances"), "Missing particle_instances storage buffer array");
 }
 
 // ============================================================================
@@ -828,11 +886,15 @@ fn test_print_all_bindings() {
         }
     }
     
-    // Should have exactly 3 bindings at group 0
+    // Should have exactly 4 bindings at group 0
+    // - @binding(0): PointSpriteMaterial uniform
+    // - @binding(1): ViewUniform uniform
+    // - @binding(2): Model matrix uniform
+    // - @binding(3): Storage buffer for particle instance data
     assert_eq!(
         bindings.len(),
-        3,
-        "Shader should have exactly 3 bindings at @group(0). Found: {:?}",
+        4,
+        "Shader should have exactly 4 bindings at @group(0). Found: {:?}",
         bindings
     );
     
@@ -840,10 +902,12 @@ fn test_print_all_bindings() {
     let binding_0 = bindings.iter().find(|b| b.contains("@binding(0)"));
     let binding_1 = bindings.iter().find(|b| b.contains("@binding(1)"));
     let binding_2 = bindings.iter().find(|b| b.contains("@binding(2)"));
+    let binding_3 = bindings.iter().find(|b| b.contains("@binding(3)"));
     
     assert!(binding_0.is_some(), "Missing @binding(0)");
-    assert!(binding_1.is_some(), "Missing @binding(1) - THIS IS THE CRITICAL ERROR LOCATION");
+    assert!(binding_1.is_some(), "Missing @binding(1)");
     assert!(binding_2.is_some(), "Missing @binding(2)");
+    assert!(binding_3.is_some(), "Missing @binding(3) - storage buffer for instance data");
 }
 
 /// Test 27: Verify all WGSL types are correctly specified
@@ -878,16 +942,17 @@ fn test_comprehensive_shader_validation_summary() {
     // Count critical elements
     let has_vertex_input = content.contains("struct VertexInput");
     let has_vertex_output = content.contains("struct VertexOutput");
+    let has_particle_instance_data = content.contains("struct ParticleInstanceData");
     let has_material = content.contains("struct PointSpriteMaterial");
     let has_view_uniform = content.contains("struct ViewUniform");
     let has_binding_0 = content.contains("@group(0) @binding(0)");
     let has_binding_1 = content.contains("@group(0) @binding(1)");
     let has_binding_2 = content.contains("@group(0) @binding(2)");
+    let has_binding_3 = content.contains("@group(0) @binding(3)");
     let has_vertex_shader = content.contains("@vertex");
     let has_fragment_shader = content.contains("@fragment");
     let has_location_0 = content.contains("@location(0) position");
-    let has_location_1 = content.contains("@location(1) instance_size");
-    let has_location_2 = content.contains("@location(2) instance_color");
+    let has_instance_index = content.contains("@builtin(instance_index)");
     
     // Print summary
     println!("\n=== SHADER VALIDATION SUMMARY ===");
@@ -895,32 +960,36 @@ fn test_comprehensive_shader_validation_summary() {
     println!("\nStructs:");
     println!("  - VertexInput: {}", if has_vertex_input { "✓" } else { "✗" });
     println!("  - VertexOutput: {}", if has_vertex_output { "✓" } else { "✗" });
+    println!("  - ParticleInstanceData: {}", if has_particle_instance_data { "✓" } else { "✗" });
     println!("  - PointSpriteMaterial: {}", if has_material { "✓" } else { "✗" });
     println!("  - ViewUniform: {}", if has_view_uniform { "✓" } else { "✗" });
     println!("\nBindings (@group(0)):");
     println!("  - @binding(0) material: {}", if has_binding_0 { "✓" } else { "✗" });
-    println!("  - @binding(1) view: {} [CRITICAL]", if has_binding_1 { "✓" } else { "✗" });
+    println!("  - @binding(1) view: {}", if has_binding_1 { "✓" } else { "✗" });
     println!("  - @binding(2) model: {}", if has_binding_2 { "✓" } else { "✗" });
+    println!("  - @binding(3) particle_instances (storage buffer): {}", if has_binding_3 { "✓" } else { "✗" });
     println!("\nShader Stages:");
     println!("  - @vertex: {}", if has_vertex_shader { "✓" } else { "✗" });
     println!("  - @fragment: {}", if has_fragment_shader { "✓" } else { "✗" });
     println!("\nVertex Attributes (VertexInput):");
     println!("  - @location(0) position: {}", if has_location_0 { "✓" } else { "✗" });
-    println!("  - @location(1) instance_size: {}", if has_location_1 { "✓" } else { "✗" });
-    println!("  - @location(2) instance_color: {}", if has_location_2 { "✓" } else { "✗" });
+    println!("\nInstance Data Access:");
+    println!("  - @builtin(instance_index): {}", if has_instance_index { "✓" } else { "✗" });
+    println!("  - Storage buffer (binding 3) for particle instance data: {}", if has_binding_3 { "✓" } else { "✗" });
     println!("================================\n");
     
     // Assert all critical elements are present
     assert!(has_vertex_input, "Missing VertexInput struct");
     assert!(has_vertex_output, "Missing VertexOutput struct");
+    assert!(has_particle_instance_data, "Missing ParticleInstanceData struct");
     assert!(has_material, "Missing PointSpriteMaterial struct");
     assert!(has_view_uniform, "Missing ViewUniform struct");
     assert!(has_binding_0, "Missing @group(0) @binding(0)");
-    assert!(has_binding_1, "MISSING CRITICAL: @group(0) @binding(1) - This causes GPU error!");
+    assert!(has_binding_1, "Missing @group(0) @binding(1)");
     assert!(has_binding_2, "Missing @group(0) @binding(2)");
+    assert!(has_binding_3, "Missing @group(0) @binding(3) - storage buffer for instance data");
     assert!(has_vertex_shader, "Missing @vertex shader");
     assert!(has_fragment_shader, "Missing @fragment shader");
     assert!(has_location_0, "Missing @location(0) position");
-    assert!(has_location_1, "Missing @location(1) instance_size");
-    assert!(has_location_2, "Missing @location(2) instance_color");
+    assert!(has_instance_index, "Missing @builtin(instance_index) - required for storage buffer indexing");
 }

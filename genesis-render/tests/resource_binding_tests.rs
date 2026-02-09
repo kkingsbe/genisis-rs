@@ -6,9 +6,15 @@
 //! - Resource binding setup (especially binding visibility in shader stages)
 //! - Pipeline layout configuration
 //! - Resource initialization order and lifecycle
-//! - Mesh vertex attribute bindings for instanced rendering
+//! - Storage buffer architecture for particle instance data
 //! - Per-instance data synchronization
 //! - Resource access safety
+//!
+//! # Architecture: Storage Buffer with Instance Index
+//!
+//! The particle rendering system uses Approach 1: Storage Buffer with Instance Index.
+//! Instance data (size, color, etc.) is stored in a storage buffer at binding 3,
+//! and the vertex shader uses @builtin(instance_index) to access per-particle data.
 //!
 //! # Critical Error Being Addressed
 //!
@@ -21,14 +27,13 @@
 
 use bevy::prelude::*;
 use bevy::render::camera::Camera;
-use bevy::render::mesh::{Mesh, PrimitiveTopology, VertexAttributeValues};
-use bevy::render::render_resource::{BindGroupLayout, ShaderRef, ShaderStages, VertexFormat};
+use bevy::render::mesh::PrimitiveTopology;
+use bevy::render::render_resource::{BindGroupLayout, ShaderRef, ShaderStages};
 use bevy::render::ExtractSchedule;
 use genesis_core::config::ParticleConfig;
 use genesis_render::particle::{
     extract_particle_instances, PointMesh, PointSpriteMaterial, Particle,
-    ATTRIBUTE_INSTANCE_COLOR, ATTRIBUTE_INSTANCE_SIZE, ExtractedParticleInstances,
-    ParticleInstanceBindGroupLayout,
+    ExtractedParticleInstances, ParticleInstanceBindGroupLayout,
 };
 
 // Import Zeroable for ParticleInstanceData::zeroed()
@@ -38,6 +43,14 @@ use bytemuck::Zeroable;
 // TEST UTILITIES
 // ============================================================================
 
+/// Helper function to get the shader file path
+fn get_shader_path() -> String {
+    format!(
+        "{}/src/particle/point_sprite.wgsl",
+        env!("CARGO_MANIFEST_DIR")
+    )
+}
+
 #[allow(dead_code)]
 /// Helper function to create a minimal test app with rendering capabilities
 fn create_render_app() -> App {
@@ -45,6 +58,8 @@ fn create_render_app() -> App {
     app.add_plugins(bevy::app::ScheduleRunnerPlugin::run_once())
         .add_plugins(bevy::render::RenderPlugin::default())
         .add_plugins(bevy::asset::AssetPlugin::default());
+    // Run startup schedule to initialize resources like AssetServer
+    app.world_mut().run_schedule(bevy::app::Startup);
     app
 }
 
@@ -135,9 +150,9 @@ fn test_binding_1_view_uniform_vertex_visibility() {
 
     // We verify the shader file contains the correct declaration
     use std::fs;
-    let shader_path = "genesis-render/src/particle/point_sprite.wgsl";
-    
-    let content = fs::read_to_string(shader_path)
+    let shader_path = get_shader_path();
+
+    let content = fs::read_to_string(&shader_path)
         .expect(&format!("Failed to read shader file: {}", shader_path));
 
     // Verify binding 1 exists
@@ -183,9 +198,9 @@ fn test_binding_2_model_matrix_uniform() {
     // let world_pos = model * vec4<f32>(input.position, 1.0);
 
     use std::fs;
-    let shader_path = "genesis-render/src/particle/point_sprite.wgsl";
-    
-    let content = fs::read_to_string(shader_path)
+    let shader_path = get_shader_path();
+
+    let content = fs::read_to_string(&shader_path)
         .expect(&format!("Failed to read shader file: {}", shader_path));
 
     // Verify binding 2 exists
@@ -211,9 +226,9 @@ fn test_binding_2_model_matrix_uniform() {
 #[test]
 fn test_all_bindings_present_in_order() {
     use std::fs;
-    let shader_path = "genesis-render/src/particle/point_sprite.wgsl";
-    
-    let content = fs::read_to_string(shader_path)
+    let shader_path = get_shader_path();
+
+    let content = fs::read_to_string(&shader_path)
         .expect(&format!("Failed to read shader file: {}", shader_path));
 
     // Find all binding declarations
@@ -244,9 +259,9 @@ fn test_all_bindings_present_in_order() {
 #[test]
 fn test_binding_visibility_flags() {
     use std::fs;
-    let shader_path = "genesis-render/src/particle/point_sprite.wgsl";
-    
-    let content = fs::read_to_string(shader_path)
+    let shader_path = get_shader_path();
+
+    let content = fs::read_to_string(&shader_path)
         .expect(&format!("Failed to read shader file: {}", shader_path));
 
     // Extract vertex shader function
@@ -351,7 +366,8 @@ fn test_point_mesh_initialized_before_particles_spawn() {
 
     // Add required plugins
     app.add_plugins(bevy::app::ScheduleRunnerPlugin::run_once())
-    .add_plugins(bevy::asset::AssetPlugin::default());
+        .add_plugins(bevy::render::RenderPlugin::default())
+        .add_plugins(bevy::asset::AssetPlugin::default());
 
     // Add particle config
     app.insert_resource(ParticleConfig {
@@ -393,7 +409,8 @@ fn test_materials_initialized_before_rendering() {
     let mut app = App::new();
 
     app.add_plugins(bevy::app::ScheduleRunnerPlugin::run_once())
-    .add_plugins(bevy::asset::AssetPlugin::default());
+        .add_plugins(bevy::render::RenderPlugin::default())
+        .add_plugins(bevy::asset::AssetPlugin::default());
 
     // Create a material
     let material = PointSpriteMaterial {
@@ -431,7 +448,8 @@ fn test_camera_initialized_before_rendering() {
     let mut app = App::new();
 
     app.add_plugins(bevy::app::ScheduleRunnerPlugin::run_once())
-    .add_plugins(bevy::asset::AssetPlugin::default());
+        .add_plugins(bevy::render::RenderPlugin::default())
+        .add_plugins(bevy::asset::AssetPlugin::default());
 
     // Spawn a camera entity
     app.world_mut().spawn((
@@ -477,7 +495,8 @@ fn test_system_ordering_point_mesh_before_spawn() {
     let mut app = App::new();
 
     app.add_plugins(bevy::app::ScheduleRunnerPlugin::run_once())
-    .add_plugins(bevy::asset::AssetPlugin::default());
+        .add_plugins(bevy::render::RenderPlugin::default())
+        .add_plugins(bevy::asset::AssetPlugin::default());
 
     // Add particle config
     app.insert_resource(ParticleConfig {
@@ -529,7 +548,8 @@ fn test_resources_created_at_startup() {
     let mut app = App::new();
 
     app.add_plugins(bevy::app::ScheduleRunnerPlugin::run_once())
-    .add_plugins(bevy::asset::AssetPlugin::default());
+        .add_plugins(bevy::render::RenderPlugin::default())
+        .add_plugins(bevy::asset::AssetPlugin::default());
 
     // Add particle config
     app.insert_resource(ParticleConfig {
@@ -575,8 +595,9 @@ fn test_resources_accessible_during_update() {
     let mut app = App::new();
 
     app.add_plugins(bevy::app::ScheduleRunnerPlugin::run_once())
-    .add_plugins(bevy::asset::AssetPlugin::default())
-    .add_plugins(bevy::time::TimePlugin::default());
+        .add_plugins(bevy::render::RenderPlugin::default())
+        .add_plugins(bevy::asset::AssetPlugin::default())
+        .add_plugins(bevy::time::TimePlugin::default());
 
     // Add particle config
     app.insert_resource(ParticleConfig {
@@ -654,7 +675,8 @@ fn test_pipeline_cache_no_index_out_of_bounds() {
     let mut app = App::new();
 
     app.add_plugins(bevy::app::ScheduleRunnerPlugin::run_once())
-    .add_plugins(bevy::asset::AssetPlugin::default());
+        .add_plugins(bevy::render::RenderPlugin::default())
+        .add_plugins(bevy::asset::AssetPlugin::default());
 
     // Add particle config
     app.insert_resource(ParticleConfig {
@@ -696,82 +718,16 @@ fn test_pipeline_cache_no_index_out_of_bounds() {
 }
 
 // ============================================================================
-// D. MESH VERTEX ATTRIBUTE BINDING TESTS
+// D. STORAGE BUFFER ARCHITECTURE TESTS
 // ============================================================================
 
-/// Test 16: Test that mesh vertex attributes are correctly configured
-#[test]
-fn test_mesh_vertex_attributes_configured() {
-    // Verify ATTRIBUTE_INSTANCE_SIZE properties
-    assert_eq!(
-        ATTRIBUTE_INSTANCE_SIZE.name,
-        "instance_size",
-        "ATTRIBUTE_INSTANCE_SIZE name should be 'instance_size' to match shader @location(1)"
-    );
-
-    assert_eq!(
-        ATTRIBUTE_INSTANCE_SIZE.format,
-        VertexFormat::Float32,
-        "ATTRIBUTE_INSTANCE_SIZE format should be Float32 to match WGSL f32"
-    );
-
-    // Verify ATTRIBUTE_INSTANCE_COLOR properties
-    assert_eq!(
-        ATTRIBUTE_INSTANCE_COLOR.name,
-        "instance_color",
-        "ATTRIBUTE_INSTANCE_COLOR name should be 'instance_color' to match shader @location(2)"
-    );
-
-    assert_eq!(
-        ATTRIBUTE_INSTANCE_COLOR.format,
-        VertexFormat::Float32x4,
-        "ATTRIBUTE_INSTANCE_COLOR format should be Float32x4 to match WGSL vec4<f32>"
-    );
-}
-
-/// Test 17: Test that ATTRIBUTE_INSTANCE_SIZE is at correct shader location
-#[test]
-fn test_attribute_instance_size_location() {
-    use std::fs;
-    let shader_path = "genesis-render/src/particle/point_sprite.wgsl";
-    
-    let content = fs::read_to_string(shader_path)
-        .expect(&format!("Failed to read shader file: {}", shader_path));
-
-    // Verify VertexInput struct has instance_size at location(1)
-    assert!(
-        content.contains("@location(1) instance_size: f32"),
-        "Shader must declare @location(1) instance_size: f32 to match \
-         ATTRIBUTE_INSTANCE_SIZE mesh attribute. \
-         If the location doesn't match, instanced rendering will fail."
-    );
-}
-
-/// Test 18: Test that ATTRIBUTE_INSTANCE_COLOR is at correct shader location
-#[test]
-fn test_attribute_instance_color_location() {
-    use std::fs;
-    let shader_path = "genesis-render/src/particle/point_sprite.wgsl";
-    
-    let content = fs::read_to_string(shader_path)
-        .expect(&format!("Failed to read shader file: {}", shader_path));
-
-    // Verify VertexInput struct has instance_color at location(2)
-    assert!(
-        content.contains("@location(2) instance_color: vec4<f32>"),
-        "Shader must declare @location(2) instance_color: vec4<f32> to match \
-         ATTRIBUTE_INSTANCE_COLOR mesh attribute. \
-         If the location doesn't match, instanced rendering will fail."
-    );
-}
-
-/// Test 19: Test that mesh has POSITION attribute at location 0
+/// Test 16: Test that mesh has POSITION attribute at location 0
 #[test]
 fn test_mesh_position_attribute() {
     use std::fs;
-    let shader_path = "genesis-render/src/particle/point_sprite.wgsl";
-    
-    let content = fs::read_to_string(shader_path)
+    let shader_path = get_shader_path();
+
+    let content = fs::read_to_string(&shader_path)
         .expect(&format!("Failed to read shader file: {}", shader_path));
 
     // Verify VertexInput struct has position at location(0)
@@ -783,118 +739,90 @@ fn test_mesh_position_attribute() {
     );
 }
 
-/// Test 20: Test that instance attributes are properly set up for instanced rendering
+/// Test 17: Test that storage buffer binding layout is correctly configured
+///
+/// This test validates the storage buffer approach (Approach 1: Storage Buffer with Instance Index).
+/// The current implementation uses a storage buffer at binding 3 containing particle instance data,
+/// with the vertex shader using @builtin(instance_index) to access it.
+
+/// Test 17: Test that storage buffer binding layout is correctly configured
+///
+/// This test validates the storage buffer approach (Approach 1: Storage Buffer with Instance Index).
+/// The current implementation uses a storage buffer at binding 3 containing particle instance data,
+/// with the vertex shader using @builtin(instance_index) to access it.
 #[test]
-fn test_instance_attributes_for_instanced_rendering() {
-    let mut mesh = Mesh::new(PrimitiveTopology::PointList, bevy::render::render_asset::RenderAssetUsages::default());
+fn test_storage_buffer_binding_layout() {
+    use std::fs;
+    let shader_path = get_shader_path();
 
-    // Add basic position attribute
-    mesh.insert_attribute(
-        bevy::render::mesh::Mesh::ATTRIBUTE_POSITION,
-        vec![[0.0, 0.0, 0.0]],
-    );
+    let content = fs::read_to_string(&shader_path)
+        .expect(&format!("Failed to read shader file: {}", shader_path));
 
-    // Add instance size attribute
-    mesh.insert_attribute(ATTRIBUTE_INSTANCE_SIZE, vec![1.0f32]);
-
-    // Add instance color attribute
-    mesh.insert_attribute(ATTRIBUTE_INSTANCE_COLOR, vec![[1.0, 1.0, 1.0, 1.0f32]]);
-
-    // Verify all attributes exist
+    // Verify binding 3 exists and is a storage buffer
     assert!(
-        mesh.contains_attribute(bevy::render::mesh::Mesh::ATTRIBUTE_POSITION),
-        "Mesh must contain POSITION attribute for vertex positions"
+        content.contains("@group(0) @binding(3)"),
+        "CRITICAL: Shader must declare @group(0) @binding(3) for storage buffer. \
+         This is the storage buffer that contains particle instance data."
     );
 
+    // Verify binding 3 binds to a storage buffer with read access
     assert!(
-        mesh.contains_attribute(ATTRIBUTE_INSTANCE_SIZE),
-        "Mesh must contain INSTANCE_SIZE attribute for per-instance size data"
+        content.contains("var<storage, read>"),
+        "CRITICAL: Binding 3 must be a storage buffer with read access. \
+         The vertex shader reads particle instance data from this buffer."
     );
 
+    // Verify the storage buffer is named particle_instances (or similar)
     assert!(
-        mesh.contains_attribute(ATTRIBUTE_INSTANCE_COLOR),
-        "Mesh must contain INSTANCE_COLOR attribute for per-instance color data"
+        content.contains("particle_instances"),
+        "CRITICAL: Storage buffer should contain 'particle_instances' or similar naming \
+         to indicate it holds particle instance data."
     );
-
-    // Verify attribute values
-    if let Some(VertexAttributeValues::Float32(values)) =
-        mesh.attribute(ATTRIBUTE_INSTANCE_SIZE)
-    {
-        assert_eq!(
-            values.len(),
-            1,
-            "Instance size attribute should have 1 value per vertex"
-        );
-        assert_eq!(
-            values[0], 1.0,
-            "Instance size should be correctly set to 1.0"
-        );
-    } else {
-        panic!("INSTANCE_SIZE attribute should be Float32 format");
-    }
-
-    if let Some(VertexAttributeValues::Float32x4(values)) =
-        mesh.attribute(ATTRIBUTE_INSTANCE_COLOR)
-    {
-        assert_eq!(
-            values.len(),
-            1,
-            "Instance color attribute should have 1 value per vertex"
-        );
-        assert_eq!(
-            values[0],
-            [1.0, 1.0, 1.0, 1.0],
-            "Instance color should be correctly set to white [1.0, 1.0, 1.0, 1.0]"
-        );
-    } else {
-        panic!("INSTANCE_COLOR attribute should be Float32x4 format");
-    }
 }
 
-/// Test 21: Test that vertex attribute locations don't conflict
+/// Test 18: Test that vertex shader uses storage buffer with instance_index
+///
+/// This test validates that the vertex shader correctly uses @builtin(instance_index)
+/// to access the storage buffer containing particle instance data.
 #[test]
-fn test_vertex_attribute_locations_no_conflicts() {
-    // Bevy's standard attributes have known locations:
-    // - POSITION: location 0
-    // - NORMAL: location 1
-    // - UV_0: location 2
-    // - TANGENT: location 3
-    // - COLOR_0: location 4
-    
-    // Our custom attributes should use different locations to avoid conflicts:
-    // - INSTANCE_SIZE: location 1 (conflicts with NORMAL, but PointList doesn't need normals)
-    // - INSTANCE_COLOR: location 2 (conflicts with UV_0, but PointList doesn't need UVs)
-    
-    // Since PointMesh uses PointList topology and doesn't have normals or UVs,
-    // using locations 1 and 2 for instance attributes is safe.
-    
-    // Verify our custom attribute IDs are unique
-    assert_ne!(
-        ATTRIBUTE_INSTANCE_SIZE.id, ATTRIBUTE_INSTANCE_COLOR.id,
-        "Custom vertex attributes must have unique IDs to avoid conflicts"
+fn test_vertex_shader_uses_storage_buffer() {
+    use std::fs;
+    let shader_path = get_shader_path();
+
+    let content = fs::read_to_string(&shader_path)
+        .expect(&format!("Failed to read shader file: {}", shader_path));
+
+    // Extract vertex shader function
+    let vertex_start = content.find("@vertex")
+        .expect("Vertex shader not found");
+    let vertex_end = content.find("@fragment")
+        .unwrap_or(content.len());
+    let vertex_shader = &content[vertex_start..vertex_end];
+
+    // Verify vertex shader uses @builtin(instance_index)
+    assert!(
+        vertex_shader.contains("@builtin(instance_index)"),
+        "CRITICAL: Vertex shader must use @builtin(instance_index) to access the storage buffer. \
+         This is the mechanism used to index into the particle instance data storage buffer."
     );
 
-    // Verify IDs don't conflict with standard Bevy attributes
-    let standard_attributes = [
-        bevy::render::mesh::Mesh::ATTRIBUTE_POSITION,
-        bevy::render::mesh::Mesh::ATTRIBUTE_NORMAL,
-        bevy::render::mesh::Mesh::ATTRIBUTE_UV_0,
-        bevy::render::mesh::Mesh::ATTRIBUTE_TANGENT,
-        bevy::render::mesh::Mesh::ATTRIBUTE_COLOR,
-    ];
+    // Verify vertex shader accesses the storage buffer
+    assert!(
+        vertex_shader.contains("particle_instances"),
+        "CRITICAL: Vertex shader must access the particle_instances storage buffer \
+         to retrieve per-instance data (size, color, etc.)."
+    );
 
-    for standard in &standard_attributes {
-        assert_ne!(
-            ATTRIBUTE_INSTANCE_SIZE.id, standard.id,
-            "INSTANCE_SIZE ID must not conflict with standard attribute {:?}",
-            standard.name
-        );
-        assert_ne!(
-            ATTRIBUTE_INSTANCE_COLOR.id, standard.id,
-            "INSTANCE_COLOR ID must not conflict with standard attribute {:?}",
-            standard.name
-        );
-    }
+    // Verify the vertex shader doesn't use the old vertex attribute approach
+    // (no instance_size or instance_color as vertex inputs)
+    let has_old_instance_size = vertex_shader.contains("@location(1) instance_size");
+    let has_old_instance_color = vertex_shader.contains("@location(2) instance_color");
+    
+    assert!(
+        !has_old_instance_size && !has_old_instance_color,
+        "Vertex shader should NOT use old vertex attribute approach (instance_size @location(1), \
+         instance_color @location(2)). Instead, use storage buffer with @builtin(instance_index)."
+    );
 }
 
 // ============================================================================
@@ -1059,7 +987,8 @@ fn test_resource_reference_counting() {
     let mut app = App::new();
 
     app.add_plugins(bevy::app::ScheduleRunnerPlugin::run_once())
-    .add_plugins(bevy::asset::AssetPlugin::default());
+    .add_plugins(bevy::asset::AssetPlugin::default())
+    .add_plugins(bevy::render::RenderPlugin::default());
 
     // Create a mesh asset
     let mut meshes = app.world_mut().resource_mut::<bevy::asset::Assets<bevy::render::mesh::Mesh>>();
@@ -1181,8 +1110,9 @@ fn test_complete_particle_rendering_setup() {
     let mut app = App::new();
 
     app.add_plugins(bevy::app::ScheduleRunnerPlugin::run_once())
-    .add_plugins(bevy::asset::AssetPlugin::default())
-    .add_plugins(bevy::time::TimePlugin::default());
+        .add_plugins(bevy::render::RenderPlugin::default())
+        .add_plugins(bevy::asset::AssetPlugin::default())
+        .add_plugins(bevy::time::TimePlugin::default());
 
     // Add particle config
     app.insert_resource(ParticleConfig {
@@ -1248,7 +1178,8 @@ fn test_extract_system_transfers_data() {
     let mut app = App::new();
 
     app.add_plugins(bevy::app::ScheduleRunnerPlugin::run_once())
-    .add_plugins(bevy::asset::AssetPlugin::default());
+        .add_plugins(bevy::render::RenderPlugin::default())
+        .add_plugins(bevy::asset::AssetPlugin::default());
 
     // Add particle config
     app.insert_resource(ParticleConfig {
@@ -1291,9 +1222,9 @@ fn test_extract_system_transfers_data() {
 #[test]
 fn test_comprehensive_binding_validation() {
     use std::fs;
-    let shader_path = "genesis-render/src/particle/point_sprite.wgsl";
-    
-    let content = fs::read_to_string(shader_path)
+    let shader_path = get_shader_path();
+
+    let content = fs::read_to_string(&shader_path)
         .expect(&format!("Failed to read shader file: {}", shader_path));
 
     // CRITICAL BINDINGS - All must exist for rendering to work
@@ -1370,40 +1301,39 @@ fn test_comprehensive_binding_validation() {
          the shader stage'"
     );
 
-    // VERTEX INPUT LOCATIONS - Must match mesh attributes
+    // STORAGE BUFFER ARCHITECTURE - Must use binding 3 with instance_index
+    assert!(
+        content.contains("@group(0) @binding(3)"),
+        "CRITICAL: Binding 3 (storage buffer) must exist for particle instance data"
+    );
+    assert!(
+        content.contains("var<storage, read>"),
+        "CRITICAL: Binding 3 must be a storage buffer with read access"
+    );
+    assert!(
+        vertex_shader.contains("@builtin(instance_index)"),
+        "CRITICAL: Vertex shader must use @builtin(instance_index) to access storage buffer"
+    );
+    assert!(
+        vertex_shader.contains("particle_instances"),
+        "CRITICAL: Vertex shader must access the particle_instances storage buffer"
+    );
+
+    // VERTEX INPUT LOCATIONS - Must match mesh attributes (only position for storage buffer approach)
     assert!(
         content.contains("@location(0) position: vec3<f32>"),
         "CRITICAL: Vertex input must have position at location(0) to match Mesh::ATTRIBUTE_POSITION"
     );
-    assert!(
-        content.contains("@location(1) instance_size: f32"),
-        "CRITICAL: Vertex input must have instance_size at location(1) to match ATTRIBUTE_INSTANCE_SIZE"
-    );
-    assert!(
-        content.contains("@location(2) instance_color: vec4<f32>"),
-        "CRITICAL: Vertex input must have instance_color at location(2) to match ATTRIBUTE_INSTANCE_COLOR"
-    );
 
-    // RUST MESH ATTRIBUTES - Must match shader locations
-    assert_eq!(
-        ATTRIBUTE_INSTANCE_SIZE.name,
-        "instance_size",
-        "CRITICAL: Mesh attribute name must match shader location(1)"
-    );
-    assert_eq!(
-        ATTRIBUTE_INSTANCE_SIZE.format,
-        VertexFormat::Float32,
-        "CRITICAL: Mesh attribute format must match shader f32 type"
-    );
-    assert_eq!(
-        ATTRIBUTE_INSTANCE_COLOR.name,
-        "instance_color",
-        "CRITICAL: Mesh attribute name must match shader location(2)"
-    );
-    assert_eq!(
-        ATTRIBUTE_INSTANCE_COLOR.format,
-        VertexFormat::Float32x4,
-        "CRITICAL: Mesh attribute format must match shader vec4<f32> type"
+    // Verify the vertex shader does NOT use the old vertex attribute approach
+    let has_old_instance_size = content.contains("@location(1) instance_size: f32");
+    let has_old_instance_color = content.contains("@location(2) instance_color: vec4<f32>");
+    
+    assert!(
+        !has_old_instance_size && !has_old_instance_color,
+        "CRITICAL: Shader should NOT use old vertex attribute approach (instance_size @location(1), \
+         instance_color @location(2)). The current architecture uses storage buffer with \
+         @builtin(instance_index)."
     );
 
     // MATERIAL TRAIT - Must be correctly implemented
