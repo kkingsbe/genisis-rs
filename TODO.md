@@ -8,12 +8,6 @@
 
 ### Critical Fixes (Blockers)
 
-#### Camera Configuration
-- [ ] fix: Resolve CameraConfig field access in setup_camera
-  - main.rs line 69 uses config.camera.orbit_distance which EXISTS
-  - Remove outdated TODO comment in main.rs (lines 49-51)
-  - Confirm CameraState::from_config() correctly handles camera_mode String
-
 ### Phase 1 Completeness Items
 
 #### Particle System Scaling
@@ -35,12 +29,6 @@
   - CameraState interpolation infrastructure is Phase 7 feature per PRD
   - Keep basic camera mode switching (FreeFlight ↔ Orbit) which is Phase 1
   - Document that full cinematic interpolation is deferred to Phase 7
-
-#### Documentation Cleanup
-- [x] docs: Remove outdated TODO comments from main.rs
-  - Lines 21-22: Config::load() TODO (will be implemented) - REMOVED
-  - Lines 49-51: CameraConfig field access TODO (fields already match) - NOT FOUND (already implemented)
-  - Lines 54-55: OverlayState show_epoch_info TODO (will be implemented) - NOT FOUND (already implemented)
 
 ### Sprint QA
 - [ ] SPRINT QA: Run full build and test suite. Fix ALL errors. If green, create/update '.sprint_complete' with the current date.
