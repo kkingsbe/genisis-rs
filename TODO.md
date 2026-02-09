@@ -1,5 +1,17 @@
 # Drift Detection
 
+## Drift & Cleanup (Latest Analysis - 2026-02-09)
+
+### Type A - Unrequested Features
+- [x] refactor: Remove test_interpolation function from genesis-render/src/camera/mod.rs - Development testing function triggered by 'T' key (lines 544-564) is not specified in PRD and should be removed for production code
+- refactor: Remove setup_test_camera_target function from src/main.rs - Development testing code spawning test CameraTarget entity (lines 100-103) is not specified in PRD and should be removed
+
+### Type B - PRD Contradictions
+- fix: Align time acceleration range with PRD requirements - genesis-core/src/config.rs:152 sets time_acceleration_min to 0.1, but PRD Phase 1 requires minimum 1x acceleration (range should be 1x to 10^12x, not 0.1x to 10^12x)
+- fix: Align UI speed slider range with PRD requirements - genesis-ui/src/timeline/mod.rs:170 slider has range 0.1..=10.0 but PRD Phase 1 requires 1x to 10^12x acceleration (1e12), not 10x
+
+---
+
 Critical drift items identified from PRD analysis:
 
 ## Feature Drift (Missing PRD Features)
@@ -49,7 +61,6 @@ Critical drift items identified from PRD analysis:
 ### Critical Blocker Resolution (Priority: IMMEDIATE)
 
 ### Camera System
-- [x] Add smooth camera interpolation between positions
 - [ ] Implement camera transition crossfade for epoch changes
 - [ ] Add zoom and pan controls
 
