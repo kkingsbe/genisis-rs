@@ -5,7 +5,6 @@
 use bevy::prelude::*;
 use bevy::window::{PresentMode, WindowResolution};
 use genesis_core::Config;
-use genesis_core::SingularityEpoch;
 use genesis_core::TimeIntegrationPlugin;
 use genesis_render::camera::{CameraController, CameraState, OrbitController};
 use genesis_render::input::InputPlugin;
@@ -57,7 +56,6 @@ fn main() {
         .insert_resource(OverlayState {
             show_fps: config.display.show_fps,
             show_particle_count: config.display.show_particle_count,
-            show_epoch_info: config.display.show_epoch_info,
         })
         .add_systems(Startup, setup_camera)
         .run();
@@ -68,7 +66,7 @@ fn setup_camera(mut commands: Commands, config: Res<ConfigResource>) {
     // The active controller is determined by CameraState.mode
     // Both controllers are always present; mode switching toggles which one responds to input
     // Camera configuration is loaded from config.camera
-    let orbit_distance = config.0.camera.orbit_radius;
+    let orbit_distance: f32 = config.0.camera.orbit_distance as f32;
     commands.spawn((
         Camera3d::default(),
         Transform::from_xyz(0.0, 0.0, orbit_distance).looking_at(Vec3::ZERO, Vec3::Y),

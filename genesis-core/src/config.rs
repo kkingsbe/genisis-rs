@@ -18,7 +18,7 @@
 //!
 //! ## CameraConfig
 //! - genesis.toml fields: `initial_mode`, `orbit_distance`
-//! - CameraConfig struct fields: `initial_position`, `initial_target`, `camera_mode` (String), `movement_speed`, `orbit_radius`
+//! - CameraConfig struct fields: `initial_position`, `initial_target`, `camera_mode` (String), `movement_speed`, `orbit_distance`
 //! - Note: CameraMode enum exists but CameraConfig uses String for camera_mode
 //!
 //! ## DisplayConfig / OverlayState
@@ -97,8 +97,8 @@ pub struct CameraConfig {
     pub camera_mode: String,
     /// Movement speed for free-flight camera mode
     pub movement_speed: f64,
-    /// Default orbit radius for orbit camera mode
-    pub orbit_radius: f64,
+    /// Default orbit distance for orbit camera mode
+    pub orbit_distance: f64,
 }
 
 impl Default for CameraConfig {
@@ -108,7 +108,7 @@ impl Default for CameraConfig {
             initial_target: [0.0, 0.0, 0.0],
             camera_mode: "orbit".to_string(),
             movement_speed: 10.0,
-            orbit_radius: 100.0,
+            orbit_distance: 100.0,
         }
     }
 }

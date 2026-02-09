@@ -15,9 +15,8 @@
 - [ ] fix: Align particle rendering with PRD requirements - Implement synchronization between Particle component data and GPU instance attributes for per-particle color and size variation per PRD line 113; currently particles appear uniform
 - [ ] fix: Align Config::load() with PRD requirements - Implement actual configuration loading from ./genesis.toml, ~/.config/genesis/config.toml, or /etc/genesis/config.toml with proper file path resolution and error handling; currently only returns default values
 - [ ] fix: Align ParticleConfig with genesis.toml - Reconcile field names between genesis.toml (initial_count, max_count, base_size) and ParticleConfig struct (particle_count, particle_size_base, particle_size_variation, color_hot, color_cool)
-- [ ] fix: Align CameraConfig with genesis.toml - Reconcile orbit_distance vs orbit_radius field name inconsistency; update CameraConfig struct or main.rs to use consistent field name
+- [x] fix: Align CameraConfig with genesis.toml - Reconcile orbit_distance vs orbit_radius field name inconsistency; update CameraConfig struct or main.rs to use consistent field name
 - [ ] fix: Align particle data structures - Consolidate duplicate Particle definitions; use consistent field types (Vec3 vs [f32; 3], Color vs [f32; 3]) across genesis-core and genesis-render modules
-- [x] Remove EpochManager with automatic transitions from genesis-core/src/epoch/mod.rs
 - [ ] Remove EpochCameraConfig from genesis-core/src/epoch/camera_config.rs
 - [ ] Remove epoch transition camera handling from genesis-render/src/camera/
 - [ ] Remove general-purpose camera interpolation from CameraState
