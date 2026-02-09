@@ -3,7 +3,7 @@
 //! This module defines the configuration structure for Phase 1 parameters.
 //! The configuration supports TOML deserialization and provides sensible defaults.
 
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 
 /// Time configuration settings for cosmic simulation
 #[derive(Debug, Clone, Deserialize)]
@@ -107,6 +107,27 @@ impl Default for WindowConfig {
     }
 }
 
+/// Display/HUD configuration settings
+#[derive(Debug, Clone, Deserialize, Serialize)]
+pub struct DisplayConfig {
+    /// Display FPS counter in HUD
+    pub show_fps: bool,
+    /// Display particle count
+    pub show_particle_count: bool,
+    /// Display current epoch information
+    pub show_epoch_info: bool,
+}
+
+impl Default for DisplayConfig {
+    fn default() -> Self {
+        Self {
+            show_fps: true,
+            show_particle_count: true,
+            show_epoch_info: true,
+        }
+    }
+}
+
 /// Main configuration structure for Genesis Engine
 ///
 /// This struct contains all Phase 1 parameters for the engine configuration.
@@ -122,6 +143,8 @@ pub struct Config {
     pub camera: CameraConfig,
     /// Window configuration
     pub window: WindowConfig,
+    /// Display/HUD configuration
+    pub display: DisplayConfig,
 }
 
 impl Default for Config {
@@ -131,6 +154,7 @@ impl Default for Config {
             particle: ParticleConfig::default(),
             camera: CameraConfig::default(),
             window: WindowConfig::default(),
+            display: DisplayConfig::default(),
         }
     }
 }

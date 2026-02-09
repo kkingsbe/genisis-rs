@@ -2,6 +2,16 @@
 
 ## [2026-02-09]
 
+### Configuration & Initialization
+- [x] Add missing DisplayConfig struct to enable configuration loading from genesis.toml - Implemented DisplayConfig struct with show_fps, show_particle_count, and show_epoch_info fields. Added Default implementation and integrated into Config struct. Resolved critical blocker preventing configuration system from deserializing display settings from TOML file.
+
+## [2026-02-09]
+
+### Configuration & Initialization
+- [x] Define Config struct with all Phase 1 parameters (particle_count, time_acceleration, etc.)
+
+## [2026-02-09]
+
 ### Camera System
 - [x] Add zoom and pan controls
 
@@ -9,12 +19,6 @@
 
 ### Camera System
 - [x] Implement camera transition crossfade for epoch changes
-
-## [2026-02-09]
-
-### Camera System
-- [x] Add smooth camera interpolation between positions - CameraState resource with target_position, target_rotation, interpolation_speed, is_interpolating fields; CameraTarget component with position, look_at, offset; update_camera_targets system for smooth interpolation using smoothstep easing
-- [x] Add smooth camera interpolation between positions
 
 ## [2026-02-08]
 
@@ -135,3 +139,14 @@
 
 ### Drift Items Resolved
 - [x] refactor: Remove test_interpolation function from genesis-render/src/camera/mod.rs - Development testing function triggered by 'T' key (lines 544-564) is not specified in PRD and should be removed for production code
+
+## [2026-02-09]
+
+### Drift Items Resolved
+- [x] refactor: Remove unrequested camera fade system from genesis-ui/src/overlay/camera_fade.rs (Phase 7 feature in Phase 1 code)
+- [x] refactor: Remove camera mode interpolation from toggle_camera_mode() in genesis-render/src/camera/mod.rs:542-584
+
+## [2026-02-09]
+
+### Unrequested Features
+- [x] refactor: Remove CameraTarget component and update_camera_targets() system from genesis-render/src/camera/mod.rs
