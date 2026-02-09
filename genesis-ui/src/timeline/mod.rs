@@ -201,6 +201,11 @@ pub fn sync_time_resources(
     } else if !playback_state.playing && !time_accumulator.is_paused() {
         time_accumulator.pause();
     }
+
+    // Map PlaybackState.speed (0.1-10.0) to TimeAccumulator.acceleration (1.0-1e12)
+    let speed = playback_state.speed as f64;
+    let acceleration = 10_f64.powf((speed.log10() + 1.0) * 6.0);
+    time_accumulator.set_acceleration(acceleration);
 }
 
 /// Plugin that sets up the timeline UI system and resources.
