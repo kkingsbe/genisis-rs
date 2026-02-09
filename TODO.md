@@ -9,6 +9,23 @@
 ### Critical Fixes
 - [x] fix: Failing test in genesis-render/src/particle/instance_buffer.rs - test_particle_instance_data_alignment failed (expected alignment 16, got 4)
 
+#### Failing Integration Tests (from commit 8578141)
+- [ ] fix: Failing test in genesis-render/tests/resource_binding_tests.rs - test_comprehensive_binding_validation - Vertex input must have instance_size at location(1) to match ATTRIBUTE_INSTANCE_SIZE
+- [ ] fix: Failing test in genesis-render/tests/resource_binding_tests.rs - test_system_cannot_access_invalid_resources - requires_non_existent could not access system parameter Res<'_, NonExistentResource>
+- [ ] fix: Failing test in genesis-render/tests/resource_binding_tests.rs - test_materials_initialized_before_rendering - Assets<PointSpriteMaterial> does not exist in the World
+- [ ] fix: Failing test in genesis-render/tests/resource_binding_tests.rs - test_resource_reference_counting - Assets<Mesh> does not exist in the World
+- [ ] fix: Failing test in genesis-render/tests/resource_binding_tests.rs - test_resources_created_at_startup - init_point_mesh could not access system parameter ResMut<'_, Assets<Mesh>>
+- [ ] fix: Failing test in genesis-render/tests/resource_binding_tests.rs - test_extract_system_transfers_data - init_point_mesh could not access system parameter ResMut<'_, Assets<Mesh>>
+- [ ] fix: Failing test in genesis-render/tests/resource_binding_tests.rs - test_pipeline_cache_no_index_out_of_bounds - init_point_mesh could not access system parameter ResMut<'_, Assets<Mesh>>
+- [ ] fix: Failing test in genesis-render/tests/resource_binding_tests.rs - test_point_mesh_initialized_before_particles_spawn - init_point_mesh could not access system parameter ResMut<'_, Assets<Mesh>>
+- [ ] fix: Failing test in genesis-render/tests/resource_binding_tests.rs - test_system_ordering_point_mesh_before_spawn - init_point_mesh could not access system parameter ResMut<'_, Assets<Mesh>>
+- [ ] fix: Failing test in genesis-render/tests/resource_binding_tests.rs - test_complete_particle_rendering_setup - init_point_mesh could not access system parameter ResMut<'_, Assets<Mesh>>
+- [ ] fix: Failing test in genesis-render/tests/resource_binding_tests.rs - test_resources_accessible_during_update - init_point_mesh could not access system parameter ResMut<'_, Assets<Mesh>>
+- [ ] fix: Failing test in genesis-render/tests/resource_binding_tests.rs - test_particle_instance_bind_group_layout - AssetServer does not exist in the World
+- [ ] fix: Failing test in genesis-render/tests/shader_tests.rs - test_vertex_attribute_locations_match - WGSL @location(1) must be 'instance_size' to match ATTRIBUTE_INSTANCE_SIZE
+- [ ] fix: Failing test in genesis-render/tests/shader_tests.rs - test_print_all_bindings - Shader should have exactly 3 bindings at @group(0), found 4
+- [ ] fix: Failing test in genesis-render/tests/shader_tests.rs - test_comprehensive_shader_validation_summary - Missing @location(1) instance_size
+
 ### Phase 1 Completeness Items
 
 ### Code Cleanup
@@ -91,14 +108,14 @@
 ### Repository Cleanup
 
 #### Temporary Output Files
-- [ ] chore: Remove .architect-output-1770673436052.md - temporary architect mode output file
-- [ ] chore: Remove .architect-output-1770673991273.md - temporary architect mode output file
-- [ ] chore: Remove .janitor-output-1770672479399.md - temporary janitor mode output file
-- [ ] chore: Remove .janitor-output-1770673025376.md - temporary janitor mode output file
+- [x] chore: Remove .architect-output-1770673436052.md - temporary architect mode output file
+- [x] chore: Remove .architect-output-1770673991273.md - temporary architect mode output file
+- [x] chore: Remove .janitor-output-1770672479399.md - temporary janitor mode output file
+- [x] chore: Remove .janitor-output-1770673025376.md - temporary janitor mode output file
 
 #### Leftover/Unused Files
-- [ ] chore: Remove bin/run.bat - contains hardcoded paths to another user's directory (c:\Users\Kyle\Documents\code\agent-coding-container\automation-parallel), not part of this Rust project
-- [ ] chore: Remove commit-msg.md - saved commit message from past commit, not a template file
+- [x] chore: Remove bin/run.bat - contains hardcoded paths to another user's directory (c:\Users\Kyle\Documents\code\agent-coding-container\automation-parallel), not part of this Rust project
+- [x] chore: Remove commit-msg.md - saved commit message from past commit, not a template file
 
 #### Code Review Candidates
 - [ ] review: genesis-core/src/physics/Particle struct is not used anywhere in codebase - consider if needed for future physics implementation or remove
