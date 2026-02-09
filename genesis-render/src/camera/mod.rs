@@ -537,8 +537,7 @@ fn update_camera_targets(
 /// determined by which controller system responds to input - free-flight responds to WASD
 /// regardless of mode, while orbit only responds when left mouse is pressed.
 ///
-/// When switching from Orbit to FreeFlight, a 0.5 second interpolation is triggered
-/// to ensure a smooth transition.
+/// Both mode switches are instant for responsive user control.
 fn toggle_camera_mode(
     keys: Res<ButtonInput<KeyCode>>,
     mut camera_state: ResMut<CameraState>,
@@ -560,24 +559,9 @@ fn toggle_camera_mode(
                 info!("Camera mode switched to: Orbit (instant)");
             }
             CameraMode::Orbit => {
-                // Switching FROM Orbit TO FreeFlight - use interpolation
-                if let Ok(camera_transform) = camera_query.get_single() {
-                    // Start interpolation to current position/rotation (ensures clean state)
-                    camera_state.start_interpolation_to_target(
-                        camera_transform.translation,
-                        camera_transform.rotation,
-                        0.5, // 0.5 second duration for mode switch transitions
-                        camera_transform,
-                    );
-
-                    info!(
-                        "Camera mode switched to: FreeFlight (interpolating over 0.5s)"
-                    );
-                } else {
-                    // Fallback if we can't get the camera transform
-                    camera_state.mode = CameraMode::FreeFlight;
-                    info!("Camera mode switched to: FreeFlight");
-                }
+                // Switching from Orbit to FreeFlight - instant switch
+                camera_state.mode = CameraMode::FreeFlight;
+                info!("Camera mode switched to: FreeFlight");
             }
         }
     }

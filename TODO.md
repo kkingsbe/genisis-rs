@@ -62,7 +62,7 @@
 
 ### Unrequested Features
 - [x] refactor: Remove unrequested camera fade system from genesis-ui/src/overlay/camera_fade.rs (Phase 7 feature in Phase 1 code)
-- [ ] refactor: Remove camera mode interpolation from toggle_camera_mode() in genesis-render/src/camera/mod.rs:542-584
+- [x] refactor: Remove camera mode interpolation from toggle_camera_mode() in genesis-render/src/camera/mod.rs:542-584
 - [ ] refactor: Remove CameraTarget component and update_camera_targets() system from genesis-render/src/camera/mod.rs
 - [ ] refactor: Remove general-purpose camera interpolation infrastructure from CameraState in genesis-render/src/camera/mod.rs (Phase 7 feature)
 - [ ] refactor: Remove epoch transition camera handling system from genesis-render/src/camera/epoch_transition.rs (Phase 1 only has Singularity epoch)
