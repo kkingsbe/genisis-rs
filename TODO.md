@@ -7,10 +7,28 @@
 ## Sprint 1 - Phase 1: The Singularity
 
 ### Critical Fixes (Blockers)
-- [x] fix: Update genesis.toml particle.initial_count to match Phase 1 testing (1000 instead of 100K)
-- [ ] fix: Update genesis.toml time.initial_time_acceleration to match PRD Phase 1 starting range
+- [x] fix: Update genesis.toml time.initial_time_acceleration to match PRD Phase 1 starting range
 
 ### Phase 1 Completeness Items
+
+#### Timeline Scrubber - Logarithmic Scale
+- [ ] feature: Implement logarithmic timeline scrubber spanning 13.8 billion years (Sprint 1)
+  - Replace linear timeline slider with logarithmic scrubber in genesis-ui/src/timeline/mod.rs
+  - Update CosmicTime::from_slider() to use logarithmic mapping
+  - Update CosmicTime::to_slider() to use logarithmic mapping
+  - Formula: log_slider = log10(years / min_years) / log10(max_years / min_years)
+  - Map slider range [0.0, 1.0] to years [10⁻³², 13.8×10⁹]
+  - Add decade tick marks to timeline (10⁻³²s, 10⁻²⁰s, 1s, 1yr, 1Myr, 1Gyr, 13.8Gyr)
+  - PRD Requirement: Line 116 - "Logarithmic timeline scrubber UI (bevy_egui) spanning 13.8 billion years"
+
+#### Timeline Speed Integration
+- [ ] feature: Map PlaybackState.speed slider to TimeAccumulator.acceleration with PRD-specified range (Sprint 1)
+  - Implement logarithmic speed mapping: slider (0.1 to 10.0) → acceleration (1.0 to 1e12)
+  - Formula: acceleration = 10^(slider_value * log10(1e12/1.0)) or similar logarithmic scale
+  - Add system in sync_time_resources() to update acceleration when speed slider changes
+  - Add visual feedback for current acceleration factor (display "10ⁿx" where n is exponent)
+  - Document speed-to-acceleration mapping in timeline/mod.rs comments
+  - PRD Requirement: Line 115 - "adjustable acceleration (1x to 10¹²x)"
 
 #### Per-Instance Particle Attributes
 - [ ] feature: Synchronize Particle component data with GPU instance attributes (Sprint 1)
@@ -66,6 +84,8 @@
 - [ ] refactor: Simplify particle rendering to remove per-instance GPU storage buffer architecture - Phase 1 only requires basic instanced rendering with position/color/size attributes
 - [ ] refactor: Remove unused clap dependency from genesis-core/Cargo.toml - PRD doesn't specify command-line argument parsing
 - [ ] fix: Implement Epoch Plugin Architecture per PRD section 4.1 - convert SingularityEpoch from marker struct to actual Bevy plugin, create EpochManager for epoch transitions
+- [ ] fix: Add smooth interpolation for camera mode switching between free-flight and orbit modes (PRD line 114 requires "smooth interpolation")
+- [ ] fix: Implement EpochPlugin trait and EpochManager system as specified in PRD section 4.1 to support epoch transitions and timeline scrubbing
 - [ ] fix: Add missing ParticleIndex component or remove the broken extract_particle_instances query in instance_buffer.rs
 - [ ] refactor: Remove unrequested time conversion functions from genesis-core/src/time/mod.rs - seconds_to_years(), minutes_to_years() are not required for Phase 1
 - [ ] refactor: Remove unrequested time constants from genesis-core/src/time/mod.rs - SECONDS_PER_MINUTE, SECONDS_PER_HOUR, SECONDS_PER_DAY are not in PRD Phase 1
