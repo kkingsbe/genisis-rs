@@ -46,6 +46,9 @@ Critical drift items identified from PRD analysis:
 
 ## Sprint 1 - Phase 1: The Singularity
 
+### Critical Blocker Resolution (Priority: IMMEDIATE)
+- [x] fix: Resolve ViewUniform shader compilation error - Fixed: Added ViewUniform struct definition to point_sprite.wgsl shader with view_proj matrix and world_position fields
+
 ### Camera System
 - [ ] Add smooth camera interpolation between positions
 - [ ] Implement camera transition crossfade for epoch changes
@@ -95,7 +98,6 @@ Critical drift items identified from PRD analysis:
 - [ ] Add .init_resource::<PlaybackState>() to main.rs
 
 ### Sprint QA
-- [x] Implement shader path fix (ARCHITECTURAL DECISION 2026-02-09): Create assets/ directory and copy genesis-render/src/particle/point_sprite.wgsl to assets/point_sprite.wgsl to resolve critical startup blocker
 - [ ] SPRINT QA: Run full build and test suite. Fix ALL errors. If green, create/update '.sprint_complete' with the current date.
 
 ---

@@ -12,7 +12,6 @@ struct VertexInput {
 struct VertexOutput {
     @builtin(position) clip_position: vec4<f32>,
     @location(0) color: vec4<f32>,
-    @builtin(point_size) point_size: f32,
 }
 
 // Uniform bindings for the material
@@ -20,6 +19,12 @@ struct PointSpriteMaterial {
     color: vec4<f32>,
     base_size: f32,
     attenuation_factor: f32,
+}
+
+// View uniform containing camera/view data
+struct ViewUniform {
+    view_proj: mat4x4<f32>,
+    world_position: vec3<f32>,
 }
 
 @group(0) @binding(0)
@@ -44,17 +49,6 @@ fn vertex(input: VertexInput) -> VertexOutput {
     
     // Transform position to clip space for rendering
     output.clip_position = view.view_proj * world_pos;
-    
-    // Calculate distance from camera to particle
-    let distance = distance(view.world_position, world_pos.xyz);
-    
-    // Apply size attenuation formula
-    // Particles appear smaller as they move farther from the camera
-    // Formula: size = instance_size / (1.0 + distance * attenuation_factor)
-    let attenuated_size = input.instance_size / (1.0 + distance * material.attenuation_factor);
-    
-    // Clamp to minimum size (1.0 pixel) to prevent particles from vanishing
-    output.point_size = max(attenuated_size, 1.0);
     
     // Pass per-instance particle color to fragment shader
     // Use instance_color if available, otherwise fall back to material uniform color
