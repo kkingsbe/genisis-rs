@@ -203,22 +203,58 @@ This document contains tasks for future sprints. Items here are not yet schedule
 - [ ] ~~Define EpochPlugin trait~~ (COMPLETED: See EpochPlugin trait with name(), start_year(), end_year(), build(), camera_config() methods)
 - [ ] ~~Create SingularityEpoch plugin~~ (COMPLETED: See genesis-core/src/epoch/singularity.rs)
 - [ ] ~~Implement EpochManager resource~~ (COMPLETED: See EpochManager in genesis-core/src/epoch/mod.rs)
-- [ ] Add epoch transition crossfade system (handle epoch change events, trigger camera and visual transitions)
-  - [ ] Implement visual crossfade system for epoch transitions (alpha blend between epoch render layers)
-  - [ ] Create camera fade effect during epoch transitions (camera fade to black on exit, fade in on enter)
-  - [ ] Implement parameter interpolation during transitions (smooth temperature, scale factor changes)
-  - [ ] Add epoch transition event handling in GenesisUiPlugin to update UI
 - [ ] ~~Register epoch plugins in main.rs~~ (COMPLETED: See SingularityEpochPlugin in src/main.rs)
+- [ ] Note: Epoch transition crossfade system is Phase 2+ scope (moved to Sprint 2 below)
 - [ ] Implement future epoch plugins (InflationEpoch, QGPEpoch, NucleosynthesisEpoch, RecombinationEpoch, DarkAgesEpoch, CosmicDawnEpoch)
   - [ ] Create InflationEpoch plugin in genesis-core/src/epoch/inflation.rs (10⁻³²s to 10⁻⁶s)
+    - [ ] Implement InflationEpoch struct with EpochPlugin trait
+    - [ ] Define name() returning "Inflation"
+    - [ ] Define start_year() returning 1e-32 (years after Big Bang)
+    - [ ] Define end_year() returning 1e-6 (years)
+    - [ ] Implement build() method registering inflation physics systems (scale factor, inflaton field)
+    - [ ] Define camera_config() with optimal camera settings for inflation phase (position, target, distance)
   - [ ] Create QGPEpoch plugin in genesis-core/src/epoch/qgp.rs (10⁻⁶s to 3 min)
+    - [ ] Implement QGPEpoch struct with EpochPlugin trait
+    - [ ] Define name() returning "Quark-Gluon Plasma"
+    - [ ] Define start_year() returning 1e-6 (years)
+    - [ ] Define end_year() returning 3/60/24/365 (3 minutes in years ≈ 5.7e-6)
+    - [ ] Implement build() method registering QGP visualization systems (temperature-based rendering)
+    - [ ] Define camera_config() with optimal camera settings for QGP phase
   - [ ] Create NucleosynthesisEpoch plugin in genesis-core/src/epoch/nucleosynthesis.rs (3 min to 20 min)
+    - [ ] Implement NucleosynthesisEpoch struct with EpochPlugin trait
+    - [ ] Define name() returning "Nucleosynthesis"
+    - [ ] Define start_year() returning 3/60/24/365 (3 minutes in years)
+    - [ ] Define end_year() returning 20/60/24/365 (20 minutes in years ≈ 3.8e-5)
+    - [ ] Implement build() method registering nuclear reaction network and composition tracking systems
+    - [ ] Define camera_config() with optimal camera settings for nucleosynthesis phase
   - [ ] Create RecombinationEpoch plugin in genesis-core/src/epoch/recombination.rs (~380,000 yr)
+    - [ ] Implement RecombinationEpoch struct with EpochPlugin trait
+    - [ ] Define name() returning "Recombination"
+    - [ ] Define start_year() returning 380000 (years)
+    - [ ] Define end_year() returning 400000 (years)
+    - [ ] Implement build() method registering Saha equation solver, fog rendering, and CMB sphere systems
+    - [ ] Define camera_config() with optimal camera settings for recombination phase (including pull-back position)
   - [ ] Create DarkAgesEpoch plugin in genesis-core/src/epoch/dark_ages.rs (380 Kyr to 100 Myr)
+    - [ ] Implement DarkAgesEpoch struct with EpochPlugin trait
+    - [ ] Define name() returning "Dark Ages"
+    - [ ] Define start_year() returning 380000 (years)
+    - [ ] Define end_year() returning 100000000 (100 million years)
+    - [ ] Implement build() method registering N-body gravity and halo finder systems
+    - [ ] Define camera_config() with optimal camera settings for dark ages phase
   - [ ] Create CosmicDawnEpoch plugin in genesis-core/src/epoch/cosmic_dawn.rs (100 Myr to 1 Gyr)
-  - [ ] Each epoch plugin must implement build() method to register epoch-specific systems
-  - [ ] Each epoch plugin must define camera_config() with optimal camera settings
+    - [ ] Implement CosmicDawnEpoch struct with EpochPlugin trait
+    - [ ] Define name() returning "Cosmic Dawn"
+    - [ ] Define start_year() returning 100000000 (100 million years)
+    - [ ] Define end_year() returning 1000000000 (1 billion years)
+    - [ ] Implement build() method registering SPH hydrodynamics, star formation, and galaxy rendering systems
+    - [ ] Define camera_config() with optimal camera settings for cosmic dawn phase
   - [ ] Register all epoch plugins in main.rs using EpochManager registration pattern
+    - [ ] Add .add_plugin(InflationEpochPlugin) in main.rs
+    - [ ] Add .add_plugin(QGPEpochPlugin) in main.rs
+    - [ ] Add .add_plugin(NucleosynthesisEpochPlugin) in main.rs
+    - [ ] Add .add_plugin(RecombinationEpochPlugin) in main.rs
+    - [ ] Add .add_plugin(DarkAgesEpochPlugin) in main.rs
+    - [ ] Add .add_plugin(CosmicDawnEpochPlugin) in main.rs
 
 ### Core System Integration
 - [ ] ~~Implement pause() method in TimeAccumulator resource~~ (COMPLETED: See TimeAccumulator::pause() and resume() in genesis-core/src/time/mod.rs)
@@ -482,6 +518,65 @@ This document contains tasks for future sprints. Items here are not yet schedule
 
 ---
 
+## Sprint 4 - Phase 4: Recombination & CMB
+
+### Physics - Recombination
+- [ ] Implement Saha equation solver for ionization fraction x_e(T) (solve for electron fraction given temperature)
+  - [ ] Use hydrogen ionization equilibrium: n_e n_p / n_H = (2π m_e k T / h²)^(3/2) exp(-13.6 eV / kT)
+  - [ ] Include helium ionization fraction for completeness
+  - [ ] Iterate to find x_e that satisfies equilibrium
+- [ ] Create IonizationState resource tracking ionization fraction x_e, free electron density, and recombination progress
+  - [ ] Track recombination completion percentage (0% at T=3000K, 100% at T=2.725K)
+  - [ ] Store current temperature and scale factor
+- [ ] Implement photon mean free path calculation (λ_mfp = 1 / (n_e σ_T) where n_e is free electron density and σ_T is Thomson cross-section)
+  - [ ] Calculate n_e from IonizationState.x_e and baryon density
+  - [ ] Use Thomson cross-section σ_T ≈ 6.65×10⁻²⁹ m²
+- [ ] Model temperature evolution through recombination (T ∝ 1/a for adiabatic expansion, from 3000 K to 2.725 K)
+  - [ ] Implement smooth temperature transition during recombination epoch
+  - [ ] Couple to ScaleFactor resource from Phase 2
+- [ ] Add RecombinationEpoch plugin implementing epoch transition from Nucleosynthesis to Recombination
+- [ ] Create CMB resource tracking temperature anisotropies and power spectrum
+  - [ ] Store spherical harmonics coefficients a_lm up to ℓ_max ~ 1000
+  - [ ] Generate from Phase 2 density perturbations via transfer function
+
+### Visualization - Fog & CMB
+- [ ] Implement volumetric fog renderer using Bevy fog or custom shader (global fog with density varying by ionization fraction)
+  - [ ] Create fog density function mapping ionization fraction x_e to fog density (fog_density = x_e when x_e > 0.1, drops to 0 when x_e < 0.01)
+  - [ ] Implement fog clearing system (gradually reduce fog density as x_e drops below threshold)
+- [ ] Create CMB surface projection mesh (spherical shell at last-scattering surface radius ~46 billion light years)
+- [ ] Generate CMB temperature anisotropy texture (2D spherical harmonics from Phase 2 density perturbations)
+- [ ] Implement smooth camera transition: as recombination completes, pull camera back to reveal CMB sphere
+  - [ ] Create camera pull-back animation triggered by recombination completion
+  - [ ] Interpolate camera from center position to viewing position at distance ~50 billion light years
+  - [ ] Apply smooth easing function (EaseInOutCubic) over 2-3 seconds transition duration
+  - [ ] Orient camera to face CMB sphere center for full view
+  - [ ] Add fog lift effect synchronized with camera movement (fog density decreases as camera pulls back)
+  - [ ] Register camera pull-back system in PostUpdate schedule with .run_if(recombination_completed) condition
+- [ ] Add CMB sphere material with temperature anisotropy mapping (color map from cold dark blue to hot bright red)
+- [ ] Create LastScatteringSurface resource tracking CMB sphere parameters (radius, center position)
+
+### UI & Analysis
+- [ ] Update temperature readout to show 3000 K → 2.725 K range (display current temperature during recombination epoch)
+- [ ] Create CMB angular power spectrum C_ℓ display chart (plot C_ℓ vs ℓ up to ℓ=1000)
+  - [ ] Implement egui LinePlot or use external charting library
+  - [ ] Scale y-axis logarithmically (C_ℓ ranges over orders of magnitude)
+  - [ ] Highlight first acoustic peak at ℓ ~ 220
+- [ ] Add qualitative Planck data comparison lines (overlay observational data points on simulated power spectrum)
+  - [ ] Load Planck 2018 C_ℓ reference data
+  - [ ] Plot as overlay line or markers on same chart
+  - [ ] Add toggle to show/hide comparison data
+- [ ] Implement toggle overlay for power spectrum (show/hide CMB power spectrum chart in corner)
+- [ ] Add last-scattering surface indicator (display "Last Scattering Surface at ~46 Gly" label pointing to CMB sphere)
+- [ ] Add CMB analysis panel with temperature readout and recombination progress
+  - [ ] Display current ionization fraction x_e
+  - [ ] Show recombination completion percentage
+  - [ ] Link to power spectrum toggle
+
+### Testing
+- [ ] SPRINT QA: Run full build and test suite. Fix ALL errors. If green, create/update '.sprint_complete' with the current date.
+
+---
+
 ## Sprint 2 - Phase 2: Inflation & Quantum Seeds
 
 ### Physics Integration
@@ -510,12 +605,58 @@ This document contains tasks for future sprints. Items here are not yet schedule
 
 ### Visualization
 - [ ] Implement procedural QGP visualization using glowing point sprite material with temperature-based color
+  - [ ] Create QGPMaterial with temperature_uniform binding point sprite material
+  - [ ] Implement shader color lookup from temperature-to-color ramp texture
+  - [ ] Update particle instance color uniforms from Temperature resource each frame
 - [ ] Create temperature-to-color ramp function (map temperature T to color: T > 10¹⁵K → blue-white, 10¹⁴K → white, 10¹³K → yellow, 10¹²K → orange)
-- [ ] Implement epoch transition crossfade system (fade singularity → QGP using alpha blending over transition period)
+  - [ ] Implement color_from_temperature(T: f64) -> Color function using piecewise linear interpolation
+  - [ ] Define temperature color stops: (1e15, Color::rgb(200, 200, 255)), (1e14, Color::WHITE), (1e13, Color::rgb(255, 255, 100)), (1e12, Color::rgb(255, 165, 0))
+  - [ ] Add unit tests verifying color transitions at each temperature threshold
+- [ ] Implement epoch transition crossfade system (handle epoch change events, trigger camera and visual transitions)
+  - [ ] Define EpochTransitionEvent struct with old_epoch: String, new_epoch: String, transition_progress: f64 fields in genesis-core/src/epoch/events.rs
+  - [ ] Implement visual crossfade system for epoch transitions using alpha blending between render layers
+    - [ ] Create TransitionState resource with alpha: f32 (0.0 to 1.0), is_transitioning: bool, duration: f64 fields
+    - [ ] Implement update_transition_alpha() system that increments alpha based on dt and transition duration
+    - [ ] Apply alpha blending to epoch-specific visual materials (fog, particle colors, background)
+    - [ ] Use separate render layers for old and new epoch visual effects during transition
+  - [ ] Create camera fade effect during epoch transitions (camera fade to black on exit, fade in on enter)
+    - [ ] Implement camera_fade_overlay() system using fullscreen UI quad with alpha transparency
+    - [ ] Fade to black: alpha goes from 0.0 to 1.0 over first half of transition
+    - [ ] Fade from black: alpha goes from 1.0 to 0.0 over second half of transition
+    - [ ] Register fade overlay in Update schedule with .run_if(TransitionState.is_transitioning) condition
+  - [ ] Implement parameter interpolation during transitions (smooth temperature, scale factor changes)
+    - [ ] Define interpolated_temperature = lerp(T_old, T_new, transition_progress)
+    - [ ] Define interpolated_scale_factor = lerp(a_old, a_new, transition_progress)
+    - [ ] Apply interpolated values to Temperature and ScaleFactor resources during transition
+    - [ ] Use cubic interpolation (EaseInOutCubic) for smoother parameter transitions
+  - [ ] Add epoch transition event handling in GenesisUiPlugin to update UI
+    - [ ] Create update_epoch_indicator_ui() system listening for EpochTransitionEvent
+    - [ ] Animate epoch name text change with fade-out/fade-in effect
+    - [ ] Update epoch color in UI panel with smooth color transition
+  - [ ] Trigger epoch transitions in EpochManager based on cosmic_time thresholds
+    - [ ] Implement EpochManager::check_transition() system called each frame
+    - [ ] Compare cosmic_time against epoch start/end times
+    - [ ] Send EpochTransitionEvent when crossing epoch boundary
+    - [ ] Set TransitionState.is_transitioning = true with appropriate duration
 - [ ] Visualize density variations as brightness clumps (scale particle size and brightness by local density)
+  - [ ] Create density_at_position() function querying DensityField resource for particle position
+  - [ ] Calculate particle size multiplier: size = base_size * (1.0 + density * contrast_factor)
+  - [ ] Calculate particle brightness: brightness = base_brightness * (1.0 + density * brightness_factor)
+  - [ ] Update particle instance uniforms with computed size and brightness each frame
 - [ ] Add SingularityEpoch plugin implementing epoch transition from Planck Boundary to Inflation
+  - [ ] Implement singularity_exit_transition() system handling transition to Inflation epoch
+  - [ ] Set transition camera position at [0, 0, 100] facing origin for inflation start
+  - [ ] Configure fade duration: 0.5 seconds for quick visual transition
 - [ ] Add InflationEpoch plugin implementing epoch transition from Inflation to Quark-Gluon Plasma
+  - [ ] Implement inflation_exit_transition() system handling transition to QGP epoch
+  - [ ] Set transition camera position at [0, 0, 500] for wider view of expanded universe
+  - [ ] Configure fade duration: 1.0 seconds for longer transition
+  - [ ] Apply temperature color ramp transition from inflation white to QGP blue-white
 - [ ] Add QGPEpoch plugin implementing the Quark-Gluon Plasma epoch with temperature-dependent rendering
+  - [ ] Implement qgp_exit_transition() system handling transition to Nucleosynthesis epoch
+  - [ ] Set transition camera position at [0, 0, 1000] for full QGP phase visualization
+  - [ ] Configure fade duration: 1.0 seconds for smooth epoch handoff
+  - [ ] Apply particle color transition from temperature-based to composition-based colors
 
 ### UI & Configuration
 - [ ] Update epoch indicator display to show inflation → QGP transition (display epoch name, time range, current scale factor)
@@ -794,23 +935,62 @@ This document contains tasks for future sprints. Items here are not yet schedule
 ### Visualization - Galaxies
 - [ ] Create galaxy billboard sprites
   - [ ] Design galaxy sprite textures (elliptical, spiral, irregular morphologies)
+    - [ ] Generate elliptical galaxy texture with smooth radial gradient (bright center, dim edges)
+    - [ ] Generate spiral galaxy texture with two-armed spiral structure using logarithmic spiral equation
+    - [ ] Generate irregular galaxy texture with asymmetric clumpy distribution
+    - [ ] Store textures in assets/galaxies/ directory: elliptical.png, spiral.png, irregular.png
+    - [ ] Create galaxy_texture_atlas combining all three types for efficient GPU access
   - [ ] Create billboard entities facing camera for each galaxy
+    - [ ] Define GalaxyBillboard component with sprite_type: GalaxyType, size: f32, brightness: f32 fields
+    - [ ] Implement update_galaxy_billboards() system that rotates billboards to face camera each frame
+    - [ ] Use camera.forward and camera.up vectors to compute billboard orientation quaternion
+    - [ ] Register billboard system in PostUpdate schedule after camera update
   - [ ] Apply textures based on galaxy type
+    - [ ] Define GalaxyType enum with variants: Elliptical, Spiral, Irregular
+    - [ ] Create galaxy_billboard_material with texture uniform binding to sprite_atlas
+    - [ ] Map GalaxyType variants to texture UV coordinates in material shader
+    - [ ] Implement sprite_uv_offset calculation based on GalaxyType for atlas lookup
 - [ ] Implement halo mass threshold for galaxy rendering
-  - [ ] Define minimum halo mass for galaxy visibility (e.g., M_min ~ 10⁸ M☉)
-  - [ ] Scale galaxy brightness with halo mass
+  - [ ] Define MIN_HALO_MASS: f64 = 1e8 (10⁸ M☉ minimum mass for galaxy visibility)
+  - [ ] Create GalaxyVisibilityQuery system filtering HaloCatalog entries above threshold
+  - [ ] For each halo with mass > MIN_HALO_MASS, spawn GalaxyBillboard entity at halo.center_of_mass
+  - [ ] Scale galaxy brightness with halo mass using brightness = log10(halo_mass / MIN_HALO_MASS)
+  - [ ] Set galaxy sprite size based on halo mass: size = base_size * (halo_mass / MIN_HALO_MASS)^(1/3)
   - [ ] Only render galaxies above threshold (performance optimization)
+    - [ ] Add visibility_query component to GalaxyBillboard for frustum culling
+    - [ ] Implement frustum culling using camera view matrix and bounding sphere test
+    - [ ] Despawn galaxies when halo mass falls below threshold during merger destruction
 - [ ] Generate composite galaxy sprites based on merger history
   - [ ] Access halo merger tree from HaloCatalog
+    - [ ] Add merger_history field to HaloEntry storing Vec<MergeEvent> with merge_time, merger_mass fields
+    - [ ] Update merger_history each time halos merge (track cumulative merger count)
+    - [ ] Implement update_merger_tree() system called after Friends-of-Friends grouping each frame
   - [ ] Set galaxy morphology based on merger count:
-    - 0-1 mergers: elliptical galaxy
-    - 2-5 mergers: spiral galaxy (disk formation)
-    - 5+ mergers: irregular galaxy
+    - [ ] Compute total_mergers = merger_history.len() for each halo
+    - [ ] Map merger count to GalaxyType: 0-1 mergers → Elliptical, 2-5 mergers → Spiral, 5+ mergers → Irregular
+    - [ ] Update GalaxyBillboard.sprite_type field when merger count crosses threshold
+    - [ ] Add morphological_transition() system handling sprite type changes with visual crossfade
+  - [ ] Add merger_count field to GalaxyBillboard component for morphology tracking
   - [ ] Apply color based on stellar population age
+    - [ ] Add stellar_age: f64 field to HaloEntry (computed from first star formation time)
+    - [ ] Define color_from_age(age: f64) -> Color function: age < 100Myr → blue, age < 1Gyr → yellow-white, age < 5Gyr → white, age >= 5Gyr → yellow-red
+    - [ ] Apply stellar population color to galaxy sprite via uniform binding
+    - [ ] Implement color transition when stellar_age crosses age thresholds using interpolation
 - [ ] Add ionization bubble visualization (translucent spheres)
   - [ ] Create sphere mesh with transparent material
+    - [ ] Use Bevy sphere primitive with high tessellation (32 segments) for smooth rendering
+    - [ ] Create IonizationBubbleMaterial with alpha: f32, bubble_color: Color, radius: f32 uniform bindings
+    - [ ] Configure material to be back-face culled (render only outer shell) and double-sided
+    - [ ] Set blend mode to AdditiveBlend for translucent glow effect
   - [ ] Scale sphere to ionization front radius
+    - [ ] Define ionization_radius calculation: r = (M_star / M_crit)^(1/3) * r_base where M_star is total star mass in halo
+    - [ ] Implement update_ionization_bubbles() system recalculating radius each frame based on star particle mass
+    - [ ] Animate radius expansion: r(t) = r_final * (1 - exp(-t/τ)) where τ is bubble growth timescale
   - [ ] Render around star-forming halos
+    - [ ] Query halos with star particles (halo.star_particle_count > 0)
+    - [ ] Spawn IonizationBubble entity at halo.center_of_mass with calculated radius
+    - [ ] Despawn ionization bubbles when halo stops forming stars (no new star particles for 10 Myr)
+    - [ ] Implement bubble overlap rendering using additive blending for merged reionization regions
 
 ### Audio
 - [ ] Implement genesis-audio crate
@@ -1096,16 +1276,81 @@ This document contains tasks for future sprints. Items here are not yet schedule
   - [ ] Update Config to include CosmologyConfig field
 
 ### Capture & Export
-- [ ] Implement PNG high-resolution frame capture
-- [ ] Add EXR HDR frame capture
+- [ ] Implement PNG high-resolution frame capture with HDR support
+  - [ ] Create FrameCapture resource with is_recording: bool, capture_interval: f32, frame_count: usize fields
+  - [ ] Implement capture_frame() system that extracts current render target as Image
+  - [ ] Use RenderTarget::resolve() to copy backbuffer to CPU-accessible image
+  - [ ] Convert Image to PNG format using image crate (png encoder)
+  - [ ] Support super-resolution capture: scale render target to 2x, 4x before capture for high-quality screenshots
+  - [ ] Add resolution setting: capture_width, capture_height fields to FrameCapture
+  - [ ] Implement timestamp-based filename generation: frame_capture_YYYY-MM-DD_HH-MM-SS_<frame>.png
+  - [ ] Register capture_frame() system in Render schedule after post-processing
+- [ ] Add EXR HDR frame capture with HDR support
+  - [ ] Create EXRCapture struct with format: EXRFormat, exposure: f32, gamma: f32 fields
+  - [ ] Implement extract_hdr_frame() system reading HDR render target (16-bit or 32-bit floating point)
+  - [ ] Use exr crate for writing OpenEXR format files with floating point channels
+  - [ ] Support half-float (16-bit) and full-float (32-bit) EXR output modes
+  - [ ] Implement tone mapping: apply Reinhard or ACES tone curve before EXR export for preview
+  - [ ] Add HDR metadata: write camera exposure settings, scene linear color space flag to EXR file
+  - [ ] Generate timestamped EXR filenames: hdr_capture_YYYY-MM-DD_HH-MM-SS_<frame>.exr
+  - [ ] Add HDR validation: clamp values to prevent inf/nan in EXR output
 - [ ] Create frame-by-frame export controls
+  - [ ] Add FrameCapturePanel UI component with controls: "Capture Single Frame", "Start Recording", "Stop Recording", "Export All Frames"
+  - [ ] Implement capture_single_frame() function triggered by button press, saves one PNG/EXR immediately
+  - [ ] Implement start_recording() function with auto-capture mode
+  - [ ] Implement stop_recording() function that ends auto-capture
+  - [ ] Add recording indicator overlay showing "● REC" in red during recording with frame counter
+  - [ ] Implement auto-capture at regular intervals (every N frames based on capture_interval)
+  - [ ] Implement progress bar showing frames captured: "123 frames captured" during recording
 - [ ] Add image export settings panel (resolution, format, HDR toggle)
+  - [ ] Create ExportSettingsPanel UI component with sections for Resolution, Format, Quality
+  - [ ] Add resolution presets: "Native (1080p)", "2K (1440p)", "4K (2160p)", "8K (4320p)" buttons
+  - [ ] Add custom resolution inputs: width (pixels), height (pixels) with aspect ratio lock toggle
+  - [ ] Add format selection radio buttons: "PNG (8-bit)", "PNG (16-bit)", "EXR HDR (16-bit float)", "EXR HDR (32-bit float)"
+  - [ ] Add HDR toggle: "Enable HDR" checkbox that switches between PNG and EXR formats
+  - [ ] Add quality slider for PNG compression (0-100, default 85) controlling compression level
+  - [ ] Add color space selection: "sRGB", "Linear RGB", "Display P3" for output color space
+  - [ ] Add batch export mode: "Export Range (frames N to M)" with frame range inputs
+  - [ ] Implement export_queue system for processing multiple frames without blocking main thread
+  - [ ] Add export destination folder selector using file dialog for choosing save path
+  - [ ] Persist export settings to Config using Config::save_to_path() for next session
 
 ### Benchmarking
 - [ ] Implement genesis-bench crate
+  - [ ] Create genesis-bench/Cargo.toml with dependencies: criterion (for benchmarking), serde, serde_json (for result export)
+  - [ ] Implement benchmark main function in genesis-bench/src/main.rs
+  - [ ] Add dependency on genesis-core and genesis-render to access systems and resources
+  - [ ] Create benchmark harness that initializes Bevy app with minimal plugins for headless rendering
 - [ ] Create automated performance regression tests
+  - [ ] Define BenchmarkConfig struct with particle_counts: Vec<usize>, duration_seconds: f64, output_format: BenchmarkFormat fields
+  - [ ] Implement particle_scaling_benchmark() function testing 10K, 100K, 1M, 10M particle counts
+  - [ ] Implement frame_rate_benchmark() function measuring FPS over 60 seconds for each particle count
+  - [ ] Implement memory_usage_benchmark() function tracking GPU and CPU memory allocation during benchmark
+  - [ ] Implement startup_time_benchmark() function measuring time from launch to first rendered frame
+  - [ ] Implement epoch_transition_benchmark() function testing performance impact of each epoch transition
+  - [ ] Use criterion crate for statistical analysis (mean, median, std dev, confidence intervals)
+  - [ ] Add warmup phase (10 seconds) before collecting benchmark data to stabilize performance
 - [ ] Add benchmark results export
+  - [ ] Define BenchmarkResult struct with benchmark_name: String, timestamp: String, hardware_info: HardwareInfo, metrics: BenchmarkMetrics fields
+  - [ ] Define HardwareInfo struct with gpu_name: String, cpu_name: String, ram_gb: usize, vram_gb: usize fields
+  - [ ] Define BenchmarkMetrics struct with fps: f64, frame_time_ms: f64, particle_count: usize, gpu_memory_mb: usize, cpu_memory_mb: usize fields
+  - [ ] Implement export_to_json() function writing results to JSON with formatting for human readability
+  - [ ] Implement export_to_csv() function writing results to CSV with columns: Benchmark, Timestamp, GPU, CPU, FPS, FrameTime, ParticleCount, GPUMem, CPUMem
+  - [ ] Generate timestamped filenames: benchmark_YYYY-MM-DD_HH-MM-SS.json and .csv
+  - [ ] Add hardware detection to HardwareInfo using wgpu::Adapter::get_info() for GPU, sysinfo crate for CPU/RAM
+  - [ ] Include system information in export output (OS version, driver version, Rust version)
+  - [ ] Create results directory: benchmarks/ in project root for organized storage
 - [ ] Set up CI integration for performance tests
+  - [ ] Create .github/workflows/benchmark.yml workflow file
+  - [ ] Configure workflow to run on schedule (e.g., weekly) and on pull requests targeting main branch
+  - [ ] Add benchmark job step: cd genesis-bench && cargo run --release -- --output-dir ./benchmark_results
+  - [ ] Upload benchmark results as workflow artifacts using actions/upload-artifact@v3
+  - [ ] Create benchmark_history.json tracking file accumulating historical results
+  - [ ] Implement performance regression detection: compare current results against historical baseline
+  - [ ] Add failure condition: if FPS drops >5% from baseline, mark workflow as failed
+  - [ ] Add comment action posting benchmark summary to PRs with performance comparison
+  - [ ] Create dashboard visualization using benchmark_history.json (HTML page with charts showing FPS trends over time)
+  - [ ] Add alerts configuration: notify team if performance regression exceeds threshold
 
 ### Release & Documentation
 - [ ] Create cross-platform release builds (Linux, macOS including Apple Silicon, Windows)

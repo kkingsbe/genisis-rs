@@ -141,7 +141,7 @@ impl CameraState {
     /// All other fields are set to their default values. The orbit_distance from
     /// config is used to initialize the OrbitController in setup_camera().
     pub fn from_config(config: &CameraConfig) -> Self {
-        let mode = match config.camera_mode.as_str() {
+        let mode = match config.initial_mode.as_str() {
             "free" | "free_flight" | "FreeFlight" => CameraMode::FreeFlight,
             "orbit" | "Orbit" => CameraMode::Orbit,
             _ => CameraMode::default(),

@@ -28,11 +28,11 @@
 //! - Bevy's instancing API if available for per-instance attributes
 //! - Custom render pipeline for per-instance attribute updates
 //!
-//! # Configuration Field Mismatch
+//! # Configuration Note
 //!
-//! genesis.toml has fields `initial_count`, `max_count`, `base_size` but [`ParticleConfig`]
-//! struct has `particle_count`, `particle_size_base`, `particle_size_variation`, `color_hot`, `color_cool`.
-//! The [`spawn_particles()`] system uses `particle_count` directly from the config resource.
+//! genesis.toml fields `initial_count`, `max_count`, `base_size` match [`ParticleConfig`]
+//! struct fields. The [`spawn_particles()`] system uses `config.initial_count` and
+//! `config.base_size` directly from the config resource.
 
 use bevy::asset::Asset;
 use bevy::pbr::Material;
@@ -250,10 +250,10 @@ pub fn spawn_particles(
 ) {
     println!("DEBUG: spawn_particles STARTED - PointMesh resource accessed successfully");
 
-    let particle_count = config.particle_count as u32;
+    let particle_count = config.initial_count as u32;
     println!(
-        "DEBUG: Spawning {} particles (particle_count: {})",
-        particle_count, config.particle_count
+        "DEBUG: Spawning {} particles (initial_count: {})",
+        particle_count, config.initial_count
     );
 
     // Create point sprite material for all particles (single material shared by all)
@@ -261,7 +261,7 @@ pub fn spawn_particles(
     // handled by the shader in future updates
     let particle_material = PointSpriteMaterial {
         color: LinearRgba::new(1.0, 1.0, 1.0, 1.0),
-        base_size: config.particle_size_base,
+        base_size: config.base_size,
         attenuation_factor: 0.01,      // Size attenuation factor
     };
     let material_handle = materials.add(particle_material);

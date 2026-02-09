@@ -61,13 +61,13 @@ The application registers the following plugins and resources:
 - **CameraPlugin** (genesis-render): Camera control systems (free-flight, orbit, interpolation, orbit pan/zoom) with CameraState resource
 - **GenesisUiPlugin** (genesis-ui): UI system with bevy_egui integration, overlay, and timeline controls (includes TimelinePlugin internally)
 - **ConfigResource** (main.rs): Wrapper for Config as a Bevy Resource (NOTE: Config::load() is NOT implemented - uses Config::default())
-- **ParticleConfig** (genesis-core): Resource for particle spawning configuration (NOTE: main.rs references ParticleConfigResource which does NOT exist - should use ParticleConfig directly with Resource derive)
+- **ParticleConfig** (genesis-core): Resource for particle spawning configuration (correctly used directly with Resource derive in main.rs line 48)
 - **CameraState** (genesis-render): Resource for tracking camera mode, target, and interpolation state (initialized from CameraConfig)
 - **OverlayState** (genesis-ui): Resource for overlay visibility (initialized from DisplayConfig: show_fps, show_particle_count; NOTE: show_epoch_info field is missing from OverlayState struct but present in DisplayConfig and genesis.toml)
 - **CosmicTime** (genesis-ui): Resource for timeline state management with logarithmic slider mapping (auto-initialized by TimelinePlugin)
 - **PlaybackState** (genesis-ui): Resource for playback control (auto-initialized by TimelinePlugin)
 - **TimeAccumulator** (genesis-core): Resource for tracking cosmic years (auto-initialized by TimeIntegrationPlugin)
-- **setup_camera**: Camera setup system that spawns 3D camera at orbit_radius looking at origin with OrbitController and CameraController components (NOTE: main.rs references config.camera.orbit_distance which doesn't exist; should use config.camera.orbit_radius)
+- **setup_camera**: Camera setup system that spawns 3D camera at orbit_distance looking at origin with OrbitController and CameraController components (correctly uses config.camera.orbit_distance which matches the CameraConfig struct)
 
 **NOTE**: The following epoch management infrastructure does NOT exist in the codebase (though documented as if it does):
 - EpochManager resource - NOT defined
@@ -210,17 +210,14 @@ Currently, the rendering-level Particle is directly populated in [`spawn_particl
 - **Dual-Controller Architecture**: Both OrbitController and CameraController components are always present on the camera entity. Mode switching (via toggle_camera_mode) affects which controller responds to input, not component attachment.
 - **Camera Interpolation**: CameraState includes interpolation support with start_interpolation_to_target(), start_interpolation_to_position_only() methods. The interpolate_camera system handles smooth transitions with smoothstep easing.
 - **Configuration**:
-  - CameraConfig in genesis-core has fields: initial_position, initial_target, camera_mode (String), movement_speed, orbit_radius
+  - CameraConfig in genesis-core has fields: initial_position, initial_target, camera_mode (String), movement_speed, orbit_distance
   - CameraMode enum exists in genesis-core::epoch but CameraConfig uses String for camera_mode field
   - genesis.toml has fields: initial_mode (String), orbit_distance (f64)
 - **Configuration Field Mismatches**:
-  - **orbit_radius vs orbit_distance**: CameraConfig struct has `orbit_radius` field but genesis.toml uses `orbit_distance`. Additionally, main.rs line 75 references `config.camera.orbit_distance` which doesn't exist (should be `config.camera.orbit_radius`)
-  - **camera_mode vs CameraMode enum vs initial_mode**: CameraConfig.camera_mode is a String, and CameraMode enum exists. However, CameraState::from_config() in genesis-render/src/camera/mod.rs (line 134) accesses `config.initial_mode`, which does NOT exist in the CameraConfig struct. CameraConfig only has `camera_mode` (String), not `initial_mode`. This causes a compilation error. Either:
-     - Add `initial_mode: CameraMode` field to CameraConfig, or
-     - Change CameraState::from_config() to use `config.camera_mode` and convert String to CameraMode enum
+  - **camera_mode vs CameraMode enum**: CameraConfig.camera_mode is a String, and CameraMode enum exists. CameraState::from_config() in genesis-render/src/camera/mod.rs (line 144) correctly accesses `config.camera_mode` and converts it to the CameraMode enum.
   - **initial_time_acceleration vs default_time_acceleration**: genesis.toml has `initial_time_acceleration` field, but TimeConfig struct has `default_time_acceleration` field
 - **Status**:
-  - Camera setup (setup_camera system): Implemented - spawns 3D camera at orbit_radius looking at origin with OrbitController (distance: orbit_radius) and CameraController::default(). NOTE: main.rs line 75 references config.camera.orbit_distance which doesn't exist (should be config.camera.orbit_radius)
+  - Camera setup (setup_camera system): Implemented - spawns 3D camera at orbit_distance looking at origin with OrbitController (distance: orbit_distance) and CameraController::default().
   - Camera movement controls: Implemented for both free-flight (update_free_flight_camera) and orbit (update_orbit_camera) modes
   - Camera mode switching: Implemented via toggle_camera_mode system (press 'O' key to toggle between FreeFlight and Orbit)
   - Orbit camera zoom: Implemented via handle_orbit_zoom system (scroll wheel controls zoom distance, clamped between min_distance and max_distance)
@@ -262,11 +259,9 @@ Currently, the rendering-level Particle is directly populated in [`spawn_particl
   - Default location search logic not implemented
 - **Configuration Field Mismatches**:
   - **ParticleConfig**: genesis.toml has `initial_count`, `max_count`, `base_size` but ParticleConfig struct has `particle_count`, `particle_size_base`, `particle_size_variation`, `color_hot`, `color_cool`
-  - **CameraConfig**: genesis.toml has `initial_mode`, `orbit_distance` but CameraConfig struct has `initial_position`, `initial_target`, `camera_mode` (String), `movement_speed`, `orbit_radius`
+  - **CameraConfig**: genesis.toml has `initial_mode`, `orbit_distance` but CameraConfig struct has `initial_position`, `initial_target`, `camera_mode` (String), `movement_speed`, `orbit_distance`
   - **DisplayConfig**: genesis.toml has `show_epoch_info` but OverlayState struct does not have this field
   - **TimeConfig**: genesis.toml has `initial_time_acceleration` but TimeConfig struct has `default_time_acceleration`
-- **Missing Resources**:
-  - **ParticleConfigResource**: Referenced in main.rs and genesis-render but NOT defined in genesis-core
 - **Note**: Configuration loading infrastructure needs to be implemented to enable external TOML configuration, and field names need to be reconciled between genesis.toml and Config structs
 
 ## Phase 1 Scope (Current Sprint)
@@ -312,8 +307,7 @@ A running Bevy application with a 3D particle system, camera controls, and a tim
 - Configuration field name reconciliation between genesis.toml and Config structs:
   - ParticleConfig: reconcile genesis.toml fields (initial_count, max_count, base_size) with struct fields (particle_count, particle_size_base, particle_size_variation, color_hot, color_cool)
   - CameraConfig: reconcile genesis.toml fields (initial_mode, orbit_distance) with struct fields (camera_mode, orbit_radius) and CameraMode enum usage
-- CameraState::from_config fix: main.rs references config.initial_mode which doesn't exist (should be config.camera_mode, and convert String to CameraMode enum)
-- setup_camera fix: main.rs line 75 references config.camera.orbit_distance which doesn't exist (should be config.camera.orbit_radius)
+- OverlayState.show_epoch_info field addition to struct and UI rendering (main.rs line 58 attempts to set this field but it doesn't exist in OverlayState struct)
 
 ## Dependency Graph
 

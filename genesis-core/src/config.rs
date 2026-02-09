@@ -7,14 +7,16 @@
 //!
 //! - Config structs are fully defined with Default implementations
 //! - TOML serialization/deserialization via serde is configured
-//! - Config::load() method is **NOT YET IMPLEMENTED** (main.rs line 26 calls Config::load())
-//! - Field name mismatches exist between genesis.toml and Config structs (see below)
+//! - Config::load() method is implemented and reads from ./genesis.toml
+//! - ParticleConfig field names match genesis.toml (initial_count, max_count, base_size)
+//! - CameraConfig field names match genesis.toml (initial_mode, orbit_distance)
 //!
 //! # Configuration Field Mismatches
 //!
 //! ## ParticleConfig
 //! - genesis.toml fields: `initial_count`, `max_count`, `base_size`
-//! - ParticleConfig struct fields: `particle_count`, `particle_size_base`, `particle_size_variation`, `color_hot`, `color_cool`
+//! - ParticleConfig struct fields: `initial_count`, `max_count`, `base_size`, `particle_size_variation`, `color_hot`, `color_cool`
+//! - Note: `particle_size_variation`, `color_hot`, `color_cool` are optional fields with #[serde(default)] and use default values
 //!
 //! ## CameraConfig
 //! - genesis.toml fields: `initial_mode`, `orbit_distance`
@@ -27,34 +29,36 @@
 //! - OverlayState struct (genesis-ui/src/overlay/mod.rs) is **missing** the `show_epoch_info` field
 //!
 //! # TODO
-//! - Implement Config::load() method to read from ./genesis.toml, ~/.config/genesis/config.toml, or /etc/genesis/config.toml
-//! - Reconcile field names between genesis.toml and Config structs
+//! - Config::load() method is implemented and reads from ./genesis.toml
 //! - Add show_epoch_info field to OverlayState struct
 //! - Consider converting CameraConfig.camera_mode from String to CameraMode enum
 
 use serde::{Deserialize, Serialize};
 use bevy::prelude::Resource;
+use std::fs;
+use std::path::Path;
 
 /// Time configuration settings for cosmic simulation
 #[derive(Debug, Clone, Deserialize)]
 pub struct TimeConfig {
-    /// Initial cosmic time in seconds (e.g., 10⁻⁴³s for singularity)
+    /// Initial cosmic time in seconds (e.g., 10⁻⁴³s for singularity) (not in TOML, uses default)
+    #[serde(default)]
     pub initial_time: f64,
     /// Minimum time acceleration factor (1.0 = no acceleration)
     pub time_acceleration_min: f64,
     /// Maximum time acceleration factor (10¹² = maximum acceleration)
     pub time_acceleration_max: f64,
-    /// Default time acceleration factor
-    pub default_time_acceleration: f64,
+    /// Initial time acceleration factor
+    pub initial_time_acceleration: f64,
 }
 
 impl Default for TimeConfig {
     fn default() -> Self {
         Self {
             initial_time: 1e-43,
-            time_acceleration_min: 1.0,
+            time_acceleration_min: 0.1,
             time_acceleration_max: 1e12,
-            default_time_acceleration: 1.0,
+            initial_time_acceleration: 1.0,
         }
     }
 }
@@ -62,23 +66,29 @@ impl Default for TimeConfig {
 /// Particle system configuration settings
 #[derive(Debug, Clone, Deserialize, Resource)]
 pub struct ParticleConfig {
-    /// Number of particles to simulate
-    pub particle_count: usize,
+    /// Initial number of particles to simulate
+    pub initial_count: usize,
+    /// Maximum number of particles allowed
+    pub max_count: usize,
     /// Base size for particle rendering in world units
-    pub particle_size_base: f32,
-    /// Random variation factor for particle sizes
+    pub base_size: f32,
+    /// Random variation factor for particle sizes (not in TOML, uses default)
+    #[serde(default)]
     pub particle_size_variation: f32,
-    /// RGBA color for hot particles (e.g., white-hot)
+    /// RGBA color for hot particles (e.g., white-hot) (not in TOML, uses default)
+    #[serde(default)]
     pub color_hot: [f32; 4],
-    /// RGBA color for cooled particles
+    /// RGBA color for cooled particles (not in TOML, uses default)
+    #[serde(default)]
     pub color_cool: [f32; 4],
 }
 
 impl Default for ParticleConfig {
     fn default() -> Self {
         Self {
-            particle_count: 10_000,
-            particle_size_base: 2.0,
+            initial_count: 100_000,
+            max_count: 1_000_000,
+            base_size: 2.0,
             particle_size_variation: 0.5,
             color_hot: [1.0, 1.0, 1.0, 1.0],
             color_cool: [1.0, 0.3, 0.0, 1.0],
@@ -89,13 +99,16 @@ impl Default for ParticleConfig {
 /// Camera system configuration settings
 #[derive(Debug, Clone, Deserialize)]
 pub struct CameraConfig {
-    /// Initial camera position [x, y, z]
+    /// Initial camera position [x, y, z] (not in TOML, uses default)
+    #[serde(default)]
     pub initial_position: [f64; 3],
-    /// Initial camera target/look-at point [x, y, z]
+    /// Initial camera target/look-at point [x, y, z] (not in TOML, uses default)
+    #[serde(default)]
     pub initial_target: [f64; 3],
-    /// Camera mode: "free" or "orbit"
-    pub camera_mode: String,
-    /// Movement speed for free-flight camera mode
+    /// Initial camera mode: "free" or "orbit"
+    pub initial_mode: String,
+    /// Movement speed for free-flight camera mode (not in TOML, uses default)
+    #[serde(default)]
     pub movement_speed: f64,
     /// Default orbit distance for orbit camera mode
     pub orbit_distance: f64,
@@ -106,7 +119,7 @@ impl Default for CameraConfig {
         Self {
             initial_position: [0.0, 0.0, 100.0],
             initial_target: [0.0, 0.0, 0.0],
-            camera_mode: "orbit".to_string(),
+            initial_mode: "orbit".to_string(),
             movement_speed: 10.0,
             orbit_distance: 100.0,
         }
@@ -198,19 +211,65 @@ impl Config {
 
     /// Loads configuration from a TOML file
     ///
-    /// # Note
-    /// This method is **NOT YET IMPLEMENTED** but is called by main.rs (line 26).
-    /// When implemented, it should:
-    /// - Load from ./genesis.toml if present
-    /// - Otherwise load from ~/.config/genesis/config.toml
-    /// - Otherwise load from /etc/genesis/config.toml
-    /// - Fall back to default values if no file is found
+    /// This method searches for configuration files in the following order:
+    /// 1. `./genesis.toml` - Workspace-local configuration
+    /// 2. `~/.config/genesis/config.toml` - User-specific configuration
+    /// 3. `/etc/genesis/config.toml` - System-wide configuration
     ///
-    /// TODO: Implement this method with proper file path resolution and error handling
+    /// If no configuration file is found, default values are returned.
+    /// If a file is found but parsing fails, a warning is printed and default values are returned.
     #[must_use]
     pub fn load() -> Self {
-        // TODO: Implement configuration file loading
-        // For now, return default configuration
+        // Define the search paths in priority order
+        let paths = vec![
+            "./genesis.toml".to_string(),
+            dirs::config_local_dir()
+                .map(|p| p.join("genesis").join("config.toml"))
+                .and_then(|p| p.to_str().map(|s| s.to_string()))
+                .unwrap_or_else(|| "".to_string()),
+            "/etc/genesis/config.toml".to_string(),
+        ];
+
+        // Try each path in order
+        for path in paths {
+            if path.is_empty() {
+                continue;
+            }
+
+            let config_path = Path::new(&path);
+            if !config_path.exists() {
+                continue;
+            }
+
+            // Read the file content
+            match fs::read_to_string(config_path) {
+                Ok(content) => {
+                    // Parse the TOML content
+                    match toml::from_str::<Self>(&content) {
+                        Ok(config) => {
+                            return config;
+                        }
+                        Err(e) => {
+                            eprintln!(
+                                "Warning: Failed to parse configuration file '{}': {}",
+                                path, e
+                            );
+                            eprintln!("Falling back to default configuration.");
+                            return Self::default();
+                        }
+                    }
+                }
+                Err(e) => {
+                    eprintln!(
+                        "Warning: Failed to read configuration file '{}': {}",
+                        path, e
+                    );
+                    continue;
+                }
+            }
+        }
+
+        // No configuration file found, return defaults
         Self::default()
     }
 }

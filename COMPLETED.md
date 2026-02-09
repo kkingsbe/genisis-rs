@@ -2,6 +2,26 @@
 
 ## [2026-02-09]
 
+### Configuration System
+- [x] fix: Implement Config::load() method to load configuration from TOML files
+  - Load from ./genesis.toml if present
+  - Otherwise load from ~/.config/genesis/config.toml
+  - Otherwise load from /etc/genesis/config.toml
+  - Fall back to default values if no file is found
+  - Update genesis-core/src/config.rs line 211-215
+
+## [2026-02-09]
+
+### Drift Remediation
+- [x] fix: Align CameraConfig with genesis.toml - Reconcile orbit_distance vs orbit_radius field name inconsistency; update CameraConfig struct or main.rs to use consistent field name
+
+## [2026-02-09]
+
+### Drift Remediation
+- [x] Remove EpochManager with automatic transitions from genesis-core/src/epoch/mod.rs
+
+## [2026-02-09]
+
 ### Time & Timeline
 - [x] Implement time controls: play/pause, reset, speed adjustment (1x to 10¹²x)
 
