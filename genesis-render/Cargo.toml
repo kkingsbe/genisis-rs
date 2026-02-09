@@ -7,3 +7,6 @@ edition.workspace = true
 bevy = { workspace = true }
 genesis-core = { path = "../genesis-core" }
 bytemuck = "1.21"
+
+[dev-dependencies]
+bevy = { workspace = true }

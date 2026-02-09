@@ -1,0 +1,16 @@
+{
+  "lastRun": "2026-02-09T13:58:19.370Z",
+  "lastSuccess": "2026-02-09T13:58:08.483Z",
+  "lastFailure": "2026-02-09T12:54:56.180Z",
+  "errorCount": 9,
+  "consecutiveFailures": 0,
+  "status": "running",
+  "lastTerminationReason": null,
+  "earlyTerminationCount": 0,
+  "totalExecutionTimeMs": 5268419,
+  "averageExecutionTimeMs": 5268419,
+  "successfulTerminations": 0,
+  "failedTerminations": 0,
+  "error": "Failed to acquire lock for task 'architect' after 3 attempts: Failed to acquire lock for task 'architect': timeout after 5000ms",
+  "lastOutputFile": "/workspace/.architect-output-1770645488484.md"
+}

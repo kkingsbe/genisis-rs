@@ -58,6 +58,13 @@ const ATTRIBUTE_INSTANCE_COLOR: MeshVertexAttribute = MeshVertexAttribute::new(
     bevy::render::render_resource::VertexFormat::Float32x4,
 );
 
+/// Resource tracking the total number of particle entities
+///
+/// Used to determine buffer sizes when synchronizing particle data
+/// with GPU instance attributes.
+#[derive(Resource, Default)]
+pub struct ParticleCount(pub usize);
+
 /// Point sprite material for efficient particle rendering
 ///
 /// Uses a custom WGSL shader to render particles as GPU point sprites
@@ -308,6 +315,9 @@ pub fn spawn_particles(
             },
         ));
     }
+
+    // Update ParticleCount resource with total number of particles
+    commands.insert_resource(ParticleCount(particle_count as usize));
 }
 
 /// System to update particle positions based on physics
@@ -369,6 +379,53 @@ pub fn update_particle_energy_colors(mut query: Query<&mut Particle>) {
     }
 }
 
+/// System to synchronize Particle component data with GPU instance attributes
+///
+/// Transfers size and color data from Particle components to the shared mesh's
+/// instance attributes (ATTRIBUTE_INSTANCE_SIZE and ATTRIBUTE_INSTANCE_COLOR).
+/// This ensures that any changes to particle properties are reflected in GPU rendering.
+///
+/// This system must run every frame to keep the GPU instance data in sync with
+/// the Particle component state.
+fn sync_particle_instance_attributes(
+    particles: Query<(&Particle, &Mesh3d)>,
+    mut meshes: ResMut<Assets<Mesh>>,
+    particle_count: Res<ParticleCount>,
+) {
+    // Early return if no particles exist
+    if particle_count.0 == 0 {
+        return;
+    }
+
+    // Early return if the particles query is empty
+    let mut particle_iter = particles.iter();
+    let first_particle = match particle_iter.next() {
+        Some(p) => p,
+        None => return,
+    };
+
+    // Collect size and color data from all particles
+    let mut sizes = Vec::with_capacity(particle_count.0);
+    let mut colors = Vec::with_capacity(particle_count.0);
+
+    // Push data from the first particle we already accessed
+    sizes.push(first_particle.0.size);
+    colors.push(first_particle.0.color.as_rgba_f32());
+
+    // Collect data from remaining particles
+    for (particle, _) in particle_iter {
+        sizes.push(particle.size);
+        colors.push(particle.color.as_rgba_f32());
+    }
+
+    // Update the shared mesh's instance attributes
+    let mesh_handle = first_particle.1;
+    if let Some(mesh) = meshes.get_mut(mesh_handle) {
+        mesh.set_attribute(ATTRIBUTE_INSTANCE_SIZE, sizes);
+        mesh.set_attribute(ATTRIBUTE_INSTANCE_COLOR, colors);
+    }
+}
+
 /// Plugin for registering particle systems with the Bevy app
 ///
 /// This plugin sets up the particle rendering system by registering
@@ -392,6 +449,7 @@ pub struct ParticlePlugin;
 impl Plugin for ParticlePlugin {
     fn build(&self, app: &mut App) {
         app.add_plugins(MaterialPlugin::<PointSpriteMaterial>::default())
+            .init_resource::<ParticleCount>()
             .add_systems(Startup, init_point_mesh)
             .add_systems(Startup, spawn_particles.after(init_point_mesh))
             .add_systems(Update, update_particles)

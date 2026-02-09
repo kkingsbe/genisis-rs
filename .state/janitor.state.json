@@ -1,0 +1,16 @@
+{
+  "lastRun": "2026-02-09T13:58:57.521Z",
+  "lastSuccess": "2026-02-09T12:39:48.742Z",
+  "lastFailure": "2026-02-09T14:04:24.704Z",
+  "errorCount": 30,
+  "consecutiveFailures": 18,
+  "status": "failed",
+  "lastTerminationReason": null,
+  "earlyTerminationCount": 0,
+  "totalExecutionTimeMs": 2699584,
+  "averageExecutionTimeMs": 2699584,
+  "successfulTerminations": 0,
+  "failedTerminations": 0,
+  "error": "Failed to acquire lock for task 'janitor' after 3 attempts: Failed to acquire lock for task 'janitor': timeout after 5000ms",
+  "lastOutputFile": "/workspace/.janitor-output-1770640788742.md"
+}
