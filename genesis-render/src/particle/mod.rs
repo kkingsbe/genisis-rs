@@ -17,10 +17,12 @@
 //! Particle component with `position`, `color`, and `size` fields, but these values are
 //! not transferred to the GPU instance attributes.
 //!
-//! **Current Behavior**:
-//! - The shader uses the default instance_size (1.0) and instance_color ([1.0, 1.0, 1.0, 1.0])
-//! - Individual particle colors and sizes from the Particle component are ignored by the GPU
-//! - [`update_particle_energy_colors()`] updates Particle.color, but this doesn't affect rendering
+//! **Current Implementation Status**:
+//! ✓ Storage buffer approach implemented for per-instance particle data
+//! - Extract system (`extract_particle_instances`) transfers Particle component data to render world
+//! - Prepare system (`prepare_particle_instance_buffers`) creates GPU storage buffers
+//! - Bind group layout (`init_particle_instance_bind_group_layout`) initializes shader binding
+//! - Shader integration pending: point_sprite.wgsl needs to use @builtin(instance_index) and storage buffer
 //!
 //! **Solution Architecture**:
 //!

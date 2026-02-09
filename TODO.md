@@ -9,23 +9,8 @@
 ### Critical Fixes (Blockers)
 
 ### Phase 1 Completeness Items
-- [x] Run all tests to verify current state
-  - Tests exist in genesis-render/tests/ directory (resource_binding_tests.rs and shader_tests.rs)
-  - Tests are properly configured with dev-dependencies in Cargo.toml
-  - Tests fail to compile due to Bevy 0.15 API migration issues (66 compilation errors)
-  - Previous cargo test showed "running 0 tests" because tests couldn't compile, not because they didn't exist
-
-#### Timeline Speed Integration
-- [x] feature: Map PlaybackState.speed slider to TimeAccumulator.acceleration with PRD-specified range (Sprint 1)
-  - Implement logarithmic speed mapping: slider (0.1 to 10.0) → acceleration (1.0 to 1e12)
-  - Formula: acceleration = 10^(slider_value * log10(1e12/1.0)) or similar logarithmic scale
-  - Add system in sync_time_resources() to update acceleration when speed slider changes
-  - Add visual feedback for current acceleration factor (display "10ⁿx" where n is exponent)
-  - Document speed-to-acceleration mapping in timeline/mod.rs comments
-  - PRD Requirement: Line 115 - "adjustable acceleration (1x to 10¹²x)"
-
 #### Per-Instance Particle Attributes
-- [ ] feature: Synchronize Particle component data with GPU instance attributes (Sprint 1)
+- [x] feature: Synchronize Particle component data with GPU instance attributes (Sprint 1)
   - Implement per-instance data transfer system for Particle.color and Particle.size
   - Update particle shaders to use instance_color and instance_size attributes
   - Ensure update_particle_energy_colors() changes affect rendering
