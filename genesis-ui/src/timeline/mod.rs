@@ -167,13 +167,13 @@ pub fn timeline_panel_ui(
 
                 // Timeline slider
                 ui.label("Time:");
-                let current_slider_value = CosmicTime::to_slider(cosmic_time.cosmic_time);
+                let current_slider_value = cosmic_time.to_slider(cosmic_time.cosmic_time);
                 let mut slider_value = current_slider_value;
                 if ui
                     .add(egui::Slider::new(&mut slider_value, 0.0..=1.0).show_value(false))
                     .changed()
                 {
-                    cosmic_time.cosmic_time = CosmicTime::from_slider(slider_value);
+                    cosmic_time.cosmic_time = cosmic_time.from_slider(slider_value);
                     // Synchronize TimeAccumulator.years with CosmicTime.cosmic_time
                     time_accumulator.years = cosmic_time.cosmic_time;
                 }

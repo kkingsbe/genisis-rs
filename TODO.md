@@ -9,9 +9,10 @@
 ### Critical Fixes (Blockers)
 
 ### Phase 1 Completeness Items
+- [ ] Run all tests to verify current state
 
 #### Timeline Scrubber - Logarithmic Scale
-- [ ] feature: Implement logarithmic timeline scrubber spanning 13.8 billion years (Sprint 1)
+- [x] feature: Implement logarithmic timeline scrubber spanning 13.8 billion years (Sprint 1)
   - Replace linear timeline slider with logarithmic scrubber in genesis-ui/src/timeline/mod.rs
   - Update CosmicTime::from_slider() to use logarithmic mapping
   - Update CosmicTime::to_slider() to use logarithmic mapping
