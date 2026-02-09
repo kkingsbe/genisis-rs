@@ -4,6 +4,35 @@
 
 ---
 
+# Drift Remediation (Priority: CRITICAL)
+*Complete these items before Sprint 1 to unblock implementation*
+
+## Critical Fixes (Block Sprint 1 Completion)
+- [ ] Remove EpochManager with automatic transitions from genesis-core/src/epoch/mod.rs
+- [ ] Remove EpochCameraConfig from genesis-core/src/epoch/camera_config.rs
+- [ ] Remove epoch transition camera handling from genesis-render/src/camera/
+- [ ] Remove general-purpose camera interpolation from CameraState
+- [ ] Remove or refactor sync_time_resources() system (CosmicTime resource is redundant)
+- [ ] Implement Config::load() method for TOML file loading
+- [ ] Fix camera config field name mismatch (orbit_distance → orbit_radius) in src/main.rs
+- [ ] Align speed slider range with PRD (1x to 10¹²x) in genesis-ui/src/timeline/mod.rs
+- [ ] Map PlaybackState.speed to TimeAccumulator.acceleration with proper logarithmic scaling
+
+## Architectural Cleanup
+- [ ] Mark "Build logarithmic timeline scrubber UI" as complete (already implemented in genesis-ui/src/timeline/mod.rs)
+- [ ] Remove redundant configuration system umbrella task from BACKLOG.md
+- [ ] Move future epoch plugin tasks to respective sprint sections
+
+## Documentation Sync
+- [ ] Update ARCHITECTURE.md to reflect Phase 1 scope (single epoch, no epoch transitions)
+- [ ] Document why EpochManager and related features were removed (Phase 2+ scope)
+
+## Decision Items (Resolve These)
+- [ ] Sprint 1 item #4 "Add epoch indicator display" conflicts with drift remediation. Decision: Keep epoch indicator (PRD requirement) but simplify for Phase 1 (show temperature/scale factor only, no epoch name since only one epoch)
+- [ ] Sprint 1 item #7 "Implement timeline scrubbing with reverse/replay" needs snapshot system. Decision: Defer to Sprint 2 or implement simple version?
+
+---
+
 ## Sprint 1 - Phase 1: The Singularity
 
 ### Critical Blocker Resolution (Priority: IMMEDIATE)
@@ -56,6 +85,8 @@
 - [ ] SPRINT QA: Run full build and test suite. Fix ALL errors. If green, create/update '.sprint_complete' with the current date.
 
 ---
+
+<!-- ARCHIVAL: Original drift remediation analysis - items now tracked in Drift Remediation section above -->
 
 ## Drift Remediation (Identified 2026-02-09)
 
