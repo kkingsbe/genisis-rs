@@ -95,6 +95,7 @@ Critical drift items identified from PRD analysis:
 - [ ] Add .init_resource::<PlaybackState>() to main.rs
 
 ### Sprint QA
+- [x] Implement shader path fix (ARCHITECTURAL DECISION 2026-02-09): Create assets/ directory and copy genesis-render/src/particle/point_sprite.wgsl to assets/point_sprite.wgsl to resolve critical startup blocker
 - [ ] SPRINT QA: Run full build and test suite. Fix ALL errors. If green, create/update '.sprint_complete' with the current date.
 
 ---
@@ -119,18 +120,7 @@ Critical drift items identified from PRD analysis:
 - refined: Architecture & Documentation tasks broken down into 5 atomic subtasks
 - refined: Plugin Registration tasks broken down into 8 atomic subtasks
 
-## Drift Items Removed (Archived 2026-02-09)
 
-The following items have been resolved and moved to COMPLETED.md:
-- [x] feat: Implement PRD feature bevy_egui panels - Timeline and overlay UI panels fully implemented with egui integration
-- [x] feat: Implement PRD feature TOML configuration system - Config struct with full TOML deserialization, CLI argument parsing, and default configuration support
-- [x] fix: Align particle system with PRD requirements - Two-level particle architecture documented; simulation-level particles in genesis-core::physics and rendering-level particles in genesis-render::particle
-- [x] fix: Align resource initialization with PRD requirements - All resources (CameraState, OverlayState, PlaybackState) initialized in main.rs
-- [x] fix: Align camera systems with PRD requirements - Free-flight and orbit camera modes implemented with smooth interpolation support
-- [x] implement: Add smooth camera interpolation to genesis-render/src/camera/mod.rs - PRD Phase 1 specifies smooth interpolation between camera positions
-- [x] implement: Add time acceleration connection between PlaybackState.speed and TimeAccumulator.acceleration - Timeline UI speed slider now properly controls cosmic time acceleration
-
----
 
 ## Drift Analysis Results (New 2026-02-09)
 
@@ -149,33 +139,39 @@ The following items have been resolved and moved to COMPLETED.md:
 
 ---
 
-## Final Sprint QA
+## Drift Analysis Results (Updated 2026-02-09)
 
-- [ ] SPRINT QA: Run full build and test suite. Fix ALL errors. If green, create/update '.sprint_complete' with the current date.
+### New Drift Items Found (Not Previously Documented)
+
+**Missing Features:**
+- implement: Implement timeline scrubbing - Timeline slider changes CosmicTime.cosmic_time but no system scrubs simulation forward/backward based on timeline position
+- implement: Implement Singularity epoch systems - genesis-core/src/epoch/singularity.rs:39 has empty build() method with "TODO: Register singularity-specific systems"
+- implement: Implement velocity-based particle movement - genesis-render/src/particle/mod.rs:80 has Particle.velocity field but update_particles() system ignores it and uses constant speed instead
+
+**Contradictions:**
+- fix: Align time acceleration slider range with PRD - genesis-ui/src/timeline/mod.rs:170 slider has range 0.1..=10.0 but PRD Phase 1 requires 1x to 10^12x acceleration (1e12)
+- fix: Align energy-based color mapping with PRD - PRD specifies color-mapped by energy (kinetic energy from velocity) but update_particle_energy_colors() system uses distance from origin instead
+
+### Previously Documented Drift Items Verified as Still Valid
+
+**Unrequested Features (Still Valid):**
+- refactor: Consider deferring full EpochPlugin architecture to Phase 2 - EpochPlugin trait and EpochManager exist but PRD Phase 1 doesn't require multiple epochs
+- refactor: Consider removing CameraState.target field - Line 30 in genesis-render/src/camera/mod.rs has unused target field
+- refactor: Consider removing CameraState.current_orbit_target field - Line 32 in genesis-render/src/camera/mod.rs has unused current_orbit_target field
+- refactor: Consider removing OrbitController.min_distance and max_distance fields - Lines 104-106 in genesis-render/src/camera/mod.rs have unused distance limits
+- refactor: Consider using Bevy's ButtonInput directly instead of InputState.mouse_buttons HashMap - Line 20 in genesis-render/src/input/mod.rs uses HashMap for button state
+
+**Missing Requirements (Status Updated):**
+- implement: Add energy-based particle color mapping - PARTIALLY RESOLVED: energy_to_color() function exists and implements white-hot to red gradient, but it's not connected to particle velocity as PRD implies
+- implement: Add origin-based particle spawning - RESOLVED: genesis-render/src/particle/mod.rs:236 correctly spawns particles at Vec3::ZERO
+
+### Drift Items Found to be Resolved (Can be Removed)
 
 ---
 
-## Code Quality Issues (Found 2026-02-09)
+## Final Sprint QA
 
-### Compiler Warnings
-- [x] fix: Remove unused import `EguiPlugin` from genesis-ui/src/timeline/mod.rs:8 - Warning reported during cargo test (line 8:37)
-
-### Clippy Warnings
-- [x] fix: Replace manual clamp pattern with `.clamp()` in genesis-core/src/time/mod.rs:37
-- [x] fix: Collapse nested else-if block in genesis-ui/src/timeline/mod.rs:143
-
-### Formatting Issues
-- [x] fix: Run `cargo fmt` to fix formatting across multiple files (genesis-core, genesis-render, genesis-ui, src)
-  - genesis-core/src/epoch/mod.rs (import order, function signature)
-  - genesis-core/src/lib.rs (module order)
-  - genesis-render/src/camera/mod.rs (imports, spacing, line length)
-  - genesis-render/src/input/mod.rs (line length)
-  - genesis-render/src/lib.rs (module order)
-  - genesis-render/src/particle/mod.rs (imports, spacing, line length)
-  - genesis-ui/src/lib.rs (module order)
-  - genesis-ui/src/overlay/mod.rs (line length)
-  - genesis-ui/src/timeline/mod.rs (line length)
-  - src/main.rs (import order)
+*Note: The SPRINT QA task is already included as the final task in Sprint 1 (line 98 above).*
 
 ---
 
