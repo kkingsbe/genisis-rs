@@ -135,6 +135,28 @@ Critical drift items identified from PRD analysis:
 
 ---
 
+## Code Quality Issues (Found 2026-02-09)
+
+### Clippy Warnings
+- fix: Replace manual clamp pattern with `.clamp()` in genesis-core/src/time/mod.rs:37
+- fix: Remove unused import `EguiPlugin` from genesis-ui/src/timeline/mod.rs:8
+- fix: Collapse nested else-if block in genesis-ui/src/timeline/mod.rs:143
+
+### Formatting Issues
+- fix: Run `cargo fmt` to fix formatting across multiple files (genesis-core, genesis-render, genesis-ui, src)
+  - genesis-core/src/epoch/mod.rs (import order, function signature)
+  - genesis-core/src/lib.rs (module order)
+  - genesis-render/src/camera/mod.rs (imports, spacing, line length)
+  - genesis-render/src/input/mod.rs (line length)
+  - genesis-render/src/lib.rs (module order)
+  - genesis-render/src/particle/mod.rs (imports, spacing, line length)
+  - genesis-ui/src/lib.rs (module order)
+  - genesis-ui/src/overlay/mod.rs (line length)
+  - genesis-ui/src/timeline/mod.rs (line length)
+  - src/main.rs (import order)
+
+---
+
 ## Repository Cleanup (2026-02-09)
 
 ### Files Deleted (14 files)
