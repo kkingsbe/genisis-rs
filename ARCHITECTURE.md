@@ -62,8 +62,8 @@ The application registers the following plugins and resources:
 - **ConfigResource** (main.rs): Wrapper for Config as a Bevy Resource (NOTE: Config::load() IS implemented - reads from genesis.toml with file path search logic)
 - **ParticleConfig** (genesis-core): Resource for particle spawning configuration (correctly used directly with Resource derive in main.rs line 48)
 - **CameraState** (genesis-render): Resource for tracking camera mode, target, and interpolation state (initialized from CameraConfig)
-- **OverlayState** (genesis-ui): Resource for overlay visibility (initialized from DisplayConfig: show_fps, show_particle_count, show_epoch_info)
-  - Note: OverlayState.show_epoch_info field EXISTS in genesis-ui/src/overlay/mod.rs line 17
+- **OverlayState** (genesis-ui): Resource for overlay visibility (initialized from DisplayConfig: show_fps, show_particle_count)
+  - Note: show_epoch_info field does NOT exist in OverlayState or DisplayConfig (not implemented yet)
 - **CosmicTime** (genesis-ui): Resource for timeline state management with logarithmic slider mapping (auto-initialized by TimelinePlugin)
 - **PlaybackState** (genesis-ui): Resource for playback control (auto-initialized by TimelinePlugin)
 - **TimeAccumulator** (genesis-core): Resource for tracking cosmic years (auto-initialized by TimeIntegrationPlugin)
@@ -620,9 +620,9 @@ The gap analysis was conducted by:
     - **Impact:** None - configuration loading works correctly
 
 13. **DisplayConfig.show_epoch_info vs OverlayState.show_epoch_info**
-    - **Status:** Both DisplayConfig and OverlayState struct have `show_epoch_info` field
-    - **Gap:** None - both structs have the field correctly
-    - **Impact:** None - field exists and works correctly
+    - **Status:** NEITHER DisplayConfig NOR OverlayState struct have `show_epoch_info` field
+    - **Gap:** Field is missing from both structs - not implemented yet
+    - **Impact:** Epoch indicator display cannot be toggled via configuration
 
 ### Phase 2 (Inflation & Quantum Seeds) - Gap Analysis
 

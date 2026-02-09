@@ -73,11 +73,10 @@ impl CosmicTime {
     ///
     /// # Note
     /// When min_time is 0.0, this uses a small epsilon value to avoid log10(0).
-    pub fn from_slider(slider_value: f64) -> f64 {
-        let min_time: f64 = 1.0; // Use 1 year as minimum for log scale to avoid log10(0)
-        let max_time: f64 = 13.8e9;
-        let log_ratio: f64 = f64::log10(max_time / min_time);
-        min_time * 10_f64.powf(slider_value * log_ratio)
+    pub fn from_slider(&self, slider_value: f64) -> f64 {
+        let effective_min = if self.min_time == 0.0 { 1.0 } else { self.min_time };
+        let log_ratio: f64 = f64::log10(self.max_time / effective_min);
+        effective_min * 10_f64.powf(slider_value * log_ratio)
     }
 
     /// Maps cosmic time in years to a logarithmic slider value (0.0 to 1.0).
@@ -92,14 +91,13 @@ impl CosmicTime {
     ///
     /// # Note
     /// When cosmic_time is 0.0 or less than 1 year, returns 0.0 as slider position.
-    pub fn to_slider(cosmic_time: f64) -> f64 {
-        let min_time: f64 = 1.0; // Use 1 year as minimum for log scale to avoid log10(0)
-        let max_time: f64 = 13.8e9;
-        if cosmic_time < min_time {
+    pub fn to_slider(&self, cosmic_time: f64) -> f64 {
+        let effective_min = if self.min_time == 0.0 { 1.0 } else { self.min_time };
+        if cosmic_time < effective_min {
             return 0.0;
         }
-        let log_ratio: f64 = f64::log10(max_time / min_time);
-        f64::log10(cosmic_time / min_time) / log_ratio
+        let log_ratio: f64 = f64::log10(self.max_time / effective_min);
+        f64::log10(cosmic_time / effective_min) / log_ratio
     }
 
     /// Sets the current cosmic time.

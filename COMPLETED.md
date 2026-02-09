@@ -3,12 +3,25 @@
 ## [2026-02-09]
 
 ### Critical Fixes (Blockers)
+- [x] fix: Update genesis.toml time.initial_time_acceleration to match PRD Phase 1 starting range
+
+
+## [2026-02-09]
+
+### Critical Fixes (Blockers)
+- [x] fix: Update genesis.toml particle.initial_count to match Phase 1 testing (1000 instead of 100K)
+
+
+## [2026-02-09]
+
+### Critical Fixes (Blockers)
 - [x] fix: Failing test/compilation in genesis-render/src/particle/instance_buffer.rs from commit eeb3b28 (actually introduced by ee0e6c2) - missing `use bytemuck::Zeroable;` import causes `ParticleInstanceData::zeroed()` to fail at line 309
 
 
 ## [2026-02-09]
 
 ### Critical Fixes (Blockers)
+- [x] refactor: Remove unused config fields from genesis.toml that don't map to Phase 1 PRD
 - [x] refactor: Disable display.show_epoch_info config - this is a Phase 2+ feature enabled in Phase 1
 
 
@@ -268,3 +281,10 @@
 
 ### Critical Fixes (Blockers)
 - [x] refactor: Remove orbit camera zoom/pan - not specified in Phase 1 PRD but implemented
+
+
+## [2026-02-09]
+
+### Critical Fixes (Blockers)
+- [x] fix: Align speed slider range with PRD - PRD specifies 1x-10¹²x but code has 0.1-10.0
+- [x] fix: Implement particle spawning at configured count - genesis.toml has 100K but only 1000 spawning

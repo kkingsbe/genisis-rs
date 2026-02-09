@@ -200,7 +200,7 @@ li7_h_observed = 1.6e-10
 
 Which preset implementation approach should we use?
 - Embedded presets in genesis.toml (Option A)?
-- Separate preset files (Option B)?
+- [x] Separate preset files (Option B)?
 - Configuration system with preset selection (Option C)?
 
 Also:

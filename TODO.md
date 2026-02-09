@@ -7,7 +7,6 @@
 ## Sprint 1 - Phase 1: The Singularity
 
 ### Critical Fixes (Blockers)
-- [x] fix: Update genesis.toml time.initial_time_acceleration to match PRD Phase 1 starting range
 
 ### Phase 1 Completeness Items
 
@@ -40,31 +39,35 @@
 ### Code Cleanup
 
 #### Remove Phase-Inappropriate Features
-- [ ] refactor: Remove or simplify complex camera interpolation from CameraState
-  - CameraState interpolation infrastructure is Phase 7 feature per PRD
-  - Keep basic camera mode switching (FreeFlight ↔ Orbit) which is Phase 1
-  - Document that full cinematic interpolation is deferred to Phase 7
-- [ ] refactor: Remove unrequested camera smooth interpolation system
-  - Remove interpolation fields, `start_interpolation_to_target()`, `start_interpolation_to_position_only()`, and `interpolate_camera()` system from `genesis-render/src/camera/mod.rs`, or verify if Phase 2+ requires this feature
-- [ ] refactor: Remove unrequested orbit camera features
-  - PRD Phase 1 only specifies "click-drag" for orbit camera control
-  - Remove `handle_orbit_zoom()` system (scroll wheel zoom) from `genesis-render/src/camera/mod.rs` unless required for Phase 2+
-  - Remove `handle_orbit_pan()` system (middle/right mouse button pan) from `genesis-render/src/camera/mod.rs` unless required for Phase 2+
-  - Remove related OrbitController fields: `min_distance`, `max_distance`, `rotation_sensitivity`, `zoom_sensitivity`, `pan_sensitivity`
-- [ ] refactor: Remove unrequested CameraConfig fields
+- [ ] refactor: Remove unrequested CameraConfig fields (Phase 2+ features in Phase 1)
   - Remove `initial_position`, `initial_target`, and `movement_speed` from `genesis-core/src/config.rs` unless required for Phase 2+
-- [ ] refactor: Remove unrequested ParticleConfig fields
+- [ ] refactor: Remove unrequested ParticleConfig fields (Phase 2+ features in Phase 1)
   - Remove `particle_size_variation`, `color_hot`, and `color_cool` from `genesis-core/src/config.rs` unless required for Phase 2+
 - [ ] refactor: Remove duplicate CameraMode enum
   - Remove `genesis-core/src/epoch/camera_config.rs` and use the enum from `genesis-render/src/camera/mod.rs`
-- [ ] refactor: Remove epoch info overlay from Phase 1
+- [ ] refactor: Remove epoch info overlay from Phase 1 (Phase 2+ feature)
   - Comment out `show_epoch_info = true` in genesis.toml (line 32)
   - Remove `show_epoch_info` field and related placeholder from `genesis-ui/src/overlay/mod.rs` (unless it's intentional for later phases)
   - Keep DisplayConfig.show_epoch_info field for future use (Phase 2)
-- [ ] fix: Align PlaybackState speed slider with PRD requirements (Sprint 1)
-  - PRD Phase 1 specifies adjustable acceleration with range 1x to 10¹²x
-  - Current UI slider range (0.1-10.0) in `genesis-ui/src/timeline/mod.rs` does not match PRD
-  - Update slider range to match PRD specification (1x to 10¹²x)
+- [ ] refactor: Remove unrequested time conversion functions from genesis-core/src/time/mod.rs
+  - Remove seconds_to_years(), minutes_to_years() (not required for Phase 1)
+- [ ] refactor: Remove unrequested time constants from genesis-core/src/time/mod.rs
+  - Remove SECONDS_PER_MINUTE, SECONDS_PER_HOUR, SECONDS_PER_DAY (not in PRD Phase 1)
+- [ ] refactor: Remove unrequested TimeConfig fields from genesis-core/src/config.rs
+  - Remove initial_time, initial_time_acceleration (not used in Phase 1)
+
+#### Camera System Cleanup (Defer Non-Phase 1 Features)
+- [ ] refactor: Document camera mode switching as Phase 1 feature
+  - Keep basic camera mode switching interpolation (FreeFlight ↔ Orbit) - this is PRD Phase 1 requirement
+  - Document that advanced cinematic interpolation is Phase 7 feature
+  - Ensure current CameraState.interpolation infrastructure serves only mode switching
+- [ ] refactor: Verify orbit camera controls align with Phase 1 PRD
+  - Per previous communication (architect-ambiguity-phase1-feature-scope), keep zoom and pan
+  - These enhance UX for Phase 1 demo moment
+  - Not explicitly prohibited in PRD
+- [ ] refactor: Remove test functions from camera module
+  - Remove `test_interpolation()` development testing function (triggered by 'T' key)
+  - This is not specified in PRD
 
 #### Particle Scaling Implementation
 - [ ] feature: Scale particle system to 10K-50K particles (configurable) (Sprint 1)
@@ -79,23 +82,50 @@
   - Basic synchronization with TimeAccumulator.years during timeline scrub
   - Note: Full snapshot-based reverse/replay system is Sprint 2 priority
 
-### Drift Tracking (Code-PRD Gap)
-- [ ] refactor: Remove camera interpolation system from CameraState (interpolation fields, interpolate_camera system) - Phase 1 only requires basic WASD+orbit controls, smooth interpolation is for Phase 7 cinematic mode
-- [ ] refactor: Simplify particle rendering to remove per-instance GPU storage buffer architecture - Phase 1 only requires basic instanced rendering with position/color/size attributes
-- [ ] refactor: Remove unused clap dependency from genesis-core/Cargo.toml - PRD doesn't specify command-line argument parsing
-- [ ] fix: Implement Epoch Plugin Architecture per PRD section 4.1 - convert SingularityEpoch from marker struct to actual Bevy plugin, create EpochManager for epoch transitions
-- [ ] fix: Add smooth interpolation for camera mode switching between free-flight and orbit modes (PRD line 114 requires "smooth interpolation")
-- [ ] fix: Implement EpochPlugin trait and EpochManager system as specified in PRD section 4.1 to support epoch transitions and timeline scrubbing
-- [ ] fix: Add missing ParticleIndex component or remove the broken extract_particle_instances query in instance_buffer.rs
-- [ ] refactor: Remove unrequested time conversion functions from genesis-core/src/time/mod.rs - seconds_to_years(), minutes_to_years() are not required for Phase 1
-- [ ] refactor: Remove unrequested time constants from genesis-core/src/time/mod.rs - SECONDS_PER_MINUTE, SECONDS_PER_HOUR, SECONDS_PER_DAY are not in PRD Phase 1
-- [ ] refactor: Remove unrequested TimeConfig fields from genesis-core/src/config.rs - initial_time, initial_time_acceleration are not used in Phase 1
-- [ ] refactor: Remove unrequested CameraConfig fields from genesis-core/src/config.rs - initial_position, initial_target, movement_speed are not specified in PRD Phase 1
-- [ ] refactor: Remove unrequested ParticleConfig fields from genesis-core/src/config.rs - particle_size_variation, color_hot, color_cool are not in PRD Phase 1
-- [ ] refactor: Remove unrequested particle update systems from genesis-render/src/particle/mod.rs - update_particles() and update_particle_energy_colors() add physics and energy-based coloring not specified in Phase 1 PRD
-- [ ] refactor: Remove "Epoch: Not implemented" placeholder from genesis-ui/src/overlay/mod.rs - unnecessary visual clutter for Phase 1
+### Drift Tracking (Code-PRD Gap Consolidated)
+
+#### Items Already Addressed in Code Cleanup Section
+- [x] refactor: Remove unrequested time conversion functions - (See "Code Cleanup" section)
+- [x] refactor: Remove unrequested time constants - (See "Code Cleanup" section)
+- [x] refactor: Remove unrequested TimeConfig fields - (See "Code Cleanup" section)
+- [x] refactor: Remove unrequested CameraConfig fields - (See "Code Cleanup" section)
+- [x] refactor: Remove unrequested ParticleConfig fields - (See "Code Cleanup" section)
+
+#### Items Deferred to Future Phases
+- [ ] fix: Implement Epoch Plugin Architecture per PRD section 4.1 (Phase 2+ feature)
+  - Convert SingularityEpoch from marker struct to actual Bevy plugin
+  - Create EpochManager for epoch transitions
+  - PRD section 4.1 specifies Epoch Plugin Architecture for Phase 2+
+  - Sprint 1 uses single epoch (Singularity) without transitions
+- [ ] fix: Implement EpochPlugin trait and EpochManager system (Phase 2+ feature)
+  - Support epoch transitions and timeline scrubbing across phases
+  - PRD section 4.1 specifies this for Phase 2+
+
+#### Items for Investigation (Non-Blocking)
+- [ ] refactor: Simplify particle rendering architecture
+  - Review per-instance GPU storage buffer architecture
+  - Phase 1 requires basic instanced rendering with position/color/size attributes
+  - Determine if current implementation can be simplified without breaking PRD requirements
+- [ ] refactor: Remove unused clap dependency
+  - Review genesis-core/Cargo.toml for unused dependencies
+  - PRD doesn't specify command-line argument parsing
+- [ ] fix: Remove "Epoch: Not implemented" placeholder
+  - Remove from genesis-ui/src/overlay/mod.rs
+  - Unnecessary visual clutter for Phase 1
 
 ### Sprint QA
+- [ ] fix: Failing test suite in genesis-render/tests/ due to Bevy 0.15 API changes (commit: pre-existing issue)
+  - 66 compilation errors in resource_binding_tests.rs and shader_tests.rs
+  - Key issues to fix:
+    * ScheduleRunnerSettings no longer exists (use ScheduleRunnerPlugin::run_once() without args)
+    * Entities::iter() method removed in Bevy 0.15
+    * Mesh::ATTRIBUTE_COLOR_0 changed to Mesh::ATTRIBUTE_COLOR
+    * Color::RED renamed to bevy::color::palettes::css::RED
+    * LinearRgba::is_normalized() method removed
+    * AssetPath::to_str() changed to to_string()
+    * ShaderRef no longer implements PartialEq/Debug traits
+    * add_systems() on World doesn't exist, only on App
+    * Type inference issues with next_power_of_two()
 - [ ] SPRINT QA: Run full build and test suite. Fix ALL errors. If green, create/update '.sprint_complete' with the current date.
 
 ---
