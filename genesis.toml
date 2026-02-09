@@ -29,4 +29,3 @@ initial_time_acceleration = 1.0
 [display]
 show_fps = true
 show_particle_count = true
-show_epoch_info = false

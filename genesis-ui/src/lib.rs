@@ -21,7 +21,7 @@ impl Plugin for GenesisUiPlugin {
     fn build(&self, app: &mut App) {
         app.add_plugins(EguiPlugin)
             .add_plugins(TimelinePlugin)
-            .add_systems(Update, overlay::update_overlay_ui);
+            .add_systems(Update, overlay::update_overlay_ui.after(bevy_egui::EguiSet::InitContexts));
     }
 }
 

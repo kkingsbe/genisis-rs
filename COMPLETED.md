@@ -3,6 +3,13 @@
 ## [2026-02-09]
 
 ### Critical Fixes (Blockers)
+- [x] refactor: Disable display.show_epoch_info config - this is a Phase 2+ feature enabled in Phase 1
+
+
+
+## [2026-02-09]
+
+### Critical Fixes (Blockers)
 
 #### Shader & Assets
 - [x] fix: Resolve ViewUniform shader compilation error

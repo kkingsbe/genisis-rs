@@ -28,6 +28,8 @@ use bevy::render::render_resource::{
 };
 use bevy::render::renderer::{RenderDevice, RenderQueue};
 
+use bytemuck::Zeroable;
+
 use super::Particle;
 
 // ============================================================================
@@ -105,34 +107,39 @@ pub struct ParticleInstanceBindGroup {
 /// This layout is used when creating bind groups and must match
 /// the shader's @group/@binding declarations.
 ///
-/// Created on plugin initialization via FromWorld
+/// Created by: `init_particle_instance_bind_group_layout` render startup system
 #[derive(Resource, Clone, Debug)]
 pub struct ParticleInstanceBindGroupLayout {
     /// The bind group layout handle
     pub bind_group_layout: BindGroupLayout,
 }
 
-impl FromWorld for ParticleInstanceBindGroupLayout {
-    fn from_world(world: &mut World) -> Self {
-        let render_device = world.resource::<RenderDevice>();
-        let bind_group_layout = render_device.create_bind_group_layout(
-            Some("particle_instance_bind_group_layout"),
-            &[
-                // Binding 3: Instance data storage buffer
-                BindGroupLayoutEntry {
-                    binding: 3,
-                    visibility: ShaderStages::VERTEX,
-                    ty: BindingType::Buffer {
-                        ty: BufferBindingType::Storage { read_only: true },
-                        has_dynamic_offset: false,
-                        min_binding_size: Some(std::num::NonZeroU64::new(32).unwrap()),
-                    },
-                    count: None,
+/// Startup system to initialize the particle instance bind group layout
+///
+/// This system runs in the render app's startup schedule after RenderDevice is available.
+/// It creates the bind group layout that will be used to bind instance data
+/// to shaders.
+///
+/// Runs in: RenderStartup schedule (render app)
+/// Resources required: RenderDevice
+pub fn init_particle_instance_bind_group_layout(mut commands: Commands, render_device: Res<RenderDevice>) {
+    let bind_group_layout = render_device.create_bind_group_layout(
+        Some("particle_instance_bind_group_layout"),
+        &[
+            // Binding 3: Instance data storage buffer
+            BindGroupLayoutEntry {
+                binding: 3,
+                visibility: ShaderStages::VERTEX,
+                ty: BindingType::Buffer {
+                    ty: BufferBindingType::Storage { read_only: true },
+                    has_dynamic_offset: false,
+                    min_binding_size: Some(std::num::NonZeroU64::new(32).unwrap()),
                 },
-            ],
-        );
-        Self { bind_group_layout }
-    }
+                count: None,
+            },
+        ],
+    );
+    commands.insert_resource(ParticleInstanceBindGroupLayout { bind_group_layout });
 }
 
 // ============================================================================

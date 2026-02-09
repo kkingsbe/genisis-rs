@@ -4,7 +4,7 @@
 //! Overlay UI rendering system (update_overlay_ui) is implemented with egui integration.
 
 use bevy::prelude::*;
-use bevy_egui::{egui, EguiContexts};
+use bevy_egui::{egui, EguiContexts, EguiSet};
 
 /// Resource tracking overlay visibility
 ///

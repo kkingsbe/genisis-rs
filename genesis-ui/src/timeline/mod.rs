@@ -21,7 +21,7 @@
 //! - PlaybackState.speed to TimeAccumulator.acceleration (logarithmic mapping)
 
 use bevy::prelude::*;
-use bevy_egui::{egui, EguiContexts};
+use bevy_egui::{egui, EguiContexts, EguiSet};
 use genesis_core::time::TimeAccumulator;
 
 /// Resource tracking playback state
@@ -233,7 +233,7 @@ impl Plugin for TimelinePlugin {
     fn build(&self, app: &mut App) {
         app.insert_resource(CosmicTime::new())
             .insert_resource(PlaybackState::default())
-            .add_systems(bevy::app::PostUpdate, timeline_panel_ui)
+            .add_systems(bevy::app::PostUpdate, timeline_panel_ui.after(EguiSet::InitContexts))
             .add_systems(bevy::app::Update, sync_time_resources);
     }
 }

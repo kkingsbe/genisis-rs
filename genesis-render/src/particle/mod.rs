@@ -51,13 +51,14 @@ use bevy::render::mesh::{MeshVertexAttribute, PrimitiveTopology};
 use bevy::render::render_asset::RenderAssetUsages;
 use bevy::render::render_resource::AsBindGroup;
 use bevy::render::render_resource::ShaderRef;
-use bevy::render::{ExtractSchedule, Render};
+use bevy::render::{ExtractSchedule, Render, RenderApp};
 use genesis_core::config::ParticleConfig;
 
 mod instance_buffer;
 
 pub use instance_buffer::{
     extract_particle_instances,
+    init_particle_instance_bind_group_layout,
     prepare_particle_instance_buffers,
     ExtractedParticleInstances,
     ParticleInstanceBindGroup,
@@ -410,8 +411,6 @@ pub struct ParticlePlugin;
 impl Plugin for ParticlePlugin {
     fn build(&self, app: &mut App) {
         app.add_plugins(MaterialPlugin::<PointSpriteMaterial>::default())
-            // Initialize bind group layout for instance data storage buffer
-            .init_resource::<ParticleInstanceBindGroupLayout>()
             // Startup systems
             .add_systems(Startup, init_point_mesh)
             .add_systems(Startup, spawn_particles.after(init_point_mesh))
@@ -422,6 +421,11 @@ impl Plugin for ParticlePlugin {
             .add_systems(ExtractSchedule, extract_particle_instances)
             // Render system: Prepare GPU buffers and bind groups
             .add_systems(Render, prepare_particle_instance_buffers);
+
+        // Initialize bind group layout for instance data storage buffer in render app
+        // RenderDevice only exists in the render app's world
+        app.sub_app_mut(RenderApp)
+            .add_systems(Startup, init_particle_instance_bind_group_layout);
     }
 }
 
