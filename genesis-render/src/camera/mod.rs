@@ -1,15 +1,19 @@
-//! Camera mode definitions
+//! Camera mode definitions and control systems
 //!
-//! Defines camera mode enums and state tracking resources.
-//! Camera movement systems are implemented (free-flight via update_free_flight_camera).
+//! Defines camera mode enums, state tracking resources, and camera controller components.
+//! Camera movement systems are implemented for both free-flight (update_free_flight_camera)
+//! and orbit (update_orbit_camera) modes.
 
 use bevy::prelude::*;
 use bevy::time::Time;
+use bevy::input::mouse::{MouseButton, MouseWheel};
+use bevy::input::ButtonInput;
+use bevy::input::keyboard::KeyCode;
 
 use crate::input::InputState;
 
 /// Camera mode for different viewing experiences
-#[derive(Default, Clone, Copy, PartialEq, Eq)]
+#[derive(Default, Clone, Copy, PartialEq, Eq, Debug)]
 pub enum CameraMode {
     #[default]
     FreeFlight,
@@ -18,8 +22,8 @@ pub enum CameraMode {
 
 /// Resource tracking camera state
 ///
-/// Stores the current camera mode and optional target point.
-/// Camera movement and input handling systems need to be implemented separately.
+/// Stores the current camera mode, optional target point, and current orbit target.
+/// Camera movement systems are implemented for both free-flight and orbit modes.
 #[derive(Resource)]
 pub struct CameraState {
     pub mode: CameraMode,
@@ -181,6 +185,11 @@ pub fn update_orbit_camera(
     input: Res<InputState>,
     mut camera_state: ResMut<CameraState>,
 ) {
+    // Only update if left mouse button is pressed
+    if !input.mouse_buttons.get(&MouseButton::Left).copied().unwrap_or(false) {
+        return;
+    }
+
     for (mut transform, mut controller) in cameras.iter_mut() {
         // Apply mouse drag rotation
         controller.yaw += input.mouse_delta.x * controller.rotation_sensitivity;
@@ -201,11 +210,44 @@ pub fn update_orbit_camera(
     }
 }
 
+/// System to handle orbit camera zoom via scroll wheel
+///
+/// Adjusts camera distance based on scroll wheel input, clamped between
+/// min_distance and max_distance.
+fn handle_orbit_zoom(
+    mut scroll_events: EventReader<MouseWheel>,
+    mut orbit_query: Query<&mut OrbitController>,
+) {
+    let mut orbit = orbit_query.single_mut();
+    for event in scroll_events.read() {
+        orbit.distance -= event.y * orbit.zoom_sensitivity;
+        orbit.distance = orbit.distance.clamp(orbit.min_distance, orbit.max_distance);
+    }
+}
+
+/// System to toggle between camera modes
+///
+/// Switches between FreeFlight and Orbit camera modes when the 'O' key is pressed.
+fn toggle_camera_mode(
+    keys: Res<ButtonInput<KeyCode>>,
+    mut camera_state: ResMut<CameraState>,
+) {
+    if keys.just_pressed(KeyCode::KeyO) {
+        camera_state.mode = match camera_state.mode {
+            CameraMode::FreeFlight => CameraMode::Orbit,
+            CameraMode::Orbit => CameraMode::FreeFlight,
+        };
+        info!("Camera mode switched to: {:?}", camera_state.mode);
+    }
+}
+
 pub struct CameraPlugin;
 
 impl Plugin for CameraPlugin {
     fn build(&self, app: &mut App) {
-        app.add_systems(Update, update_free_flight_camera)
-            .add_systems(Update, update_orbit_camera);
+        app.add_systems(Update, toggle_camera_mode)
+            .add_systems(Update, update_free_flight_camera)
+            .add_systems(Update, update_orbit_camera)
+            .add_systems(Update, handle_orbit_zoom);
     }
 }
