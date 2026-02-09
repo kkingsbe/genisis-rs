@@ -7,8 +7,7 @@
 ## Sprint 1 - Phase 1: The Singularity
 
 ### Critical Fixes (Blockers)
-- [x] refactor: Remove unused config fields from genesis.toml that don't map to Phase 1 PRD
-- [ ] fix: Align speed slider range with PRD - PRD specifies 1x-10¹²x but code has 0.1-10.0
+- [x] fix: Align speed slider range with PRD - PRD specifies 1x-10¹²x but code has 0.1-10.0
 - [ ] fix: Implement particle spawning at configured count - genesis.toml has 100K but only 1000 spawning
 - [ ] fix: Update genesis.toml particle.initial_count to match Phase 1 testing (1000 instead of 100K)
 - [ ] fix: Update genesis.toml time.initial_time_acceleration to match PRD Phase 1 starting range

@@ -30,7 +30,7 @@ pub struct TimeConfig {
 impl Default for TimeConfig {
     fn default() -> Self {
         Self {
-            time_acceleration_min: 0.1,
+            time_acceleration_min: 1.0,
             time_acceleration_max: 1e12,
             initial_time_acceleration: 1.0,
         }

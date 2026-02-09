@@ -31,7 +31,7 @@ use genesis_core::time::TimeAccumulator;
 #[derive(Resource, Default)]
 pub struct PlaybackState {
     pub playing: bool,
-    pub speed: f32, // 0.0 to 1.0 for logarithmic mapping (when implemented)
+    pub speed: f32, // 1.0 to 1e12 for logarithmic playback speed control
 }
 
 /// Resource for cosmic timeline state management
@@ -185,9 +185,8 @@ pub fn timeline_panel_ui(
                 // Speed control slider
                 ui.label("Speed:");
                 ui.add(
-                    egui::Slider::new(&mut playback_state.speed, 0.1..=10.0)
+                    egui::Slider::new(&mut playback_state.speed, 1.0..=1e12)
                         .logarithmic(true)
-                        .step_by(0.1)
                         .prefix("")
                         .suffix("x"),
                 );
@@ -207,7 +206,7 @@ pub fn timeline_panel_ui(
 /// - When playing is true and TimeAccumulator is paused, resume TimeAccumulator
 /// - When playing is false and TimeAccumulator is not paused, pause TimeAccumulator
 ///
-/// Also maps PlaybackState.speed (0.1-10.0) to TimeAccumulator.acceleration (1.0-1e12)
+/// Also maps PlaybackState.speed (1.0-1e12) to TimeAccumulator.acceleration (1.0-1e12)
 /// using logarithmic scaling: acceleration = 10^((log10(speed) + 1.0) * 6.0)
 pub fn sync_time_resources(
     mut time_accumulator: ResMut<TimeAccumulator>,
@@ -219,7 +218,7 @@ pub fn sync_time_resources(
         time_accumulator.pause();
     }
 
-    // Map PlaybackState.speed (0.1-10.0) to TimeAccumulator.acceleration (1.0-1e12)
+    // Map PlaybackState.speed (1.0-1e12) to TimeAccumulator.acceleration (1.0-1e12)
     // using logarithmic scaling: acceleration = 10^((log10(speed) + 1.0) * 6.0)
     let speed = playback_state.speed as f64;
     let acceleration = 10_f64.powf((speed.log10() + 1.0) * 6.0);
