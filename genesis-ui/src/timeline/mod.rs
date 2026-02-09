@@ -5,7 +5,7 @@
 //! logarithmic slider, and speed control.
 
 use bevy::prelude::*;
-use bevy_egui::{egui, EguiContexts, EguiPlugin};
+use bevy_egui::{egui, EguiContexts};
 use genesis_core::time::TimeAccumulator;
 
 /// Resource tracking playback state
@@ -136,14 +136,10 @@ pub fn timeline_panel_ui(
         .show(contexts.ctx_mut(), |ui| {
             ui.horizontal(|ui| {
                 // Play/Pause button
-                if playback_state.playing {
-                    if ui.button("⏸ Pause").clicked() {
-                        playback_state.playing = false;
-                    }
-                } else {
-                    if ui.button("▶ Play").clicked() {
-                        playback_state.playing = true;
-                    }
+                if playback_state.playing && ui.button("⏸ Pause").clicked() {
+                    playback_state.playing = false;
+                } else if !playback_state.playing && ui.button("▶ Play").clicked() {
+                    playback_state.playing = true;
                 }
 
                 // Reset button
@@ -159,7 +155,10 @@ pub fn timeline_panel_ui(
                 ui.label("Time:");
                 let current_slider_value = CosmicTime::to_slider(cosmic_time.cosmic_time);
                 let mut slider_value = current_slider_value;
-                if ui.add(egui::Slider::new(&mut slider_value, 0.0..=1.0).show_value(false)).changed() {
+                if ui
+                    .add(egui::Slider::new(&mut slider_value, 0.0..=1.0).show_value(false))
+                    .changed()
+                {
                     cosmic_time.cosmic_time = CosmicTime::from_slider(slider_value);
                 }
 
@@ -167,10 +166,13 @@ pub fn timeline_panel_ui(
 
                 // Speed control slider
                 ui.label("Speed:");
-                ui.add(egui::Slider::new(&mut playback_state.speed, 0.1..=10.0).logarithmic(true)
-                    .step_by(0.1)
-                    .prefix("")
-                    .suffix("x"));
+                ui.add(
+                    egui::Slider::new(&mut playback_state.speed, 0.1..=10.0)
+                        .logarithmic(true)
+                        .step_by(0.1)
+                        .prefix("")
+                        .suffix("x"),
+                );
 
                 ui.separator();
 

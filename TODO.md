@@ -16,6 +16,21 @@ Critical drift items identified from PRD analysis:
 
 ---
 
+## Drift Detection (PRD Phase 1)
+
+### Unrequested Features
+- refactor: Remove unrequested epoch system (EpochPlugin, EpochManager, epoch UI elements)
+- refactor: Remove unrequested CLI argument parsing and config file loading system
+- refactor: Remove unrequested camera mode toggle feature (press 'O' to switch modes)
+- refactor: Remove unrequested CameraState resource and CameraMode enum used for mode switching
+- refactor: Simplify particle velocity spawning to minimal outward velocity (remove pseudo-random sphere calculation)
+
+### Contradictions
+- fix: Align particle spawn count with PRD requirement (increase from 1000 to at least 100K particles)
+- fix: Add smooth interpolation to camera movement (implement lerp/damping for both free-flight and orbit cameras)
+
+---
+
 # TODO - Current Sprint (Phase 1: The Singularity)
 
 **Sprint Goal:** A running Bevy application with a 3D particle system, camera controls, and a time slider.
@@ -24,7 +39,6 @@ Critical drift items identified from PRD analysis:
 
 ## Missing Features (Drift Analysis - Phase 1)
 
-- [ ] implement: Add pause/reset UI controls - Expose TimeAccumulator pause/reset functionality through UI
 - [ ] implement: Create procedural singularity visualization - Replace random particle spawning with energy-mapped coloring (white-hot core to red edges) as specified
 - [ ] implement: Implement epoch plugins - Create actual epoch plugins (e.g., SingularityEpoch, InflationEpoch) and register them with EpochManager
 
@@ -96,36 +110,42 @@ Critical drift items identified from PRD analysis:
 - refactor: Remove VERSION constants from genesis-core, genesis-render, genesis-ui crates - not specified in PRD
 - refactor: Remove bytemuck dependency from genesis-render/Cargo.toml - not in PRD dependency specifications
 
-### Contradictory Code
-- fix: Align TimeAccumulator in genesis-core/src/time/mod.rs with PRD requirements - missing pause functionality (PRD Phase 1 requires "pause, and reset" but only reset is implemented) -> ADDED TASK: "Add pause() method to TimeAccumulator resource"
-- fix: Align genesis-render/src/particle/mod.rs with PRD requirements - module doc claims "GPU-accelerated rendering of up to 1M particles using Bevy's instancing system with PBR materials" but update_particles is a stub TODO with no actual implementation -> EXISTING TODO covers this
-- fix: Align genesis-render/src/camera/mod.rs with PRD requirements - module doc claims "Free-flight and orbit camera implementations with smooth interpolation" but only CameraMode enum and CameraState resource exist, no actual camera implementation -> EXISTING TODO covers this
-- fix: Align genesis-ui/src/timeline/mod.rs with PRD requirements - module doc claims "UI widgets for controlling cosmic time flow, including logarithmic timeline scrubber and playback controls" but only PlaybackState resource exists, no actual timeline UI implementation -> EXISTING TODO covers this
-- fix: Align genesis-ui/src/overlay/mod.rs with PRD requirements - module doc claims "FPS counter, particle count display, epoch info panels, and other HUD elements" but only OverlayState resource exists, no actual overlay implementation -> EXISTING TODO covers this
-- fix: Align genesis-core/src/physics/mod.rs and genesis-render/src/particle/mod.rs - two different Particle types with inconsistent field types ([f32; 3] vs Vec3, [f32; 3] vs Color)
-- fix: Align genesis-render/src/particle/mod.rs with PRD requirements - PRD specifies point sprites but implementation uses sphere meshes with StandardMaterial
-- fix: Align genesis-render/src/particle/mod.rs singularity visualization with PRD - missing outward velocity and energy-based color mapping (white-hot core fading to red)
+### Contradictory Code (Archived 2026-02-09)
+- chore: Document two-level particle architecture - genesis-core::physics::Particle (simulation) and genesis-render::particle::Particle (rendering) are intentionally separate
+- fix: Align genesis-render/src/particle/mod.rs singularity visualization with PRD - Outward velocity implemented; energy-based color mapping still needed
 
 ### Refined Task Definitions
 - refined: Configuration & Initialization tasks broken down into 6 atomic subtasks
 - refined: Architecture & Documentation tasks broken down into 5 atomic subtasks
 - refined: Plugin Registration tasks broken down into 8 atomic subtasks
 
-## New Drift Items (Added 2026-02-09)
+## Drift Items Removed (Archived 2026-02-09)
 
-### Unrequested Features
-- refactor: Remove CameraState.target field from genesis-render/src/camera/mod.rs - Target point field not specified in PRD Phase 1 requirements
-- refactor: Remove CameraState.current_orbit_target field from genesis-render/src/camera/mod.rs - Orbit target tracking not specified in PRD
-- refactor: Remove OrbitController.min_distance and max_distance fields from genesis-render/src/camera/mod.rs - Zoom distance constraints not specified in PRD
-- refactor: Remove InputState.mouse_buttons HashMap approach from genesis-render/src/input/mod.rs - HashMap-based button state tracking not specified in PRD; use Bevy's ButtonInput directly
+The following items have been resolved and moved to COMPLETED.md:
+- [x] feat: Implement PRD feature bevy_egui panels - Timeline and overlay UI panels fully implemented with egui integration
+- [x] feat: Implement PRD feature TOML configuration system - Config struct with full TOML deserialization, CLI argument parsing, and default configuration support
+- [x] fix: Align particle system with PRD requirements - Two-level particle architecture documented; simulation-level particles in genesis-core::physics and rendering-level particles in genesis-render::particle
+- [x] fix: Align resource initialization with PRD requirements - All resources (CameraState, OverlayState, PlaybackState) initialized in main.rs
+- [x] fix: Align camera systems with PRD requirements - Free-flight and orbit camera modes implemented with smooth interpolation support
+- [x] implement: Add smooth camera interpolation to genesis-render/src/camera/mod.rs - PRD Phase 1 specifies smooth interpolation between camera positions
+- [x] implement: Add time acceleration connection between PlaybackState.speed and TimeAccumulator.acceleration - Timeline UI speed slider now properly controls cosmic time acceleration
 
-### Contradictions
-- fix: Align PlaybackState.speed with TimeAccumulator.acceleration from genesis-ui/src/timeline/mod.rs - UI speed slider (0.1-10.0x) doesn't connect to TimeAccumulator.acceleration (1x-10¹²x as specified in PRD Phase 1)
-- fix: Remove obsolete drift items from TODO.md - Lines 100-104 in TODO.md reference outdated contradictions that have been fixed: TimeAccumulator.pause() is now implemented, camera systems are implemented, timeline UI is implemented, overlay UI is implemented
+---
 
-### Missing Requirements
-- implement: Add smooth camera interpolation to genesis-render/src/camera/mod.rs - PRD Phase 1 specifies smooth interpolation between camera positions but current implementation only has direct control
-- implement: Add time acceleration connection between PlaybackState.speed and TimeAccumulator.acceleration - PRD Phase 1 requires adjustable acceleration (1x to 10¹²x) but UI speed slider is not connected to TimeAccumulator
+## Drift Analysis Results (New 2026-02-09)
+
+### Implementation Drift (Contradicts PRD)
+- fix: Align singularity visualization with PRD requirements - PRD Phase 1 specifies "particles spawned at origin with outward velocity, color-mapped by energy (white-hot core fading to red)" but current implementation spawns particles randomly in a sphere with mostly white/blue colors and no energy-based color mapping
+
+### Unrequested Features (Consider for Future Refactor)
+- refactor: Consider removing CameraState.target field from genesis-render/src/camera/mod.rs - Target point field not specified in PRD Phase 1 requirements
+- refactor: Consider removing CameraState.current_orbit_target field from genesis-render/src/camera/mod.rs - Orbit target tracking not specified in PRD
+- refactor: Consider removing OrbitController.min_distance and max_distance fields from genesis-render/src/camera/mod.rs - Zoom distance constraints not specified in PRD
+- refactor: Consider using Bevy's ButtonInput directly instead of InputState.mouse_buttons HashMap from genesis-render/src/input/mod.rs - HashMap-based button state tracking adds complexity over direct Bevy input handling
+
+### Missing Requirements (from PRD Phase 1)
+- implement: Add energy-based particle color mapping - White-hot core to red cooling based on particle energy/distance from origin
+- implement: Add origin-based particle spawning - Spawn particles at origin (0,0,0) instead of random sphere distribution
 
 ---
 
@@ -137,13 +157,15 @@ Critical drift items identified from PRD analysis:
 
 ## Code Quality Issues (Found 2026-02-09)
 
+### Compiler Warnings
+- [x] fix: Remove unused import `EguiPlugin` from genesis-ui/src/timeline/mod.rs:8 - Warning reported during cargo test (line 8:37)
+
 ### Clippy Warnings
-- fix: Replace manual clamp pattern with `.clamp()` in genesis-core/src/time/mod.rs:37
-- fix: Remove unused import `EguiPlugin` from genesis-ui/src/timeline/mod.rs:8
-- fix: Collapse nested else-if block in genesis-ui/src/timeline/mod.rs:143
+- [x] fix: Replace manual clamp pattern with `.clamp()` in genesis-core/src/time/mod.rs:37
+- [x] fix: Collapse nested else-if block in genesis-ui/src/timeline/mod.rs:143
 
 ### Formatting Issues
-- fix: Run `cargo fmt` to fix formatting across multiple files (genesis-core, genesis-render, genesis-ui, src)
+- [x] fix: Run `cargo fmt` to fix formatting across multiple files (genesis-core, genesis-render, genesis-ui, src)
   - genesis-core/src/epoch/mod.rs (import order, function signature)
   - genesis-core/src/lib.rs (module order)
   - genesis-render/src/camera/mod.rs (imports, spacing, line length)
@@ -159,7 +181,17 @@ Critical drift items identified from PRD analysis:
 
 ## Repository Cleanup (2026-02-09)
 
-### Files Deleted (14 files)
+### Files Deleted (16 files)
+
+**Root directory artifacts (8 files):**
+- `.architect-output-1770595533861.md` - Old ARCHITECT.md prompt artifact
+- `.architect-output-1770598149498.md` - Recent ARCHITECT.md prompt artifact (deleted 2026-02-09)
+- `.janitor-output-1770595466027.md` - Old JANITOR.md prompt artifact
+- `.janitor-output-1770596516864.md` - Duplicate JANITOR.md prompt artifact
+- `.janitor-output-1770597992764.md` - Recent JANITOR.md prompt artifact (deleted 2026-02-09)
+- `.prompt-output-1770594835609.md` - Old PROMPT.md prompt artifact
+- `.prompt-output-1770595919438.md` - Duplicate PROMPT.md prompt artifact
+- `.prompt-output-1770596771283.md` - Duplicate PROMPT.md prompt artifact
 
 **Root directory artifacts (6 files):**
 - `.architect-output-1770595533861.md` - Old ARCHITECT.md prompt artifact

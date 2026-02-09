@@ -7,7 +7,44 @@ use bevy::prelude::{Commands, Plugin, Res, ResMut, Resource, Startup, Update};
 use bevy::time::Time;
 
 /// Number of seconds in a cosmic year (365.25 days)
-const SECONDS_PER_YEAR: f64 = 31_557_600.0;
+pub const SECONDS_PER_YEAR: f64 = 31_557_600.0;
+
+/// Number of seconds in a minute
+pub const SECONDS_PER_MINUTE: f64 = 60.0;
+
+/// Number of seconds in an hour
+pub const SECONDS_PER_HOUR: f64 = 3_600.0;
+
+/// Number of seconds in a day
+pub const SECONDS_PER_DAY: f64 = 86_400.0;
+
+/// Converts seconds to cosmic years.
+///
+/// # Arguments
+/// * `seconds` - Time in seconds to convert
+///
+/// # Returns
+/// The equivalent time in cosmic years
+///
+/// # Formula
+/// `years = seconds / SECONDS_PER_YEAR`
+pub fn seconds_to_years(seconds: f64) -> f64 {
+    seconds / SECONDS_PER_YEAR
+}
+
+/// Converts minutes to cosmic years.
+///
+/// # Arguments
+/// * `minutes` - Time in minutes to convert
+///
+/// # Returns
+/// The equivalent time in cosmic years
+///
+/// # Formula
+/// `years = (minutes * SECONDS_PER_MINUTE) / SECONDS_PER_YEAR`
+pub fn minutes_to_years(minutes: f64) -> f64 {
+    (minutes * SECONDS_PER_MINUTE) / SECONDS_PER_YEAR
+}
 
 #[derive(Resource)]
 pub struct TimeAccumulator {
@@ -34,7 +71,7 @@ impl TimeAccumulator {
     }
 
     pub fn set_acceleration(&mut self, accel: f64) {
-        self.acceleration = accel.max(1.0).min(1e12);
+        self.acceleration = accel.clamp(1.0, 1e12);
     }
 
     /// Adds elapsed real time to the cosmic time accumulator.
