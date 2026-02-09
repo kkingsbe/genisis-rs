@@ -143,6 +143,10 @@ impl OrbitController {
 ///
 /// Updates camera orientation from mouse movement and applies WASD movement
 /// relative to the camera's current facing direction.
+///
+/// Note: This system runs for all cameras with CameraController, regardless of
+/// the current CameraState.mode. Both controllers are present on the camera entity
+/// and the appropriate system handles movement based on mode.
 pub fn update_free_flight_camera(
     mut cameras: Query<(&mut Transform, &mut CameraController)>,
     input: Res<InputState>,
@@ -180,6 +184,10 @@ pub fn update_free_flight_camera(
 ///
 /// Updates camera orientation from mouse drag movement and maintains
 /// orbital position around a target point.
+///
+/// Note: This system runs for all cameras with OrbitController, but only
+/// applies rotation when the left mouse button is pressed. Both controllers
+/// are present on the camera entity for seamless mode switching.
 pub fn update_orbit_camera(
     mut cameras: Query<(&mut Transform, &mut OrbitController)>,
     input: Res<InputState>,
@@ -228,6 +236,11 @@ fn handle_orbit_zoom(
 /// System to toggle between camera modes
 ///
 /// Switches between FreeFlight and Orbit camera modes when the 'O' key is pressed.
+///
+/// Note: Both CameraController and OrbitController are always present on the camera entity.
+/// This function only updates the CameraState.mode field. The actual camera behavior is
+/// determined by which controller system responds to input - free-flight responds to WASD
+/// regardless of mode, while orbit only responds when left mouse is pressed.
 fn toggle_camera_mode(
     keys: Res<ButtonInput<KeyCode>>,
     mut camera_state: ResMut<CameraState>,

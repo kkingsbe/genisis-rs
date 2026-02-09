@@ -133,3 +133,48 @@ Critical drift items identified from PRD analysis:
 
 - [ ] SPRINT QA: Run full build and test suite. Fix ALL errors. If green, create/update '.sprint_complete' with the current date.
 
+---
+
+## Repository Cleanup (2026-02-09)
+
+### Files Deleted (14 files)
+
+**Root directory artifacts (6 files):**
+- `.architect-output-1770595533861.md` - Old ARCHITECT.md prompt artifact
+- `.janitor-output-1770595466027.md` - Old JANITOR.md prompt artifact
+- `.janitor-output-1770596516864.md` - Duplicate JANITOR.md prompt artifact
+- `.prompt-output-1770594835609.md` - Old PROMPT.md prompt artifact
+- `.prompt-output-1770595919438.md` - Duplicate PROMPT.md prompt artifact
+- `.prompt-output-1770596771283.md` - Duplicate PROMPT.md prompt artifact
+
+**Work-in-progress marker (1 file):**
+- `.architect_in_progress` - Old session marker from abandoned architect session (~8 hours old)
+
+**Duplicate shader file (1 file):**
+- `assets/point_sprite.wgsl` - Exact duplicate of `genesis-render/src/particle/point_sprite.wgsl`
+
+**Communication artifacts (6 files - from 2026-02-08):**
+- `comms/outbox/PRD-ambiguity-check-summary.md` - Old unaddressed PRD questions
+- `comms/outbox/question-algorithm-specification-gaps.md` - Old unaddressed question
+- `comms/outbox/question-particle-count-ambiguity.md` - Old unaddressed question
+- `comms/outbox/question-performance-mode-configuration.md` - Old unaddressed question
+- `comms/outbox/question-time-acceleration-definition.md` - Old unaddressed question
+- `comms/outbox/question-validation-and-feasibility.md` - Old unaddressed question
+
+### Directories Deleted (3 directories)
+
+- `assets/` - Empty after removing duplicate shader file
+- `comms/outbox/` - Empty after removing old communication artifacts
+- `comms/` - Empty after removing outbox subdirectory
+
+### Rationale
+
+All deleted items were:
+- Old output artifacts from previous agent runs (`.architect-output-*.md`, `.janitor-output-*.md`, `.prompt-output-*.md`)
+- Abandoned session markers (`.architect_in_progress`)
+- Duplicate source files (`assets/point_sprite.wgsl`)
+- Outdated communication artifacts sitting in outbox for over 24 hours without user response
+- Empty directories resulting from file deletions
+
+No source code, configuration, or documentation files were deleted.
+

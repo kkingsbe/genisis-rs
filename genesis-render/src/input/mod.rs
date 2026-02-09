@@ -1,3 +1,9 @@
+//! Input state tracking and handling systems
+//!
+//! Defines resource for tracking input device state (keyboard and mouse).
+//! Input handling systems (handle_keyboard_input, handle_mouse_input) are implemented
+//! and run in the PreUpdate schedule to ensure input is available before other systems.
+
 use bevy::input::mouse::MouseMotion;
 use bevy::input::ButtonInput;
 use bevy::prelude::*;

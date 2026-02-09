@@ -1,5 +1,5 @@
 # ARCHITECT_STATE.md
-> Last Updated: 2026-02-09T00:35:30.000Z
+> Last Updated: 2026-02-09T00:44:00.000Z
 > Status: IN_PROGRESS
 
 ## Completed This Session
@@ -17,12 +17,17 @@
   - Total blockers reviewed: 0
   - Blockers resolved through architectural decisions: 0
   - Blockers remaining: 0
+- [x] Task 4: Communication
+  - Reviewed comms/outbox/ directory - no existing questions
+  - Analyzed PRD.md for ambiguities and impossible requirements
+  - Reviewed gap analysis results from Task 1 (ARCHITECT_STATE.md)
+  - Created 10 specific question documents in comms/outbox/
+  - Identified critical ambiguities requiring user attention
 
 ## Currently Working On
 - [ ] (None - waiting for next task)
 
 ## Remaining Tasks
-- [ ] Task 4: Communication
 - [ ] Task 5: Cleanup
 
 ## Gap Analysis Summary
@@ -144,4 +149,71 @@
 
 ## Next Steps
 
-Wait for Task 4 instructions from the Lead Architect before proceeding.
+Wait for user responses to communication questions before proceeding with implementation.
+
+## Task 4 Communication Summary
+
+### Questions Written
+Created 10 question documents in `comms/outbox/`:
+
+1. **question-timeline-reverse-replay.md**
+   - Issue: Timeline reverse/replay requires storing full simulation state (memory-intensive)
+   - Impact: Affects Phase 1 timeline scrubbing functionality
+   - Criticality: HIGH - fundamental feature requirement
+
+2. **question-particle-coordinate-system.md**
+   - Issue: Ambiguous whether to use comoving or physical coordinates for particles
+   - Impact: Affects all phases (2-7) and entire simulation pipeline
+   - Criticality: HIGH - fundamental architectural decision
+
+3. **question-volumetric-fog-implementation.md**
+   - Issue: No specification of which volumetric fog rendering technique to use
+   - Impact: Affects Phase 4 recombination visualization
+   - Criticality: MEDIUM - affects visual quality and performance
+
+4. **question-barnes-hut-gpu-traversal.md**
+   - Issue: CPU build + GPU traversal for Barnes-Hut is architecturally complex and potentially inefficient
+   - Impact: Affects Phase 5 N-body gravity and performance targets
+   - Criticality: HIGH - single hardest technical challenge per PRD
+
+5. **question-zeldovich-nonlinear-limitations.md**
+   - Issue: Zel'dovich approximation (linear regime) incompatible with nonlinear structure formation
+   - Impact: Affects Phase 2-5 transition and scientific accuracy
+   - Criticality: HIGH - fundamental physics incompatibility
+
+6. **question-reionization-sdf-visualization.md**
+   - Issue: "Signed-distance-field bubbles" specification lacks implementation details
+   - Impact: Affects Phase 6 reionization visualization and performance
+   - Criticality: MEDIUM - affects complex visual effect
+
+7. **question-high-fidelity-performance-targets.md**
+   - Issue: 50M-100M particles at ≥30 FPS on RTX 3080 appears unachievable with full visual fidelity
+   - Impact: Affects Phase 7 and overall performance targets
+   - Criticality: HIGH - marketing/expectations vs. technical feasibility
+
+8. **question-camera-interpolation-epic-transitions.md**
+   - Issue: Inconsistent camera requirements across phases (smooth interpolation, automatic transitions, cinematic mode)
+   - Impact: Affects Phase 1, 4, 7 camera systems
+   - Criticality: MEDIUM - UX/interaction design
+
+9. **question-minimum-particle-count-per-phase.md**
+   - Issue: No minimum particle count specified for each phase to be considered "complete"
+   - Impact: Affects all phase completion criteria and development priorities
+   - Criticality: MEDIUM - affects scope and validation
+
+10. **question-minor-ambiguities.md**
+    - Issue: 9 minor ambiguities covering audio timing, export format, benchmarking, presets, cross-platform, validation data, epoch plugins, timeline acceleration, singularity visualization
+    - Impact: Various, lower individual criticality but should be resolved collectively
+    - Criticality: LOW-MEDIUM - implementation details
+
+### Critical Ambiguities Requiring Immediate Attention
+1. **Timeline reverse/replay** - May require PRD modification or alternative approach
+2. **Particle coordinate system** - Fundamental architectural decision blocking Phase 2
+3. **Barnes-Hut implementation** - May require PRD modification (GPU build vs. CPU build)
+4. **Zel'dovich vs. N-body transition** - Physics incompatibility requiring resolution
+5. **High-Fidelity performance targets** - May require reducing particle count targets
+
+### Total Questions: 10
+- HIGH criticality: 5
+- MEDIUM criticality: 3
+- LOW-MEDIUM criticality: 2

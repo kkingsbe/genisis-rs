@@ -5,6 +5,7 @@
 
 use bevy::prelude::*;
 use bevy_egui::{egui, EguiContexts};
+use genesis_core::epoch::EpochManager;
 
 /// Resource tracking overlay visibility
 ///
@@ -26,6 +27,7 @@ pub fn update_overlay_ui(
     overlay_state: Res<OverlayState>,
     diagnostics: Res<bevy::diagnostic::DiagnosticsStore>,
     particles: Query<&genesis_render::particle::Particle>,
+    epoch_manager: Res<EpochManager>,
 ) {
     let ctx = contexts.ctx_mut();
 
@@ -57,7 +59,10 @@ pub fn update_overlay_ui(
 
             // Display epoch info if enabled
             if overlay_state.show_epoch_info {
-                ui.label("Epoch: N/A");
+                let epoch_name = epoch_manager.get_current_epoch()
+                    .map(|epoch| epoch.name())
+                    .unwrap_or("N/A");
+                ui.label(format!("Epoch: {}", epoch_name));
             }
         });
 }

@@ -50,8 +50,11 @@ The application registers the following plugins and resources:
 - **CameraPlugin**: Camera control systems (free-flight and orbit modes)
 - **GenesisUiPlugin**: UI system with bevy_egui integration, overlay, and timeline controls
 - **OverlayState**: Resource for overlay visibility (initialized with show_fps, show_particle_count, show_epoch_info = true)
-- **setup_camera**: Camera setup system that spawns 3D camera at z=50.0 looking at origin with OrbitController component
+- **setup_camera**: Camera setup system that spawns 3D camera at z=50.0 looking at origin with OrbitController and CameraController components
 - **TimeAccumulator**: Resource for tracking cosmic years (initialized)
+- **CameraState**: Resource for tracking camera mode and target (initialized)
+- **CosmicTime**: Resource for timeline state management with logarithmic slider mapping
+- **PlaybackState**: Resource for playback control (playing state and speed)
 
 ## Core Architectural Decisions
 
@@ -70,9 +73,9 @@ The application registers the following plugins and resources:
 - **Systems**:
   - Core: update_epoch_transition
   - Particle: init_point_mesh, spawn_particles, update_particles (implemented - basic outward expansion animation)
-  - Camera: update_free_flight_camera, update_orbit_camera (both implemented)
+  - Camera: update_free_flight_camera, update_orbit_camera, toggle_camera_mode, handle_orbit_zoom
   - Input: handle_keyboard_input, handle_mouse_input
-  - Time: initialize_time_accumulator, update_cosmic_time
+  - Time: initialize_time_accumulator, update_cosmic_time, sync_time_resources
   - UI: update_overlay_ui (overlay rendering), timeline_panel_ui (timeline controls)
 - **Plugins**:
   - EpochManagerPlugin (implemented): Epoch registration and transition management
@@ -147,12 +150,14 @@ Currently, the rendering-level Particle is directly populated in [`spawn_particl
   - PlaybackState.speed (f32, 0.1-10.0) controls time speed via logarithmic timeline slider
 - **UI Integration**:
   - CosmicTime resource provides logarithmic slider mapping via from_slider() and to_slider() methods
-  - Timeline UI panel (timeline_panel_ui) renders play/pause button, timeline slider, and speed control
+  - Timeline UI panel (timeline_panel_ui) renders play/pause button, timeline slider, and speed control (runs in PostUpdate schedule)
+  - sync_time_resources system synchronizes TimeAccumulator with PlaybackState (runs in Update schedule)
 - **Status**:
   - TimeAccumulator resource fully implemented with pause/resume/toggle/is_paused methods
   - TimeIntegrationPlugin integrates with Bevy's time system
   - Epoch tracking via update_epoch_transition system is implemented
   - Timeline UI controls fully implemented with logarithmic slider mapping
+  - Time synchronization between UI and accumulator fully implemented
 
 ### 5. Camera System Design
 - **Camera Modes**: FreeFlight and Orbit enum variants defined
@@ -161,14 +166,16 @@ Currently, the rendering-level Particle is directly populated in [`spawn_particl
   - CameraController: Free-flight camera with yaw, pitch, movement_speed, mouse_sensitivity
   - OrbitController: Orbit camera with distance, yaw, pitch, target, zoom limits
 - **Status**:
-  - Camera setup (setup_camera system): Implemented - spawns 3D camera at z=50.0 looking at origin with OrbitController::default()
+  - Camera setup (setup_camera system): Implemented - spawns 3D camera at z=50.0 looking at origin with OrbitController::default() and CameraController::default()
   - Camera movement controls: Implemented for both free-flight (update_free_flight_camera) and orbit (update_orbit_camera) modes
+  - Camera mode switching: Implemented via toggle_camera_mode system (press 'O' key to toggle between FreeFlight and Orbit)
+  - Orbit camera zoom: Implemented via handle_orbit_zoom system (scroll wheel controls zoom distance)
 
 ### 6. Input System Architecture
 - **InputState Resource**: Tracks keyboard direction vector, mouse delta, and mouse button states
 - **Keyboard Handling**: WASD key inputs mapped to directional vectors
 - **Mouse Handling**: Mouse button states tracked using HashMap<MouseButton, bool>; Tracks mouse motion delta
-- **Status**: InputPlugin fully implemented with handle_keyboard_input and handle_mouse_input systems
+- **Status**: InputPlugin fully implemented with handle_keyboard_input and handle_mouse_input systems (run in PreUpdate schedule)
 
 ### 7. Epoch Plugin Architecture
 - **Registration System**: EpochPlugin trait for defining epoch time ranges and building systems
@@ -192,18 +199,21 @@ A running Bevy application with a 3D particle system, camera controls, and a tim
 - Core infrastructure setup (workspace, Cargo.toml)
 - Bevy 0.15+ application scaffold with window and event loop
 - Epoch manager plugin architecture (EpochManager, EpochPlugin trait)
-- Basic input handling (keyboard, mouse) - InputPlugin with InputState, handle_keyboard_input, handle_mouse_input
+- Basic input handling (keyboard, mouse) - InputPlugin with InputState, handle_keyboard_input, handle_mouse_input (runs in PreUpdate)
 - Time integration system with f64 accumulator - TimeIntegrationPlugin, TimeAccumulator, update_cosmic_time system, pause/resume methods
 - Epoch tracking via update_epoch_transition system
 - Particle rendering system with custom point sprite shader (PointSpriteMaterial, PointMesh)
 - Particle spawning system (spawn_particles) that creates test cluster
+- Particle update system (update_particles) with basic outward expansion animation
 - Camera system with free-flight and orbit modes - CameraPlugin, CameraController, OrbitController, update_free_flight_camera, update_orbit_camera
+- Camera mode switching via toggle_camera_mode (press 'O' key)
+- Orbit camera zoom via scroll wheel (handle_orbit_zoom)
 - Overlay UI with FPS, particle count, and epoch info panels - update_overlay_ui system
-- Timeline UI with play/pause, logarithmic slider, and speed control - TimelinePlugin, CosmicTime resource with logarithmic mapping, timeline_panel_ui system
+- Timeline UI with play/pause, logarithmic slider, and speed control - TimelinePlugin, CosmicTime resource with logarithmic mapping, timeline_panel_ui system (runs in PostUpdate)
+- Time synchronization (sync_time_resources) between PlaybackState and TimeAccumulator
 
 **Pending:**
-- Physics-based particle updates (update_particles - basic outward expansion animation implemented, full physics sync pending)
-- Camera mode switching between FreeFlight and Orbit (both camera systems implemented, mode switching UI pending)
+- Full physics-based particle updates with simulation-level particle sync (update_particles has basic outward expansion, full physics sync pending)
 
 ## Dependency Graph
 
@@ -214,6 +224,13 @@ genesis-render (Bevy, wgpu)
     ↓
 genesis-core (Bevy - for Resource trait)
 ```
+
+**Resource Dependencies:**
+- `TimeAccumulator` (genesis-core) is used by `sync_time_resources` (genesis-ui)
+- `InputState` (genesis-render) is used by camera and input systems
+- `CameraState` (genesis-render) is used by camera systems
+- `CosmicTime` (genesis-ui) is used by timeline UI
+- `PlaybackState` (genesis-ui) is synchronized with `TimeAccumulator` (genesis-core)
 
 ## Development Guidelines
 
