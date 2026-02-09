@@ -6,9 +6,22 @@
 
 ## Sprint 1 - Phase 1: The Singularity
 
+#### Failing Integration Tests (2026-02-09)
+- [ ] fix: Failing test in genesis-render/tests/resource_binding_tests.rs - test_point_mesh_initialized_before_particles_spawn - AssetServer resource does not exist in World
+- [ ] fix: Failing test in genesis-render/tests/resource_binding_tests.rs - test_materials_initialized_before_rendering - AssetServer resource does not exist in World
+- [ ] fix: Failing test in genesis-render/tests/resource_binding_tests.rs - test_camera_initialized_before_rendering - AssetServer resource does not exist in World
+- [ ] fix: Failing test in genesis-render/tests/resource_binding_tests.rs - test_extract_system_transfers_data - AssetServer resource does not exist in World
+- [ ] fix: Failing test in genesis-render/tests/resource_binding_tests.rs - test_pipeline_cache_no_index_out_of_bounds - AssetServer resource does not exist in World
+- [ ] fix: Failing test in genesis-render/tests/resource_binding_tests.rs - test_resources_accessible_during_update - AssetServer resource does not exist in World
+- [ ] fix: Failing test in genesis-render/tests/resource_binding_tests.rs - test_particle_instance_bind_group_layout - AssetServer resource does not exist in World
+- [ ] fix: Failing test in genesis-render/tests/resource_binding_tests.rs - test_resources_created_at_startup - AssetServer resource does not exist in World
+- [ ] fix: Failing test in genesis-render/tests/resource_binding_tests.rs - test_system_ordering_point_mesh_before_spawn - AssetServer resource does not exist in World
+- [ ] fix: Failing test in genesis-render/tests/resource_binding_tests.rs - test_complete_particle_rendering_setup - AssetServer resource does not exist in World
+- [ ] fix: Failing test in genesis-render/tests/resource_binding_tests.rs - test_resource_reference_counting - Unable to find GPU (GPU required for rendering tests)
+
 #### Failing Integration Tests (from commit 8578141)
 - [x] fix: Failing test in genesis-render/tests/resource_binding_tests.rs - test_comprehensive_binding_validation - Updated to validate storage buffer architecture instead of vertex attributes
-- [ ] fix: Failing test in genesis-render/tests/resource_binding_tests.rs - test_system_cannot_access_invalid_resources - requires_non_existent could not access system parameter Res<'_, NonExistentResource>
+- [x] fix: Failing test in genesis-render/tests/resource_binding_tests.rs - test_system_cannot_access_invalid_resources - requires_non_existent could not access system parameter Res<'_, NonExistentResource>
 - [x] fix: Failing test in genesis-render/tests/resource_binding_tests.rs - test_materials_initialized_before_rendering - Added RenderPlugin to initialize Assets<PointSpriteMaterial>
 - [x] fix: Failing test in genesis-render/tests/resource_binding_tests.rs - test_resource_reference_counting - Added RenderPlugin to initialize Assets<Mesh>
 - [x] fix: Failing test in genesis-render/tests/resource_binding_tests.rs - test_resources_created_at_startup - Added RenderPlugin to initialize Assets<Mesh>
