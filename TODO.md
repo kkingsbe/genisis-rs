@@ -3,12 +3,21 @@
 ## Drift & Cleanup (Latest Analysis - 2026-02-09)
 
 ### Type A - Unrequested Features
-- [x] refactor: Remove test_interpolation function from genesis-render/src/camera/mod.rs - Development testing function triggered by 'T' key (lines 544-564) is not specified in PRD and should be removed for production code
 - refactor: Remove setup_test_camera_target function from src/main.rs - Development testing code spawning test CameraTarget entity (lines 100-103) is not specified in PRD and should be removed
+- refactor: Remove camera fade/crossfade effect from genesis-ui/src/overlay/camera_fade.rs - Entire file (127 lines) implements crossfade effect for epoch transitions not requested in PRD Phase 1
+- refactor: Remove event-based epoch transition system from genesis-core/src/epoch/mod.rs - EpochChangeEvent and update_epoch_transition system (lines 17-27, 171-228) not requested in PRD Phase 1
+- refactor: Remove camera target system from genesis-render/src/camera/mod.rs - CameraTarget component and update_camera_targets system (lines 227-252, 427-477) not requested in PRD Phase 1
+- refactor: Remove camera mode switching feature from genesis-render/src/camera/mod.rs - toggle_camera_mode system (lines 489-532) implementing 'O' key mode switch not requested in PRD Phase 1
+- refactor: Remove orbit zoom distance constraints from genesis-render/src/camera/mod.rs - OrbitController min_distance and max_distance fields (lines 184-186) not requested in PRD
+- refactor: Remove orbit zoom scroll wheel handler from genesis-render/src/camera/mod.rs - handle_orbit_zoom system (lines 359-368) not requested in PRD Phase 1
+- refactor: Remove epoch info display from genesis-ui/src/overlay/mod.rs - show_epoch_info field and epoch info display in UI (lines 18, 66-72) not requested in PRD Phase 1
 
 ### Type B - PRD Contradictions
-- fix: Align time acceleration range with PRD requirements - genesis-core/src/config.rs:152 sets time_acceleration_min to 0.1, but PRD Phase 1 requires minimum 1x acceleration (range should be 1x to 10^12x, not 0.1x to 10^12x)
+- [x] fix: Align time acceleration range with PRD requirements - genesis-core/src/config.rs:152 sets time_acceleration_min to 0.1, but PRD Phase 1 requires minimum 1x acceleration (range should be 1x to 10^12x, not 0.1x to 10^12x)
 - fix: Align UI speed slider range with PRD requirements - genesis-ui/src/timeline/mod.rs:170 slider has range 0.1..=10.0 but PRD Phase 1 requires 1x to 10^12x acceleration (1e12), not 10x
+- fix: Align timeline initialization with PRD requirements - genesis-ui/src/timeline/mod.rs:61 sets min_time to 1.0 year but PRD Phase 1 requires timeline spanning t=0 to 13.8 billion years
+- fix: Align camera initialization with PRD requirements - src/main.rs:92-97 spawns camera at (0,0,50) with default Orbit mode but PRD specifies default config with orbit_distance 100.0; config not used for camera setup
+- fix: Align OrbitController default with PRD requirements - genesis-render/src/camera/mod.rs:196 sets default distance to 50.0 but PRD config specifies default orbit_distance of 100.0
 
 ---
 
@@ -200,6 +209,16 @@ Critical drift items identified from PRD analysis:
 ---
 
 ## Repository Cleanup (2026-02-09)
+
+### Files to Delete (3 files)
+
+- chore: Delete unused file `.architect-output-1770611770018.md` - Old ARCHITECT.md prompt artifact (~14 hours old)
+- chore: Delete unused file `.prompt-output-1770611627370.md` - Old PROMPT.md prompt artifact (~14 hours old)
+- chore: Delete unused file `.prompt-output-1770612157840.md` - Old PROMPT.md prompt artifact (~14 hours old)
+
+### Directories to Delete (1 directory)
+
+- chore: Delete empty directory `comms/outbox` - Empty directory
 
 ### Files Deleted (16 files)
 
