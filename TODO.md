@@ -7,8 +7,6 @@
 ## Sprint 1 - Phase 1: The Singularity
 
 ### Critical Fixes (Blockers)
-- [x] refactor: Remove camera interpolation - it's a Phase 7 feature per PRD but implemented in Phase 1
-- [ ] refactor: Remove orbit camera zoom/pan - not specified in Phase 1 PRD but implemented
 - [ ] refactor: Disable display.show_epoch_info config - this is a Phase 2+ feature enabled in Phase 1
 - [ ] refactor: Remove unused config fields from genesis.toml that don't map to Phase 1 PRD
 - [ ] fix: Align speed slider range with PRD - PRD specifies 1x-10¹²x but code has 0.1-10.0

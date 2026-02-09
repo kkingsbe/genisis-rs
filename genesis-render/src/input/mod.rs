@@ -57,12 +57,10 @@ pub fn handle_mouse_input(
     // Clear previous mouse button states
     input_state.mouse_buttons.clear();
 
-    // Update mouse button states
-    for button in [MouseButton::Left, MouseButton::Right, MouseButton::Middle] {
-        input_state
-            .mouse_buttons
-            .insert(button, mouse_buttons.pressed(button));
-    }
+    // Update mouse button state (Left only - used for orbit camera rotation)
+    input_state
+        .mouse_buttons
+        .insert(MouseButton::Left, mouse_buttons.pressed(MouseButton::Left));
 
     // Reset mouse delta
     input_state.mouse_delta = Vec2::ZERO;

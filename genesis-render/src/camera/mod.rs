@@ -5,7 +5,7 @@
 //! and orbit (update_orbit_camera) modes.
 
 use bevy::input::keyboard::KeyCode;
-use bevy::input::mouse::{MouseButton, MouseWheel};
+use bevy::input::mouse::MouseButton;
 use bevy::input::ButtonInput;
 use bevy::prelude::*;
 use bevy::time::Time;
@@ -126,18 +126,8 @@ pub struct OrbitController {
     pub yaw: f32,
     /// Vertical rotation angle in radians
     pub pitch: f32,
-    /// The point the camera orbits around
-    pub target: Vec3,
-    /// Minimum zoom distance
-    pub min_distance: f32,
-    /// Maximum zoom distance
-    pub max_distance: f32,
     /// Mouse drag sensitivity
     pub rotation_sensitivity: f32,
-    /// Scroll wheel zoom sensitivity
-    pub zoom_sensitivity: f32,
-    /// Middle mouse button pan sensitivity
-    pub pan_sensitivity: f32,
 }
 
 impl Default for OrbitController {
@@ -146,12 +136,7 @@ impl Default for OrbitController {
             distance: 50.0,
             yaw: 0.0,
             pitch: 0.3,
-            target: Vec3::ZERO,
-            min_distance: 5.0,
-            max_distance: 200.0,
             rotation_sensitivity: 0.005,
-            zoom_sensitivity: 0.1,
-            pan_sensitivity: 0.5,
         }
     }
 }
@@ -160,12 +145,12 @@ impl OrbitController {
     /// Returns the camera position in world space based on spherical coordinates
     ///
     /// Converts spherical coordinates (distance, yaw, pitch) to Cartesian coordinates
-    /// relative to the target point.
+    /// relative to the origin (0, 0, 0).
     pub fn calculate_position(&self) -> Vec3 {
         Vec3::new(
-            self.target.x + self.distance * self.pitch.cos() * self.yaw.sin(),
-            self.target.y + self.distance * self.pitch.sin(),
-            self.target.z + self.distance * self.pitch.cos() * self.yaw.cos(),
+            self.distance * self.pitch.cos() * self.yaw.sin(),
+            self.distance * self.pitch.sin(),
+            self.distance * self.pitch.cos() * self.yaw.cos(),
         )
     }
 }
@@ -222,7 +207,7 @@ pub fn update_free_flight_camera(
 pub fn update_orbit_camera(
     mut cameras: Query<(&mut Transform, &mut OrbitController)>,
     input: Res<InputState>,
-    mut camera_state: ResMut<CameraState>,
+    camera_state: Res<CameraState>,
 ) {
     // Only update if left mouse button is pressed
     if !input
@@ -247,58 +232,10 @@ pub fn update_orbit_camera(
         transform.translation = new_position;
 
         // Make camera look at its target
-        transform.look_at(controller.target, Vec3::Y);
+        transform.look_at(camera_state.current_orbit_target, Vec3::Y);
 
-        // Update CameraState.current_orbit_target to match OrbitController.target
-        camera_state.current_orbit_target = controller.target;
+        // CameraState.current_orbit_target is managed elsewhere (e.g., mode switching)
     }
-}
-
-/// System to handle orbit camera zoom via scroll wheel
-///
-/// Adjusts camera distance based on scroll wheel input, clamped between
-/// min_distance and max_distance.
-fn handle_orbit_zoom(
-    mut scroll_events: EventReader<MouseWheel>,
-    mut orbit_query: Query<&mut OrbitController>,
-) {
-    let mut orbit = orbit_query.single_mut();
-    for event in scroll_events.read() {
-        orbit.distance -= event.y * orbit.zoom_sensitivity;
-        orbit.distance = orbit.distance.clamp(orbit.min_distance, orbit.max_distance);
-    }
-}
-
-/// System to handle orbit camera pan via middle or right mouse button
-///
-/// Moves the orbit target based on mouse drag when middle or right mouse button
-/// is pressed. Pans horizontally and vertically relative to camera view.
-fn handle_orbit_pan(
-    mut orbit_q: Query<&mut OrbitController>,
-    input: Res<InputState>,
-) {
-    // Check if middle or right mouse button is pressed
-    let middle_pressed = input.mouse_buttons.get(&MouseButton::Middle).copied().unwrap_or(false);
-    let right_pressed = input.mouse_buttons.get(&MouseButton::Right).copied().unwrap_or(false);
-
-    if !middle_pressed && !right_pressed {
-        return;
-    }
-
-    let mut orbit = orbit_q.single_mut();
-
-    // Calculate right vector from yaw (projected onto XZ plane)
-    let right = Vec3::new(orbit.yaw.cos(), 0.0, -orbit.yaw.sin()).normalize();
-
-    // Calculate pan movement
-    let scale = orbit.pan_sensitivity * 0.01;
-    let pan_right = right * (input.mouse_delta.x * scale);
-    let pan_up = Vec3::Y * (input.mouse_delta.y * scale);
-
-    // Update target (subtract because we pan opposite to drag direction)
-    orbit.target.x -= pan_right.x + pan_up.x;
-    orbit.target.y -= pan_right.y + pan_up.y;
-    orbit.target.z -= pan_right.z + pan_up.z;
 }
 
 /// System to toggle between camera modes
@@ -347,8 +284,6 @@ impl Plugin for CameraPlugin {
         app.init_resource::<CameraState>()
             .add_systems(Update, toggle_camera_mode)
             .add_systems(Update, update_free_flight_camera)
-            .add_systems(Update, update_orbit_camera)
-            .add_systems(Update, handle_orbit_zoom)
-            .add_systems(Update, handle_orbit_pan);
+            .add_systems(Update, update_orbit_camera);
     }
 }
