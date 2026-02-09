@@ -11,14 +11,9 @@ use bevy::prelude::*;
 use bevy::time::Time;
 
 use crate::input::InputState;
+use genesis_core::epoch::CameraMode;
 
-/// Camera mode for different viewing experiences
-#[derive(Default, Clone, Copy, PartialEq, Eq, Debug)]
-pub enum CameraMode {
-    #[default]
-    FreeFlight,
-    Orbit,
-}
+mod epoch_transition;
 
 /// Resource tracking camera state
 ///
@@ -536,32 +531,7 @@ fn toggle_camera_mode(
     }
 }
 
-/// System to test camera interpolation
-///
-/// Triggers a test interpolation when the 'T' key is pressed.
-/// Moves the camera to the current position plus (5.0, 0.0, 0.0) over 1.0 second.
-/// Useful for testing the interpolation system without needing a camera mode switch.
-fn test_interpolation(
-    keys: Res<ButtonInput<KeyCode>>,
-    mut camera_state: ResMut<CameraState>,
-    camera_query: Query<&Transform, With<Camera3d>>,
-) {
-    if keys.just_pressed(KeyCode::KeyT) {
-        if let Ok(camera_transform) = camera_query.get_single() {
-            // Calculate target position: current position + (5.0, 0.0, 0.0)
-            let target_pos = camera_transform.translation + Vec3::new(5.0, 0.0, 0.0);
-
-            // Start interpolation to the target position
-            camera_state.start_interpolation_to_position_only(
-                target_pos,
-                1.0, // 1.0 second duration
-                camera_transform,
-            );
-
-            info!("Test interpolation started to position: {:?}", target_pos);
-        }
-    }
-}
+use self::epoch_transition::handle_epoch_change_transition;
 
 pub struct CameraPlugin;
 
@@ -569,10 +539,10 @@ impl Plugin for CameraPlugin {
     fn build(&self, app: &mut App) {
         app.init_resource::<CameraState>()
             .add_systems(Update, toggle_camera_mode)
-            .add_systems(Update, test_interpolation)
             .add_systems(Update, update_free_flight_camera)
             .add_systems(Update, update_orbit_camera)
             .add_systems(Update, handle_orbit_zoom)
+            .add_systems(Update, handle_epoch_change_transition)
             .add_systems(PostUpdate, update_camera_targets)
             .add_systems(
                 PostUpdate,
