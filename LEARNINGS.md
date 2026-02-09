@@ -4,6 +4,49 @@ This file documents patterns, decisions, and lessons learned while working on th
 
 ---
 
+## Session Date: 2026-02-09 - Test Suite Analysis (Bevy 0.15 Migration)
+
+### Gotchas Encountered:
+- Previous `cargo test` output showed "running 0 tests" which was misleading - tests were discovered but failed to compile
+- Integration tests in `tests/` directory are automatically discovered by Cargo but won't execute if they have compilation errors
+- Test configuration was correct (dev-dependencies in Cargo.toml), but the API migration issues prevented compilation
+- The 66 compilation errors span both test files with consistent patterns indicating a single Bevy 0.15 API migration task
+
+### Patterns That Work in This Codebase:
+- Test file placement: `genesis-render/tests/` contains integration tests that are auto-discovered by Cargo
+- Test structure: Both resource_binding_tests.rs (1487 lines) and shader_tests.rs (906 lines) follow consistent patterns with:
+  - `#[test]` annotations on test functions
+  - Helper functions for test setup
+  - Clear documentation sections explaining what each test validates
+- Test organization: Tests are grouped by category (Pipeline Layout, Resource Initialization, Shader Asset Loading, etc.)
+
+### Decisions Made and Why:
+- Identified that the test suite IS properly configured - the issue is solely Bevy 0.15 API migration, not missing configuration
+- Updated TODO.md to reflect that "Run all tests to verify current state" is complete with documented findings
+- Consolidated the duplicate entries for Bevy 0.15 API migration into a single task with complete analysis
+
+### Key Bevy 0.15 API Changes Impacting Tests:
+1. **ScheduleRunnerSettings removed**: `ScheduleRunnerPlugin::run_once()` no longer takes arguments
+   - Old: `ScheduleRunnerPlugin::run_once(ScheduleRunnerSettings { wait_for_events: false })`
+   - New: `ScheduleRunnerPlugin::run_once()`
+2. **Camera3d renamed to Camera**: Bevy 0.15 unified camera types
+3. **World::add_systems() removed**: System registration now only works on `App`, not `World`
+4. **Entities::iter() removed**: Entity iteration pattern changed in Bevy 0.15
+5. **Mesh attribute constants renamed**: `Mesh::ATTRIBUTE_COLOR_0` → `Mesh::ATTRIBUTE_COLOR`
+6. **Color API reorganization**: `Color::RED` moved to `bevy::color::palettes::css::RED`
+7. **AssetPath API changed**: `AssetPath::to_str()` → `AssetPath::to_string()`
+8. **Removed methods**: `LinearRgba::is_normalized()` no longer exists
+9. **Type inference changes**: `next_power_of_two()` now requires explicit type annotations
+10. **Trait imports**: `Zeroable` trait must be explicitly imported for `zeroed()` calls
+
+### Task Decomposition Insights:
+- Running `cargo test --package genesis-render -- -v 2>&1` provides the most complete error output for diagnosis
+- Test analysis should verify both existence AND compilation status before declaring tests "not running"
+- A single API migration (Bevy 0.14 → 0.15) can manifest as many seemingly-unrelated compilation errors
+- Documenting specific line numbers where each API change is needed significantly speeds up the migration task
+
+---
+
 ## Session Date: 2026-02-09 - show_epoch_info Refactoring
 
 ### Gotchas Encountered:

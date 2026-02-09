@@ -9,7 +9,11 @@
 ### Critical Fixes (Blockers)
 
 ### Phase 1 Completeness Items
-- [ ] Run all tests to verify current state
+- [x] Run all tests to verify current state
+  - Tests exist in genesis-render/tests/ directory (resource_binding_tests.rs and shader_tests.rs)
+  - Tests are properly configured with dev-dependencies in Cargo.toml
+  - Tests fail to compile due to Bevy 0.15 API migration issues (66 compilation errors)
+  - Previous cargo test showed "running 0 tests" because tests couldn't compile, not because they didn't exist
 
 #### Timeline Speed Integration
 - [x] feature: Map PlaybackState.speed slider to TimeAccumulator.acceleration with PRD-specified range (Sprint 1)
@@ -98,18 +102,25 @@
   - Unnecessary visual clutter for Phase 1
 
 ### Sprint QA
-- [ ] fix: Failing test suite in genesis-render/tests/ due to Bevy 0.15 API changes (commit: pre-existing issue)
-  - 66 compilation errors in resource_binding_tests.rs and shader_tests.rs
-  - Key issues to fix:
-    * ScheduleRunnerSettings no longer exists (use ScheduleRunnerPlugin::run_once() without args)
-    * Entities::iter() method removed in Bevy 0.15
-    * Mesh::ATTRIBUTE_COLOR_0 changed to Mesh::ATTRIBUTE_COLOR
-    * Color::RED renamed to bevy::color::palettes::css::RED
-    * LinearRgba::is_normalized() method removed
-    * AssetPath::to_str() changed to to_string()
-    * ShaderRef no longer implements PartialEq/Debug traits
-    * add_systems() on World doesn't exist, only on App
-    * Type inference issues with next_power_of_two()
+- [ ] fix: Migrate genesis-render/tests to Bevy 0.15 API (moved from BLOCKERS)
+  - ANALYSIS COMPLETE: 66 compilation errors found across both test files
+  - Tests ARE properly configured and would run if they compiled successfully
+  - The "running 0 tests" output was due to compilation failures, not missing test configuration
+  - Key API changes needed (confirmed by compilation errors):
+    * ScheduleRunnerSettings no longer exists - use ScheduleRunnerPlugin::run_once() without arguments (lines 44-47, 348-351, 394-397, 436-439, 682-685, 1039-1042, 1092-1095, 1126-1129, 1160-1163, 1197-1200, 1230-1233, 1303-1306)
+    * Camera3d renamed to Camera - use bevy::render::camera::Camera::default() (line 445)
+    * World::add_systems() doesn't exist - use App::add_systems() instead (lines 697, 1184, 1246, 1255, 1318, 1330)
+    * Entities::iter() method removed - use new entity query methods (lines 1275, 1287)
+    * Mesh::ATTRIBUTE_COLOR_0 changed to Mesh::ATTRIBUTE_COLOR (line 913)
+    * Color::RED renamed to bevy::color::palettes::css::RED (line 939)
+    * LinearRgba::is_normalized() method removed (line 949)
+    * AssetPath::to_str() changed to to_string() (lines 1473, 1477)
+    * ParticleInstanceData::zeroed() requires Zeroable trait import (line 972)
+    * Type inference issues with next_power_of_two() - specify type (lines 1075, 1079)
+    * Additional minor warnings for unused variables and imports
+  - Update both resource_binding_tests.rs and shader_tests.rs
+  - Verify all test code compiles successfully with Bevy 0.15 APIs
+  - Run updated tests to confirm they pass
 - [ ] SPRINT QA: Run full build and test suite. Fix ALL errors. If green, create/update '.sprint_complete' with the current date.
 
 ---
