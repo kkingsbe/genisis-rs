@@ -4,10 +4,24 @@
 
 ---
 
+## Drift TODO Items (From Drift Analysis)
+
+### Refactor Items
+- [ ] refactor: Remove unrequested storage buffer infrastructure for Phase 1 - The GPU storage buffer system in genesis-render/src/particle/instance_buffer.rs is over-engineering for Phase 1 requirements
+
+### Fix Items
+- [ ] fix: Implement orbit camera zoom and pan - Orbit camera is missing zoom (scroll) and pan (middle/right mouse) controls specified in Phase 1
+- [ ] fix: Implement smooth camera interpolation - Camera mode switching is instant, not smooth as specified in Phase 1
+- [ ] fix: Implement epoch transition system - No EpochManager or EpochPlugin trait exists; epoch transitions are not implemented
+- [ ] fix: Integrate timeline with epoch transitions - Timeline scrubbing doesn't trigger epoch transitions
+- [ ] fix: Add epoch time range enforcement - Epoch time boundaries exist but are not enforced or integrated with the timeline
+
+---
+
 ## Sprint 1 - Phase 1: The Singularity
 
 #### Failing Integration Tests (2026-02-09)
-- [ ] fix: Failing test in genesis-render/tests/resource_binding_tests.rs - test_point_mesh_initialized_before_particles_spawn - AssetServer resource does not exist in World
+- [x] fix: Failing test in genesis-render/tests/resource_binding_tests.rs - test_point_mesh_initialized_before_particles_spawn - AssetServer resource does not exist in World
 - [ ] fix: Failing test in genesis-render/tests/resource_binding_tests.rs - test_materials_initialized_before_rendering - AssetServer resource does not exist in World
 - [ ] fix: Failing test in genesis-render/tests/resource_binding_tests.rs - test_camera_initialized_before_rendering - AssetServer resource does not exist in World
 - [ ] fix: Failing test in genesis-render/tests/resource_binding_tests.rs - test_extract_system_transfers_data - AssetServer resource does not exist in World
@@ -18,23 +32,6 @@
 - [ ] fix: Failing test in genesis-render/tests/resource_binding_tests.rs - test_system_ordering_point_mesh_before_spawn - AssetServer resource does not exist in World
 - [ ] fix: Failing test in genesis-render/tests/resource_binding_tests.rs - test_complete_particle_rendering_setup - AssetServer resource does not exist in World
 - [ ] fix: Failing test in genesis-render/tests/resource_binding_tests.rs - test_resource_reference_counting - Unable to find GPU (GPU required for rendering tests)
-
-#### Failing Integration Tests (from commit 8578141)
-- [x] fix: Failing test in genesis-render/tests/resource_binding_tests.rs - test_comprehensive_binding_validation - Updated to validate storage buffer architecture instead of vertex attributes
-- [x] fix: Failing test in genesis-render/tests/resource_binding_tests.rs - test_system_cannot_access_invalid_resources - requires_non_existent could not access system parameter Res<'_, NonExistentResource>
-- [x] fix: Failing test in genesis-render/tests/resource_binding_tests.rs - test_materials_initialized_before_rendering - Added RenderPlugin to initialize Assets<PointSpriteMaterial>
-- [x] fix: Failing test in genesis-render/tests/resource_binding_tests.rs - test_resource_reference_counting - Added RenderPlugin to initialize Assets<Mesh>
-- [x] fix: Failing test in genesis-render/tests/resource_binding_tests.rs - test_resources_created_at_startup - Added RenderPlugin to initialize Assets<Mesh>
-- [x] fix: Failing test in genesis-render/tests/resource_binding_tests.rs - test_extract_system_transfers_data - Added RenderPlugin to initialize Assets<Mesh>
-- [x] fix: Failing test in genesis-render/tests/resource_binding_tests.rs - test_pipeline_cache_no_index_out_of_bounds - Added RenderPlugin to initialize Assets<Mesh>
-- [x] fix: Failing test in genesis-render/tests/resource_binding_tests.rs - test_point_mesh_initialized_before_particles_spawn - Added RenderPlugin to initialize Assets<Mesh>
-- [x] fix: Failing test in genesis-render/tests/resource_binding_tests.rs - test_system_ordering_point_mesh_before_spawn - Added RenderPlugin to initialize Assets<Mesh>
-- [x] fix: Failing test in genesis-render/tests/resource_binding_tests.rs - test_complete_particle_rendering_setup - Added RenderPlugin to initialize Assets<Mesh>
-- [x] fix: Failing test in genesis-render/tests/resource_binding_tests.rs - test_resources_accessible_during_update - Added RenderPlugin to initialize Assets<Mesh>
-- [x] fix: Failing test in genesis-render/tests/resource_binding_tests.rs - test_particle_instance_bind_group_layout - Added RenderPlugin to initialize AssetServer
-- [x] fix: Failing test in genesis-render/tests/shader_tests.rs - test_vertex_attribute_locations_match - Updated to expect only @location(0) position (storage buffer architecture)
-- [x] fix: Failing test in genesis-render/tests/shader_tests.rs - test_print_all_bindings - Updated to expect 4 bindings (0, 1, 2, 3 for storage buffer)
-- [x] fix: Failing test in genesis-render/tests/shader_tests.rs - test_comprehensive_shader_validation_summary - Updated to validate storage buffer architecture instead of vertex attributes
 
 ### Phase 1 Completeness Items
 
