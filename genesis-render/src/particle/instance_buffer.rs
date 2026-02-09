@@ -39,7 +39,7 @@ use super::Particle;
 /// Per-instance particle data for GPU upload
 ///
 /// This struct must have a stable memory layout for GPU compatibility.
-/// Uses #[repr(C)] for C-compatible layout.
+/// Uses #[repr(C, align(16))] for C-compatible layout with 16-byte alignment.
 ///
 /// Fields are ordered for alignment:
 /// - size: f32 (4 bytes)
@@ -48,6 +48,7 @@ use super::Particle;
 ///
 /// Total: 32 bytes per instance (aligned to 16 bytes)
 #[repr(C)]
+#[repr(align(16))]
 #[derive(Clone, Copy, Debug, bytemuck::Pod, bytemuck::Zeroable)]
 pub struct ParticleInstanceData {
     /// Particle size in world units
