@@ -29,6 +29,16 @@
   - CameraState interpolation infrastructure is Phase 7 feature per PRD
   - Keep basic camera mode switching (FreeFlight ↔ Orbit) which is Phase 1
   - Document that full cinematic interpolation is deferred to Phase 7
+- [ ] refactor: Remove unrequested camera smooth interpolation system
+  - Remove interpolation fields, `start_interpolation_to_target()`, `start_interpolation_to_position_only()`, and `interpolate_camera()` system from `genesis-render/src/camera/mod.rs`, or verify if Phase 2+ requires this feature
+- [ ] refactor: Remove unrequested CameraConfig fields
+  - Remove `initial_position`, `initial_target`, and `movement_speed` from `genesis-core/src/config.rs` unless required for Phase 2+
+- [ ] refactor: Remove unrequested ParticleConfig fields
+  - Remove `particle_size_variation`, `color_hot`, and `color_cool` from `genesis-core/src/config.rs` unless required for Phase 2+
+- [ ] refactor: Remove duplicate CameraMode enum
+  - Remove `genesis-core/src/epoch/camera_config.rs` and use the enum from `genesis-render/src/camera/mod.rs`
+- [ ] refactor: Remove epoch info overlay from Phase 1
+  - Remove `show_epoch_info` field and related placeholder from `genesis-ui/src/overlay/mod.rs` (unless it's intentional for later phases)
 
 ### Sprint QA
 - [ ] SPRINT QA: Run full build and test suite. Fix ALL errors. If green, create/update '.sprint_complete' with the current date.

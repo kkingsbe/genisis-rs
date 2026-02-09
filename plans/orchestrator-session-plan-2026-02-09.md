@@ -147,7 +147,7 @@ The project infrastructure is in place (workspace, 3 crates, Bevy scaffold), but
 - Update implementation status
 
 **Task 10: Add inline documentation**
-- Document public APIs in genesis-core (TimeAccumulator, EpochPlugin, Particle)
+- Document public APIs in genesis-core (TimeAccumulator, CameraMode, EpochCameraConfig, SingularityEpoch, Particle) - **Note: EpochPlugin trait is not implemented (deferred to Phase 2+)**
 - Document public APIs in genesis-render (CameraMode/State, InputState, Particle component)
 - Document public APIs in genesis-ui (OverlayState, PlaybackState)
 

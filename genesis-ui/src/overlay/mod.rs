@@ -10,24 +10,21 @@ use bevy_egui::{egui, EguiContexts};
 ///
 /// Stores visibility flags for various HUD elements.
 /// Overlay UI rendering is implemented via update_overlay_ui system with egui.
-///
-/// # Missing Field: show_epoch_info
-///
-/// The [`DisplayConfig`] struct in genesis-core (defined at genesis-core/src/config.rs:112-120)
-/// has a `show_epoch_info` field, and genesis.toml also includes this field.
-///
-/// However, this OverlayState struct is **missing** the `show_epoch_info` field.
-/// This means epoch information cannot be displayed in the overlay even when enabled in configuration.
-///
-/// main.rs attempts to set OverlayState.show_epoch_info (line 63) which causes a compilation error
-/// because this field doesn't exist in the struct.
-///
-/// **TODO**: Add `pub show_epoch_info: bool` field to this struct and update
-/// [`update_overlay_ui()`] to display epoch information when enabled.
-#[derive(Resource, Default)]
+#[derive(Resource)]
 pub struct OverlayState {
     pub show_fps: bool,
     pub show_particle_count: bool,
+    pub show_epoch_info: bool,
+}
+
+impl Default for OverlayState {
+    fn default() -> Self {
+        Self {
+            show_fps: true,
+            show_particle_count: true,
+            show_epoch_info: true,
+        }
+    }
 }
 
 /// System to update and display the overlay UI
@@ -43,7 +40,7 @@ pub fn update_overlay_ui(
     let ctx = contexts.ctx_mut();
 
     // Don't show overlay if all visibility flags are false
-    if !overlay_state.show_fps && !overlay_state.show_particle_count {
+    if !overlay_state.show_fps && !overlay_state.show_particle_count && !overlay_state.show_epoch_info {
         return;
     }
 
@@ -68,6 +65,13 @@ pub fn update_overlay_ui(
             if overlay_state.show_particle_count {
                 let particle_count = particles.iter().count();
                 ui.label(format!("Particles: {}", particle_count));
+            }
+
+            // Display epoch information if enabled
+            if overlay_state.show_epoch_info {
+                // Placeholder for epoch information display
+                // This will be enhanced in later phases to show actual epoch data
+                ui.label("Epoch: Not implemented");
             }
         });
 }

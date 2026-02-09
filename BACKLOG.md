@@ -198,13 +198,25 @@ This document contains tasks for future sprints. Items here are not yet schedule
   - [ ] Refactor CameraController to read mouse_sensitivity from config (add to CameraConfig)
   - [ ] Refactor time acceleration to use config.time.initial_time_acceleration in TimeAccumulator
 
-### Epoch Plugin System
-- [ ] ~~Implement epoch plugin registration system~~ (COMPLETED: See EpochManager and EpochPlugin trait in genesis-core/src/epoch/mod.rs)
-- [ ] ~~Define EpochPlugin trait~~ (COMPLETED: See EpochPlugin trait with name(), start_year(), end_year(), build(), camera_config() methods)
-- [ ] ~~Create SingularityEpoch plugin~~ (COMPLETED: See genesis-core/src/epoch/singularity.rs)
-- [ ] ~~Implement EpochManager resource~~ (COMPLETED: See EpochManager in genesis-core/src/epoch/mod.rs)
-- [ ] ~~Register epoch plugins in main.rs~~ (COMPLETED: See SingularityEpochPlugin in src/main.rs)
-- [ ] Note: Epoch transition crossfade system is Phase 2+ scope (moved to Sprint 2 below)
+### Epoch Plugin System (DEFERRED - Planned for Phase 2+)
+**NOTE: The following infrastructure is NOT currently implemented:**
+- EpochPlugin trait - NOT defined (planned for Phase 2+)
+- EpochManager resource - NOT defined (planned for Phase 2+)
+- Epoch transition systems - NOT defined (planned for Phase 2+)
+
+**Currently Available (Phase 1):**
+- CameraMode enum (FreeFlight, Orbit) in genesis-core/epoch/camera_config.rs
+- EpochCameraConfig struct in genesis-core/epoch/camera_config.rs
+- SingularityEpoch marker struct in genesis-core/epoch/singularity.rs
+
+The following items were previously marked as completed but are NOT implemented:
+- [ ] Implement epoch plugin registration system (NOT YET IMPLEMENTED - EpochManager does not exist)
+- [ ] Define EpochPlugin trait (NOT YET IMPLEMENTED)
+- [ ] Create SingularityEpoch plugin implementation (marker struct exists but does not implement EpochPlugin trait)
+- [ ] Implement EpochManager resource (NOT YET IMPLEMENTED)
+- [ ] Register epoch plugins in main.rs (NOT YET IMPLEMENTED - requires EpochManager and EpochPlugin trait)
+
+Note: Epoch transition crossfade system is Phase 2+ scope (moved to Sprint 2 below)
 - [ ] Implement future epoch plugins (InflationEpoch, QGPEpoch, NucleosynthesisEpoch, RecombinationEpoch, DarkAgesEpoch, CosmicDawnEpoch)
   - [ ] Create InflationEpoch plugin in genesis-core/src/epoch/inflation.rs (10⁻³²s to 10⁻⁶s)
     - [ ] Implement InflationEpoch struct with EpochPlugin trait
@@ -262,8 +274,8 @@ This document contains tasks for future sprints. Items here are not yet schedule
 
 ### Documentation
 - [ ] Update ARCHITECTURE.md with final crate structure and responsibilities (document genesis-core, genesis-render, genesis-ui responsibilities)
-- [ ] Document epoch plugin architecture design patterns (trait-based plugin system, EpochManager registration, epoch transitions)
-- [ ] Add inline documentation for genesis-core public APIs (time::TimeAccumulator, epoch::EpochPlugin trait, physics::Particle)
+- [ ] Document epoch plugin architecture design patterns (trait-based plugin system, EpochManager registration, epoch transitions) - **DEFERRED to Phase 2+ when EpochPlugin trait is implemented**
+- [ ] Add inline documentation for genesis-core public APIs (time::TimeAccumulator, epoch::CameraMode, epoch::EpochCameraConfig, physics::Particle) - **Note: EpochPlugin trait not implemented yet**
 - [ ] Add inline documentation for genesis-render public APIs (camera::CameraMode/State, input::InputState, particle::Particle component)
 - [ ] Add inline documentation for genesis-ui public APIs (overlay::OverlayState, timeline::PlaybackState)
 - [ ] Document CosmicTime resource methods (from_slider, to_slider, set_time, get_time, reset)

@@ -12,20 +12,13 @@
 //! The core simulation uses [`TimeAccumulator::years`] (genesis_core::time) which
 //! tracks accumulated cosmic time based on frame delta and acceleration.
 //!
-//! **Known Issue**: The timeline slider updates [`CosmicTime::cosmic_time`] directly
-//! (line 162 in timeline_panel_ui), but this change is NOT synchronized back to
-//! [`TimeAccumulator::years`]. This means scrubbing the timeline only affects the
-//! UI display but not the actual simulation time accumulator.
+//! The timeline slider updates [`CosmicTime::cosmic_time`] directly and synchronizes it
+//! to [`TimeAccumulator::years`] when the timeline is scrubbed. This ensures that
+//! scrubbing the timeline affects both the UI display and the actual simulation time accumulator.
 //!
 //! The [`sync_time_resources()`] system synchronizes:
 //! - TimeAccumulator's paused state with PlaybackState.playing
 //! - PlaybackState.speed to TimeAccumulator.acceleration (logarithmic mapping)
-//!
-//! **TODO**: Add synchronization from CosmicTime.cosmic_time to TimeAccumulator.years
-//! when the timeline is scrubbed, or redesign to use a single time resource.
-//!
-//! # TODO
-//! - Implement timeline scrubbing to TimeAccumulator synchronization
 
 use bevy::prelude::*;
 use bevy_egui::{egui, EguiContexts};
@@ -183,6 +176,8 @@ pub fn timeline_panel_ui(
                     .changed()
                 {
                     cosmic_time.cosmic_time = CosmicTime::from_slider(slider_value);
+                    // Synchronize TimeAccumulator.years with CosmicTime.cosmic_time
+                    time_accumulator.years = cosmic_time.cosmic_time;
                 }
 
                 ui.separator();
