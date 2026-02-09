@@ -110,3 +110,26 @@ Critical drift items identified from PRD analysis:
 - refined: Configuration & Initialization tasks broken down into 6 atomic subtasks
 - refined: Architecture & Documentation tasks broken down into 5 atomic subtasks
 - refined: Plugin Registration tasks broken down into 8 atomic subtasks
+
+## New Drift Items (Added 2026-02-09)
+
+### Unrequested Features
+- refactor: Remove CameraState.target field from genesis-render/src/camera/mod.rs - Target point field not specified in PRD Phase 1 requirements
+- refactor: Remove CameraState.current_orbit_target field from genesis-render/src/camera/mod.rs - Orbit target tracking not specified in PRD
+- refactor: Remove OrbitController.min_distance and max_distance fields from genesis-render/src/camera/mod.rs - Zoom distance constraints not specified in PRD
+- refactor: Remove InputState.mouse_buttons HashMap approach from genesis-render/src/input/mod.rs - HashMap-based button state tracking not specified in PRD; use Bevy's ButtonInput directly
+
+### Contradictions
+- fix: Align PlaybackState.speed with TimeAccumulator.acceleration from genesis-ui/src/timeline/mod.rs - UI speed slider (0.1-10.0x) doesn't connect to TimeAccumulator.acceleration (1x-10¹²x as specified in PRD Phase 1)
+- fix: Remove obsolete drift items from TODO.md - Lines 100-104 in TODO.md reference outdated contradictions that have been fixed: TimeAccumulator.pause() is now implemented, camera systems are implemented, timeline UI is implemented, overlay UI is implemented
+
+### Missing Requirements
+- implement: Add smooth camera interpolation to genesis-render/src/camera/mod.rs - PRD Phase 1 specifies smooth interpolation between camera positions but current implementation only has direct control
+- implement: Add time acceleration connection between PlaybackState.speed and TimeAccumulator.acceleration - PRD Phase 1 requires adjustable acceleration (1x to 10¹²x) but UI speed slider is not connected to TimeAccumulator
+
+---
+
+## Final Sprint QA
+
+- [ ] SPRINT QA: Run full build and test suite. Fix ALL errors. If green, create/update '.sprint_complete' with the current date.
+
