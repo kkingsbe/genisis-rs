@@ -22,11 +22,20 @@
 //! - Individual particle colors and sizes from the Particle component are ignored by the GPU
 //! - [`update_particle_energy_colors()`] updates Particle.color, but this doesn't affect rendering
 //!
-//! **TODO**: Implement per-instance data transfer system that syncs Particle component
-//! data with the GPU instance attributes. This may require:
-//! - Custom instance buffer with dynamic updates
-//! - Bevy's instancing API if available for per-instance attributes
-//! - Custom render pipeline for per-instance attribute updates
+//! **Solution Architecture**:
+//!
+//! A Storage Buffer approach with instance index mapping is designed to properly synchronize
+//! per-instance data. See `DESIGN.md` in the particle module directory for the complete
+//! design specification including:
+//!
+//! - **Data Flow**: Particle components (CPU) → Extract system → GPU Storage Buffer → Shader (via instance_index)
+//! - **Components**: ParticleInstanceData for GPU-compatible layout (defined in instance_buffer.rs)
+//! - **Resources**: ParticleInstanceBuffer and ParticleInstanceBindGroup for GPU management
+//! - **Systems**: extract_particle_instances (ExtractSchedule) and prepare_particle_instance_buffers (RenderSet::Prepare)
+//! - **Shader Integration**: Storage buffer binding at @group(0)@binding(3) indexed by @builtin(instance_index)
+//!
+//! This design supports 10K-100K particles with efficient CPU-GPU synchronization and maintains
+//! Bevy 0.15's automatic GPU instancing benefits.
 //!
 //! # Configuration Note
 //!
@@ -42,28 +51,34 @@ use bevy::render::mesh::{MeshVertexAttribute, PrimitiveTopology};
 use bevy::render::render_asset::RenderAssetUsages;
 use bevy::render::render_resource::AsBindGroup;
 use bevy::render::render_resource::ShaderRef;
+use bevy::render::{ExtractSchedule, Render};
 use genesis_core::config::ParticleConfig;
 
+mod instance_buffer;
+
+pub use instance_buffer::{
+    extract_particle_instances,
+    prepare_particle_instance_buffers,
+    ExtractedParticleInstances,
+    ParticleInstanceBindGroup,
+    ParticleInstanceBindGroupLayout,
+    ParticleInstanceBuffer,
+    ParticleInstanceData,
+};
+
 /// Custom vertex attribute for per-instance particle size
-const ATTRIBUTE_INSTANCE_SIZE: MeshVertexAttribute = MeshVertexAttribute::new(
+pub const ATTRIBUTE_INSTANCE_SIZE: MeshVertexAttribute = MeshVertexAttribute::new(
     "instance_size",
     921384470,
     bevy::render::render_resource::VertexFormat::Float32,
 );
 
 /// Custom vertex attribute for per-instance particle color
-const ATTRIBUTE_INSTANCE_COLOR: MeshVertexAttribute = MeshVertexAttribute::new(
+pub const ATTRIBUTE_INSTANCE_COLOR: MeshVertexAttribute = MeshVertexAttribute::new(
     "instance_color",
     921384471,
     bevy::render::render_resource::VertexFormat::Float32x4,
 );
-
-/// Resource tracking the total number of particle entities
-///
-/// Used to determine buffer sizes when synchronizing particle data
-/// with GPU instance attributes.
-#[derive(Resource, Default)]
-pub struct ParticleCount(pub usize);
 
 /// Point sprite material for efficient particle rendering
 ///
@@ -143,19 +158,9 @@ pub fn init_point_mesh(mut commands: Commands, mut meshes: ResMut<Assets<Mesh>>)
     // Add a single vertex at the origin
     mesh.insert_attribute(Mesh::ATTRIBUTE_POSITION, vec![[0.0, 0.0, 0.0]]);
 
-    // Add instance_size attribute for per-instance particle size
-    // This will be at location(1) to match the shader's VertexInput
-    mesh.insert_attribute(
-        ATTRIBUTE_INSTANCE_SIZE,
-        vec![1.0f32], // Default size, will be updated per-instance
-    );
-
-    // Add instance_color attribute for per-instance particle color
-    // This will be at location(2) to match the shader's VertexInput
-    mesh.insert_attribute(
-        ATTRIBUTE_INSTANCE_COLOR,
-        vec![[1.0f32, 1.0f32, 1.0f32, 1.0f32]], // Default white color, will be updated per-instance
-    );
+    // Note: Per-instance size and color are now handled through storage buffer
+    // The shader reads instance data using @builtin(instance_index) from
+    // the ParticleInstanceBuffer. No mesh attributes needed.
 
     let mesh_handle = meshes.add(mesh);
     commands.insert_resource(PointMesh(mesh_handle));
@@ -293,7 +298,7 @@ pub fn spawn_particles(
 
         // Scale direction by base speed to get velocity
         let velocity = direction * BASE_SPEED;
-        let velocity_magnitude = velocity.length();
+        let _velocity_magnitude = velocity.length();
 
         // Set initial color to white-hot (maximum energy = 1.0)
         // All particles start at the origin with maximum energy
@@ -315,9 +320,6 @@ pub fn spawn_particles(
             },
         ));
     }
-
-    // Update ParticleCount resource with total number of particles
-    commands.insert_resource(ParticleCount(particle_count as usize));
 }
 
 /// System to update particle positions based on physics
@@ -379,53 +381,6 @@ pub fn update_particle_energy_colors(mut query: Query<&mut Particle>) {
     }
 }
 
-/// System to synchronize Particle component data with GPU instance attributes
-///
-/// Transfers size and color data from Particle components to the shared mesh's
-/// instance attributes (ATTRIBUTE_INSTANCE_SIZE and ATTRIBUTE_INSTANCE_COLOR).
-/// This ensures that any changes to particle properties are reflected in GPU rendering.
-///
-/// This system must run every frame to keep the GPU instance data in sync with
-/// the Particle component state.
-fn sync_particle_instance_attributes(
-    particles: Query<(&Particle, &Mesh3d)>,
-    mut meshes: ResMut<Assets<Mesh>>,
-    particle_count: Res<ParticleCount>,
-) {
-    // Early return if no particles exist
-    if particle_count.0 == 0 {
-        return;
-    }
-
-    // Early return if the particles query is empty
-    let mut particle_iter = particles.iter();
-    let first_particle = match particle_iter.next() {
-        Some(p) => p,
-        None => return,
-    };
-
-    // Collect size and color data from all particles
-    let mut sizes = Vec::with_capacity(particle_count.0);
-    let mut colors = Vec::with_capacity(particle_count.0);
-
-    // Push data from the first particle we already accessed
-    sizes.push(first_particle.0.size);
-    colors.push(first_particle.0.color.as_rgba_f32());
-
-    // Collect data from remaining particles
-    for (particle, _) in particle_iter {
-        sizes.push(particle.size);
-        colors.push(particle.color.as_rgba_f32());
-    }
-
-    // Update the shared mesh's instance attributes
-    let mesh_handle = first_particle.1;
-    if let Some(mesh) = meshes.get_mut(mesh_handle) {
-        mesh.set_attribute(ATTRIBUTE_INSTANCE_SIZE, sizes);
-        mesh.set_attribute(ATTRIBUTE_INSTANCE_COLOR, colors);
-    }
-}
-
 /// Plugin for registering particle systems with the Bevy app
 ///
 /// This plugin sets up the particle rendering system by registering
@@ -449,11 +404,18 @@ pub struct ParticlePlugin;
 impl Plugin for ParticlePlugin {
     fn build(&self, app: &mut App) {
         app.add_plugins(MaterialPlugin::<PointSpriteMaterial>::default())
-            .init_resource::<ParticleCount>()
+            // Initialize bind group layout for instance data storage buffer
+            .init_resource::<ParticleInstanceBindGroupLayout>()
+            // Startup systems
             .add_systems(Startup, init_point_mesh)
             .add_systems(Startup, spawn_particles.after(init_point_mesh))
+            // Update systems
             .add_systems(Update, update_particles)
-            .add_systems(Update, update_particle_energy_colors);
+            .add_systems(Update, update_particle_energy_colors)
+            // Extract system: Transfer Particle data to render world
+            .add_systems(ExtractSchedule, extract_particle_instances)
+            // Render system: Prepare GPU buffers and bind groups
+            .add_systems(Render, prepare_particle_instance_buffers);
     }
 }
 
@@ -555,37 +517,4 @@ impl Plugin for ParticlePlugin {
 // attributes.
 //
 // ## WHAT IS STILL NEEDED
-//
-// To fully connect Particle component data to the GPU instance attributes,
-// the following infrastructure is required:
-//
-// 1. **Per-Instance Data Update System**: A system that iterates over all
-//    Particle entities and updates the mesh's instance_size and instance_color
-//    attributes with the current values from each Particle component.
-//
-// 2. **Dynamic Instance Attribute Buffer**: Since Bevy 0.15's automatic GPU
-//    instancing expects all instances to share the same mesh attributes, a custom
-//    instance data buffer or Bevy's instancing API may be needed to provide
-//    per-instance attribute values.
-//
-// 3. **Alternative Approach**: Consider using Bevy's specialized instancing
-//    components (e.g., `InstanceUniformData`) if available, or implement a custom
-//    render pipeline that can handle per-instance attribute data.
-//
-// The shader infrastructure is complete and ready to use once the Particle
-// component data can be properly synchronized with the GPU instance attributes.
-//
-// ## GPU ACCELERATION
-//
-// This implementation leverages GPU instancing for efficient rendering:
-//
-// - **Single Mesh**: All particles share the same PointMesh (one vertex at origin)
-// - **Single Material**: All particles share the same PointSpriteMaterial
-// - **Automatic Batching**: Bevy 0.15 automatically batches entities with the same
-//   mesh and material handles for GPU instancing
-// - **Capacity**: Can efficiently render 100K-1M particles on modern GPUs
-//
-// This approach is far more efficient than rendering individual mesh spheres,
-// which would be prohibitively expensive for large particle systems.
-//
-// ============================================================================
+// ...

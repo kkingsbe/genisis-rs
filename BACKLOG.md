@@ -591,6 +591,14 @@ Note: Epoch transition crossfade system is Phase 2+ scope (moved to Sprint 2 bel
 
 ## Sprint 2 - Phase 2: Inflation & Quantum Seeds
 
+### Infrastructure - genesis-physics Crate
+- [ ] Implement genesis-physics crate
+  - [ ] Create genesis-physics/Cargo.toml with dependencies: glam (for vector math), nalgebra (for scientific linear algebra), wgpu (for GPU compute), serde (for serialization)
+  - [ ] Create genesis-physics/src/lib.rs with module declarations for physics systems (gravity, inflaton, perturbations, nucleosynthesis)
+  - [ ] Add GenesisPhysicsPlugin struct implementing Plugin trait with build() method that registers physics systems
+  - [ ] Add genesis-physics to workspace Cargo.toml members list: "genesis-physics"
+  - [ ] Add genesis-physics dependency to main Cargo.toml: genesis-physics = { path = "genesis-physics" }
+
 ### Physics Integration
 - [ ] Implement Friedmann equation: H² = (8πG/3)ρ - k/a² (where H = ȧ/a)
 - [ ] Implement RK4 solver for scale factor a(t) differential equation (ȧ = H*a)

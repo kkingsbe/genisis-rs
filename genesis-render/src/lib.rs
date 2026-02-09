@@ -9,5 +9,5 @@ pub mod particle;
 
 pub use camera::{CameraPlugin, CameraState};
 
-/// Version of the render library
+/// Version of render library
 pub const VERSION: &str = env!("CARGO_PKG_VERSION");
