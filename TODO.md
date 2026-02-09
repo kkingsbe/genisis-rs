@@ -7,8 +7,7 @@
 ## Sprint 1 - Phase 1: The Singularity
 
 ### Critical Fixes (Blockers)
-- [x] fix: Failing test/compilation in genesis-render/src/particle/instance_buffer.rs from commit eeb3b28 (actually introduced by ee0e6c2) - missing `use bytemuck::Zeroable;` import causes `ParticleInstanceData::zeroed()` to fail at line 309
-- [ ] refactor: Remove unused config fields from genesis.toml that don't map to Phase 1 PRD
+- [x] refactor: Remove unused config fields from genesis.toml that don't map to Phase 1 PRD
 - [ ] fix: Align speed slider range with PRD - PRD specifies 1x-10¹²x but code has 0.1-10.0
 - [ ] fix: Implement particle spawning at configured count - genesis.toml has 100K but only 1000 spawning
 - [ ] fix: Update genesis.toml particle.initial_count to match Phase 1 testing (1000 instead of 100K)

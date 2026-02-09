@@ -10,28 +10,6 @@
 //! - Config::load() method is implemented and reads from ./genesis.toml
 //! - ParticleConfig field names match genesis.toml (initial_count, max_count, base_size)
 //! - CameraConfig field names match genesis.toml (initial_mode, orbit_distance)
-//!
-//! # Configuration Field Mismatches
-//!
-//! ## ParticleConfig
-//! - genesis.toml fields: `initial_count`, `max_count`, `base_size`
-//! - ParticleConfig struct fields: `initial_count`, `max_count`, `base_size`, `particle_size_variation`, `color_hot`, `color_cool`
-//! - Note: `particle_size_variation`, `color_hot`, `color_cool` are optional fields with #[serde(default)] and use default values
-//!
-//! ## CameraConfig
-//! - genesis.toml fields: `initial_mode`, `orbit_distance`
-//! - CameraConfig struct fields: `initial_position`, `initial_target`, `camera_mode` (String), `movement_speed`, `orbit_distance`
-//! - Note: CameraMode enum exists but CameraConfig uses String for camera_mode
-//!
-//! ## DisplayConfig / OverlayState
-//! - genesis.toml has `show_epoch_info` field
-//! - DisplayConfig struct has `show_epoch_info` field (line 119)
-//! - OverlayState struct (genesis-ui/src/overlay/mod.rs) is **missing** the `show_epoch_info` field
-//!
-//! # TODO
-//! - Config::load() method is implemented and reads from ./genesis.toml
-//! - Add show_epoch_info field to OverlayState struct
-//! - Consider converting CameraConfig.camera_mode from String to CameraMode enum
 
 use serde::{Deserialize, Serialize};
 use bevy::prelude::Resource;
@@ -41,9 +19,6 @@ use std::path::Path;
 /// Time configuration settings for cosmic simulation
 #[derive(Debug, Clone, Deserialize)]
 pub struct TimeConfig {
-    /// Initial cosmic time in seconds (e.g., 10⁻⁴³s for singularity) (not in TOML, uses default)
-    #[serde(default)]
-    pub initial_time: f64,
     /// Minimum time acceleration factor (1.0 = no acceleration)
     pub time_acceleration_min: f64,
     /// Maximum time acceleration factor (10¹² = maximum acceleration)
@@ -55,7 +30,6 @@ pub struct TimeConfig {
 impl Default for TimeConfig {
     fn default() -> Self {
         Self {
-            initial_time: 1e-43,
             time_acceleration_min: 0.1,
             time_acceleration_max: 1e12,
             initial_time_acceleration: 1.0,
@@ -72,15 +46,6 @@ pub struct ParticleConfig {
     pub max_count: usize,
     /// Base size for particle rendering in world units
     pub base_size: f32,
-    /// Random variation factor for particle sizes (not in TOML, uses default)
-    #[serde(default)]
-    pub particle_size_variation: f32,
-    /// RGBA color for hot particles (e.g., white-hot) (not in TOML, uses default)
-    #[serde(default)]
-    pub color_hot: [f32; 4],
-    /// RGBA color for cooled particles (not in TOML, uses default)
-    #[serde(default)]
-    pub color_cool: [f32; 4],
 }
 
 impl Default for ParticleConfig {
@@ -89,9 +54,6 @@ impl Default for ParticleConfig {
             initial_count: 100_000,
             max_count: 1_000_000,
             base_size: 2.0,
-            particle_size_variation: 0.5,
-            color_hot: [1.0, 1.0, 1.0, 1.0],
-            color_cool: [1.0, 0.3, 0.0, 1.0],
         }
     }
 }
@@ -99,17 +61,8 @@ impl Default for ParticleConfig {
 /// Camera system configuration settings
 #[derive(Debug, Clone, Deserialize)]
 pub struct CameraConfig {
-    /// Initial camera position [x, y, z] (not in TOML, uses default)
-    #[serde(default)]
-    pub initial_position: [f64; 3],
-    /// Initial camera target/look-at point [x, y, z] (not in TOML, uses default)
-    #[serde(default)]
-    pub initial_target: [f64; 3],
     /// Initial camera mode: "free" or "orbit"
     pub initial_mode: String,
-    /// Movement speed for free-flight camera mode (not in TOML, uses default)
-    #[serde(default)]
-    pub movement_speed: f64,
     /// Default orbit distance for orbit camera mode
     pub orbit_distance: f64,
 }
@@ -117,10 +70,7 @@ pub struct CameraConfig {
 impl Default for CameraConfig {
     fn default() -> Self {
         Self {
-            initial_position: [0.0, 0.0, 100.0],
-            initial_target: [0.0, 0.0, 0.0],
             initial_mode: "orbit".to_string(),
-            movement_speed: 10.0,
             orbit_distance: 100.0,
         }
     }
@@ -157,8 +107,6 @@ pub struct DisplayConfig {
     pub show_fps: bool,
     /// Display particle count
     pub show_particle_count: bool,
-    /// Display current epoch information
-    pub show_epoch_info: bool,
 }
 
 impl Default for DisplayConfig {
@@ -166,7 +114,6 @@ impl Default for DisplayConfig {
         Self {
             show_fps: true,
             show_particle_count: true,
-            show_epoch_info: false,
         }
     }
 }

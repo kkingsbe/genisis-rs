@@ -48,7 +48,6 @@ fn main() {
         .insert_resource(OverlayState {
             show_fps: config.display.show_fps,
             show_particle_count: config.display.show_particle_count,
-            show_epoch_info: config.display.show_epoch_info,
         })
         .add_systems(Startup, setup_camera)
         .run();

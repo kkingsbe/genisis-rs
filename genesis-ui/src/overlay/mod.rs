@@ -14,7 +14,6 @@ use bevy_egui::{egui, EguiContexts, EguiSet};
 pub struct OverlayState {
     pub show_fps: bool,
     pub show_particle_count: bool,
-    pub show_epoch_info: bool,
 }
 
 impl Default for OverlayState {
@@ -22,7 +21,6 @@ impl Default for OverlayState {
         Self {
             show_fps: true,
             show_particle_count: true,
-            show_epoch_info: false,
         }
     }
 }
@@ -40,7 +38,7 @@ pub fn update_overlay_ui(
     let ctx = contexts.ctx_mut();
 
     // Don't show overlay if all visibility flags are false
-    if !overlay_state.show_fps && !overlay_state.show_particle_count && !overlay_state.show_epoch_info {
+    if !overlay_state.show_fps && !overlay_state.show_particle_count {
         return;
     }
 
@@ -65,13 +63,6 @@ pub fn update_overlay_ui(
             if overlay_state.show_particle_count {
                 let particle_count = particles.iter().count();
                 ui.label(format!("Particles: {}", particle_count));
-            }
-
-            // Display epoch information if enabled
-            if overlay_state.show_epoch_info {
-                // Placeholder for epoch information display
-                // This will be enhanced in later phases to show actual epoch data
-                ui.label("Epoch: Not implemented");
             }
         });
 }

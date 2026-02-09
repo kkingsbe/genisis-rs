@@ -3,6 +3,12 @@
 ## [2026-02-09]
 
 ### Critical Fixes (Blockers)
+- [x] fix: Failing test/compilation in genesis-render/src/particle/instance_buffer.rs from commit eeb3b28 (actually introduced by ee0e6c2) - missing `use bytemuck::Zeroable;` import causes `ParticleInstanceData::zeroed()` to fail at line 309
+
+
+## [2026-02-09]
+
+### Critical Fixes (Blockers)
 - [x] refactor: Disable display.show_epoch_info config - this is a Phase 2+ feature enabled in Phase 1
 
 

@@ -233,7 +233,7 @@ impl Plugin for TimelinePlugin {
     fn build(&self, app: &mut App) {
         app.insert_resource(CosmicTime::new())
             .insert_resource(PlaybackState::default())
-            .add_systems(bevy::app::PostUpdate, timeline_panel_ui.after(EguiSet::InitContexts))
+            .add_systems(bevy::app::Update, timeline_panel_ui.after(EguiSet::InitContexts))
             .add_systems(bevy::app::Update, sync_time_resources);
     }
 }
