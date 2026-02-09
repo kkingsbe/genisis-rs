@@ -4,6 +4,7 @@
 //! The configuration supports TOML deserialization and provides sensible defaults.
 
 use serde::{Deserialize, Serialize};
+use bevy::prelude::Resource;
 
 /// Time configuration settings for cosmic simulation
 #[derive(Debug, Clone, Deserialize)]
@@ -30,7 +31,7 @@ impl Default for TimeConfig {
 }
 
 /// Particle system configuration settings
-#[derive(Debug, Clone, Deserialize)]
+#[derive(Debug, Clone, Deserialize, Resource)]
 pub struct ParticleConfig {
     /// Number of particles to simulate
     pub particle_count: usize,

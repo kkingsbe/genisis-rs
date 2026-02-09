@@ -40,7 +40,6 @@
 ### Camera System
 
 ### Time & Timeline
-- [x] Implement time controls: play/pause, reset, speed adjustment (1x to 10¹²x)
 - [ ] Build logarithmic timeline scrubber UI using bevy_egui
 - [ ] Map timeline scrubbing to cosmic time simulation state
 - [ ] Add epoch indicator display (current era, temperature, scale factor)
@@ -136,3 +135,46 @@
 - [ ] docs: Clarify default camera mode in ARCHITECTURE.md:187 - distinguish between enum default (FreeFlight) and initial setup (Orbit)
 - [ ] docs: Fix TimeConfig min value inconsistency in ARCHITECTURE.md:31 - update from 0.1 to 1.0 to match code
 - [ ] docs: Remove #[allow(dead_code)] or document public API methods in genesis-core/src/epoch/camera_config.rs and genesis-core/src/time/mod.rs
+
+---
+
+## Test Health Tracking (Identified 2026-02-09)
+
+### Blocking Compilation Errors
+- [x] fix: Failing test compilation in genesis-render/src/particle/mod.rs - unresolved import `genesis_core::config::ParticleConfigResource` (type does not exist in genesis-core::config module)
+- [ ] fix: Failing test compilation in genesis-render/src/camera/mod.rs - no field `initial_mode` on type `&CameraConfig` (available fields: initial_position, initial_target, camera_mode, movement_speed, orbit_radius)
+
+---
+
+## Critical Fixes (Align with PRD)
+- [ ] fix: Implement Config::load() method to read from genesis.toml
+- [ ] fix: Align CameraConfig field name (orbit_radius vs orbit_distance)
+- [ ] fix: Align CameraMode type usage (String vs CameraMode enum)
+- [ ] fix: Implement ParticleConfigResource wrapper
+- [ ] fix: Add show_epoch_info field to OverlayState
+- [ ] fix: Sync TimeAccumulator.years with CosmicTime.cosmic_time
+- [ ] fix: Implement per-instance particle data transfer to GPU
+- [ ] fix: Update spawn_particles to use correct config fields
+- [ ] fix: Remove or implement unused minutes_to_years() function
+- [ ] fix: Update from_slider/to_slider to use config min_time
+
+## Remove Unrequested Features (Phase 2+ Scope Creep)
+- [ ] refactor: Remove camera interpolation system (defer to Phase 2+)
+- [ ] refactor: Remove EpochCameraConfig and camera_config.rs module
+- [ ] refactor: Remove fade_duration from epoch camera system
+- [ ] refactor: Simplify CameraMode enum (or inline to CameraConfig)
+- [ ] refactor: Remove SingularityEpoch.planck_boundary_years() if unused
+- [ ] refactor: Remove OrbitController pan_sensitivity and handle_orbit_pan()
+- [ ] refactor: Remove complex easing in interpolate_camera()
+- [ ] refactor: Remove SECONDS_PER_MINUTE, SECONDS_PER_HOUR, SECONDS_PER_DAY constants
+- [ ] refactor: Remove empty physics module (defer to Phase 2+)
+- [ ] refactor: Remove EpochCameraConfig::with_* builder methods
+
+## Incomplete Phase 1 Features
+- [ ] incomplete: Implement config loading from TOML files
+- [ ] incomplete: Integrate particle velocity with physics movement
+- [ ] incomplete: Implement per-instance particle size/color rendering
+- [ ] incomplete: Sync timeline slider with physics time
+- [ ] incomplete: Add epoch info display to overlay UI
+- [ ] incomplete: Implement smooth camera mode transitions
+- [ ] incomplete: Implement timeline scrubbing that affects particle positions

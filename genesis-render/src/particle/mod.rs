@@ -14,7 +14,7 @@ use bevy::render::mesh::{MeshVertexAttribute, PrimitiveTopology};
 use bevy::render::render_asset::RenderAssetUsages;
 use bevy::render::render_resource::AsBindGroup;
 use bevy::render::render_resource::ShaderRef;
-use genesis_core::config::ParticleConfigResource;
+use genesis_core::config::ParticleConfig;
 
 /// Custom vertex attribute for per-instance particle size
 const ATTRIBUTE_INSTANCE_SIZE: MeshVertexAttribute = MeshVertexAttribute::new(
@@ -212,15 +212,18 @@ pub fn spawn_particles(
     mut commands: Commands,
     mut materials: ResMut<Assets<PointSpriteMaterial>>,
     point_mesh: Res<PointMesh>,
-    config: Res<ParticleConfigResource>,
+    config: Res<ParticleConfig>,
 ) {
     println!("DEBUG: spawn_particles STARTED - PointMesh resource accessed successfully");
 
-    // Clamp initial_count to max_count to ensure we don't exceed the limit
-    let particle_count = config.0.initial_count.min(config.0.max_count) as u32;
+    // TODO: ParticleConfigResource wrapper is not defined in genesis-core.
+    // ParticleConfig has `particle_count` field, but this code expects
+    // `initial_count` and `max_count` fields. Either define ParticleConfigResource
+    // with those fields or update this code to use particle_count directly.
+    let particle_count = config.particle_count as u32;
     println!(
-        "DEBUG: Spawning {} particles (initial_count: {}, max_count: {})",
-        particle_count, config.0.initial_count, config.0.max_count
+        "DEBUG: Spawning {} particles (particle_count: {})",
+        particle_count, config.particle_count
     );
 
     // Create point sprite material for all particles (single material shared by all)
@@ -228,7 +231,7 @@ pub fn spawn_particles(
     // handled by the shader in future updates
     let particle_material = PointSpriteMaterial {
         color: LinearRgba::new(1.0, 1.0, 1.0, 1.0),
-        base_size: config.0.base_size, // Use base_size from config
+        base_size: config.particle_size_base,
         attenuation_factor: 0.01,      // Size attenuation factor
     };
     let material_handle = materials.add(particle_material);
