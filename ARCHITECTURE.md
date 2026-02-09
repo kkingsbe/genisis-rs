@@ -186,6 +186,39 @@ Currently, the rendering-level Particle is directly populated in [`spawn_particl
 - Initialized once at startup via `init_point_mesh` system
 - Shared across all particles for efficient GPU instancing
 
+### 3.3 Instance Buffer Data Synchronization
+
+**Overview**
+The `instance_buffer.rs` module implements a Storage Buffer approach for synchronizing per-instance particle attributes from CPU Particle components to GPU storage buffers. This enables efficient CPU-GPU data transfer for 10K-100K particles while maintaining Bevy 0.15's automatic GPU instancing benefits.
+
+**Architecture**
+```
+Particle Components (Main World)
+    ↓ [extract_particle_instances - ExtractSchedule]
+ExtractedParticleInstances (Render World)
+    ↓ [prepare_particle_instance_buffers - RenderSet::Prepare]
+ParticleInstanceBuffer + ParticleInstanceBindGroup (GPU)
+    ↓ [Vertex Shader]
+Per-Instance Rendering
+```
+
+**Data Structures**
+- **ParticleInstanceData**: GPU-compatible struct with size (f32) and color ([f32; 4]) fields, using #[repr(C)] layout (32 bytes total)
+- **ExtractedParticleInstances**: Resource containing Vec<ParticleInstanceData> extracted from Main world's Particle components
+- **ParticleInstanceBuffer**: GPU buffer wrapping Bevy StorageBuffer, dynamically resizable (power-of-two capacity)
+- **ParticleInstanceBindGroup**: Bind group making the storage buffer accessible to shader at binding 3
+- **ParticleInstanceBindGroupLayout**: Bind group layout defining storage buffer interface (FromWorld)
+
+**Systems**
+- **extract_particle_instances** (ExtractSchedule): Copies Particle component data from Main world to Render world, converting Color to linear RGBA and extracting size
+- **prepare_particle_instance_buffers** (RenderSet::Prepare): Writes extracted data to GPU storage buffer, creates/updates bind group, handles dynamic buffer resizing
+
+**Current Status**
+- Extract and prepare systems are implemented and registered in ParticlePlugin
+- Storage buffer infrastructure exists with proper GPU resource management
+- Shader currently uses mesh attributes (@location(1) and @location(2)) instead of storage buffer binding
+- Full CPU-GPU synchronization is partially complete (systems exist, shader integration pending)
+
 ### 4. Cosmic Time System
 - **Type**: f64 accumulator for precision over 13.8B years
 - **Dual Time System**: The application uses two separate time resources:
@@ -266,12 +299,12 @@ The following infrastructure is planned for future phases and does NOT exist in 
   - ConfigResource wrapper for Bevy integration
   - Config::load() method implemented - reads from genesis.toml with file path search logic
   - Searches ./genesis.toml, ~/.config/genesis/config.toml, /etc/genesis/config.toml in order
-- **Configuration Field Mismatches**:
-  - **ParticleConfig**: Field names match correctly between genesis.toml and ParticleConfig struct (initial_count, max_count, base_size)
-  - **CameraConfig**: genesis.toml has `initial_mode`, `orbit_distance` but CameraConfig struct has `initial_position`, `initial_target`, `camera_mode` (String), `movement_speed`, `orbit_distance`
-  - **DisplayConfig**: genesis.toml has `show_epoch_info` and OverlayState struct also has this field
-  - **TimeConfig**: genesis.toml has `initial_time_acceleration` but TimeConfig struct has `initial_time_acceleration`
-- **Note**: Configuration loading infrastructure is implemented. Some field name mismatches remain (CameraConfig.initial_position, initial_target fields are not in genesis.toml)
+- **Configuration Field Notes**:
+  - **ParticleConfig**: Field names match correctly between genesis.toml and ParticleConfig struct (initial_count, max_count, base_size) - no mismatches
+  - **CameraConfig**: genesis.toml has `initial_mode`, `orbit_distance`; CameraConfig struct has `initial_position`, `initial_target` (with #[serde(default)]), `camera_mode` (String), `movement_speed` (with #[serde(default)]), `orbit_distance` - fields match
+  - **DisplayConfig**: genesis.toml has `show_epoch_info` and OverlayState struct also has this field - no mismatches
+  - **TimeConfig**: genesis.toml has `initial_time_acceleration` and TimeConfig struct also has `initial_time_acceleration` - no mismatches
+- **Note**: Configuration loading infrastructure is fully implemented. All struct fields with #[serde(default)] use default values when not present in genesis.toml
 
 ## Phase 1 Scope (Current Implementation)
 
@@ -304,19 +337,16 @@ A running Bevy application with a 3D particle system, camera controls, and a tim
 - Epoch camera configuration (EpochCameraConfig struct defined, CameraMode enum defined) - infrastructure exists but not used
 - SingularityEpoch - defined as marker struct but does NOT implement EpochPlugin trait (trait doesn't exist)
 - Per-instance particle attributes (ATTRIBUTE_INSTANCE_SIZE, ATTRIBUTE_INSTANCE_COLOR) - mesh attributes defined but not synchronized with Particle component data
-- Dual time system (TimeAccumulator.years + CosmicTime.cosmic_time) - both exist but timeline scrubbing doesn't sync back to TimeAccumulator.years
+- Dual time system (TimeAccumulator.years + CosmicTime.cosmic_time) - both exist, timeline scrubbing DOES sync to TimeAccumulator.years via timeline_panel_ui
 
 **Pending (Phase 1 Completion Items):**
-- Config::load() method implemented for external TOML configuration (reads from genesis.toml with file path search logic)
 - Full physics-based particle updates with simulation-level particle sync (update_particles has basic outward expansion, full physics sync pending)
-- Per-instance particle color and size synchronization with GPU instance attributes (Particle component → GPU attributes)
-- OverlayState.show_epoch_info field addition to struct and UI rendering
-- Timeline scrubbing to TimeAccumulator synchronization with state restoration for reverse/replay (slider changes update both CosmicTime and TimeAccumulator.years)
-- ParticleConfigResource definition in genesis-core (main.rs references it but ParticleConfig has Resource derive - should use ParticleConfig directly)
+- Per-instance particle color and size synchronization with GPU instance attributes (storage buffer systems exist but shader uses mesh attributes, not storage buffer)
+- Timeline scrubbing state restoration for reverse/replay with snapshot history (slider changes update both CosmicTime and TimeAccumulator.years, but reverse/replay capability pending)
 - Configuration field name reconciliation between genesis.toml and Config structs:
-  - ParticleConfig: reconcile genesis.toml fields (initial_count, max_count, base_size) with struct fields (particle_count, particle_size_base, particle_size_variation, color_hot, color_cool)
-  - CameraConfig: reconcile genesis.toml fields (initial_mode, orbit_distance) with struct fields (camera_mode, orbit_radius) and CameraMode enum usage
-  - OverlayState.show_epoch_info field exists in struct and UI rendering (main.rs line 51 correctly sets this field)
+  - ParticleConfig: genesis.toml fields (initial_count, max_count, base_size) MATCH struct fields (no changes needed)
+  - CameraConfig: genesis.toml has fields (initial_mode, orbit_distance), struct has camera_mode (String) and orbit_distance (f64) - field names match (camera_mode uses String instead of enum)
+  - OverlayState.show_epoch_info field EXISTS in struct and UI rendering (no changes needed)
 
 **Deferred to Future Phases (Phase 2+):**
 - Epoch management system implementation (EpochPlugin trait, EpochManager resource, EpochManagerPlugin, EpochChangeEvent, update_epoch_transition system, handle_epoch_change_transition system)
@@ -477,8 +507,8 @@ The gap analysis was conducted by:
 | # | Requirement | Status | Implementation Note |
 |---|-------------|--------|-------------------|
 | 1 | Bevy application scaffold with window, input handling, and basic 3D scene | ✅ Implemented | DefaultPlugins, WindowPlugin configured correctly |
-| 2 | Instanced particle renderer capable of displaying 100K-1M point sprites with position, color, and size | ⚠️ Partially Implemented | Currently 1000 test particles. Infrastructure exists for GPU instancing, but scaling to 100K-1M not complete |
-| 3 | Free-flight camera (WASD + mouse) and orbit camera (click-drag) with smooth interpolation | ✅ Implemented | CameraController and OrbitController components work correctly. NOTE: Camera interpolation is Phase 7 feature per PRD but currently implemented |
+| 2 | Instanced particle renderer capable of displaying 100K-1M point sprites with position, color, and size | ⚠️ Partially Implemented | Currently 100,000 default particles. Infrastructure exists for GPU instancing, but scaling to 1M not complete |
+| 3 | Free-flight camera (WASD + mouse) and orbit camera (click-drag) with smooth interpolation | ✅ Implemented | CameraController and OrbitController components work correctly. NOTE: Camera interpolation is Phase 7 feature and NOT currently implemented |
 | 4 | Cosmic time system: f64 time accumulator with adjustable acceleration (1x to 10¹²x), pause, and reset | ✅ Implemented | TimeAccumulator resource with all required methods |
 | 5 | Logarithmic timeline scrubber UI (bevy_egui) spanning 13.8 billion years | ✅ Implemented | TimelinePanel with logarithmic mapping from_slider() and to_slider() |
 | 6 | Procedural "singularity" visualization: particles spawned at origin with outward velocity, color-mapped by energy (white-hot core fading to red) | ✅ Implemented | spawn_particles() creates radial outward expansion with energy_to_color() mapping |
@@ -831,5 +861,5 @@ The gap analysis was conducted by:
 **Issues to Address:**
 
 1. **Documentation Inconsistency:** Sprint 4 (Phase 4) is duplicated in BACKLOG.md (lines 533-838 and 790-838)
-2. **Camera Interpolation Timing:** Camera interpolation is currently implemented but PRD designates it as Phase 7 feature
+2. **Camera Interpolation Status:** Camera interpolation is NOT currently implemented (no interpolate_camera system exists) and is designated as Phase 7 feature per PRD
 3. **Easing Function Module:** Easing functions are documented but no file creation or implementation tasks exist
