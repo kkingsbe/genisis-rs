@@ -2,6 +2,9 @@
 
 ## [2026-02-09]
 
+### Time & Timeline
+- [x] Implement time controls: play/pause, reset, speed adjustment (1x to 10¹²x)
+
 ### Configuration & Initialization
 - [x] Add missing DisplayConfig struct to enable configuration loading from genesis.toml - Implemented DisplayConfig struct with show_fps, show_particle_count, and show_epoch_info fields. Added Default implementation and integrated into Config struct. Resolved critical blocker preventing configuration system from deserializing display settings from TOML file.
 
@@ -150,3 +153,8 @@
 
 ### Unrequested Features
 - [x] refactor: Remove CameraTarget component and update_camera_targets() system from genesis-render/src/camera/mod.rs
+
+## [2026-02-09]
+
+### Test Health Tracking
+- [x] fix: Failing test compilation in genesis-render/src/particle/mod.rs - unresolved import `genesis_core::config::ParticleConfigResource` (type does not exist in genesis-core::config module)

@@ -2,6 +2,35 @@
 //!
 //! This module defines the configuration structure for Phase 1 parameters.
 //! The configuration supports TOML deserialization and provides sensible defaults.
+//!
+//! # Implementation Status
+//!
+//! - Config structs are fully defined with Default implementations
+//! - TOML serialization/deserialization via serde is configured
+//! - Config::load() method is **NOT YET IMPLEMENTED** (main.rs line 26 calls Config::load())
+//! - Field name mismatches exist between genesis.toml and Config structs (see below)
+//!
+//! # Configuration Field Mismatches
+//!
+//! ## ParticleConfig
+//! - genesis.toml fields: `initial_count`, `max_count`, `base_size`
+//! - ParticleConfig struct fields: `particle_count`, `particle_size_base`, `particle_size_variation`, `color_hot`, `color_cool`
+//!
+//! ## CameraConfig
+//! - genesis.toml fields: `initial_mode`, `orbit_distance`
+//! - CameraConfig struct fields: `initial_position`, `initial_target`, `camera_mode` (String), `movement_speed`, `orbit_radius`
+//! - Note: CameraMode enum exists but CameraConfig uses String for camera_mode
+//!
+//! ## DisplayConfig / OverlayState
+//! - genesis.toml has `show_epoch_info` field
+//! - DisplayConfig struct has `show_epoch_info` field (line 119)
+//! - OverlayState struct (genesis-ui/src/overlay/mod.rs) is **missing** the `show_epoch_info` field
+//!
+//! # TODO
+//! - Implement Config::load() method to read from ./genesis.toml, ~/.config/genesis/config.toml, or /etc/genesis/config.toml
+//! - Reconcile field names between genesis.toml and Config structs
+//! - Add show_epoch_info field to OverlayState struct
+//! - Consider converting CameraConfig.camera_mode from String to CameraMode enum
 
 use serde::{Deserialize, Serialize};
 use bevy::prelude::Resource;
@@ -164,6 +193,24 @@ impl Config {
     /// Creates a new configuration with default values
     #[must_use]
     pub fn new() -> Self {
+        Self::default()
+    }
+
+    /// Loads configuration from a TOML file
+    ///
+    /// # Note
+    /// This method is **NOT YET IMPLEMENTED** but is called by main.rs (line 26).
+    /// When implemented, it should:
+    /// - Load from ./genesis.toml if present
+    /// - Otherwise load from ~/.config/genesis/config.toml
+    /// - Otherwise load from /etc/genesis/config.toml
+    /// - Fall back to default values if no file is found
+    ///
+    /// TODO: Implement this method with proper file path resolution and error handling
+    #[must_use]
+    pub fn load() -> Self {
+        // TODO: Implement configuration file loading
+        // For now, return default configuration
         Self::default()
     }
 }

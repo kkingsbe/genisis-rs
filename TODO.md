@@ -8,6 +8,15 @@
 *Complete these items before Sprint 1 to unblock implementation*
 
 ## Critical Fixes (Block Sprint 1 Completion)
+- [ ] refactor: Remove unrequested feature - Advanced camera interpolation system (easing curves, keyframe-based transitions, cinematic interpolation) belongs in Phase 7, currently in genesis-render/src/camera/mod.rs
+- [ ] fix: Align epoch management with PRD requirements - Implement EpochPlugin trait and EpochManager for epoch transitions as specified in PRD line 82; currently only marker structs exist in genesis-core/src/epoch/
+- [ ] fix: Align time system with PRD requirements - Implement synchronization between TimeAccumulator.years and CosmicTime.cosmic_time when timeline is scrubbed, or redesign to use single time resource per PRD line 115
+- [ ] fix: Align OverlayState with PRD requirements - Add show_epoch_info field to OverlayState struct and implement epoch information display in update_overlay_ui(); currently missing from genesis-ui/src/overlay/mod.rs
+- [ ] fix: Align particle rendering with PRD requirements - Implement synchronization between Particle component data and GPU instance attributes for per-particle color and size variation per PRD line 113; currently particles appear uniform
+- [ ] fix: Align Config::load() with PRD requirements - Implement actual configuration loading from ./genesis.toml, ~/.config/genesis/config.toml, or /etc/genesis/config.toml with proper file path resolution and error handling; currently only returns default values
+- [ ] fix: Align ParticleConfig with genesis.toml - Reconcile field names between genesis.toml (initial_count, max_count, base_size) and ParticleConfig struct (particle_count, particle_size_base, particle_size_variation, color_hot, color_cool)
+- [ ] fix: Align CameraConfig with genesis.toml - Reconcile orbit_distance vs orbit_radius field name inconsistency; update CameraConfig struct or main.rs to use consistent field name
+- [ ] fix: Align particle data structures - Consolidate duplicate Particle definitions; use consistent field types (Vec3 vs [f32; 3], Color vs [f32; 3]) across genesis-core and genesis-render modules
 - [ ] Remove EpochManager with automatic transitions from genesis-core/src/epoch/mod.rs
 - [ ] Remove EpochCameraConfig from genesis-core/src/epoch/camera_config.rs
 - [ ] Remove epoch transition camera handling from genesis-render/src/camera/
@@ -80,9 +89,6 @@
 - [ ] Add .init_resource::<OverlayState>() to main.rs
 - [ ] Add .init_resource::<PlaybackState>() to main.rs
 
-### Sprint QA
-- [ ] SPRINT QA: Run full build and test suite. Fix ALL errors. If green, create/update '.sprint_complete' with the current date.
-
 ---
 
 <!-- ARCHIVAL: Original drift remediation analysis - items now tracked in Drift Remediation section above -->
@@ -141,7 +147,6 @@
 ## Test Health Tracking (Identified 2026-02-09)
 
 ### Blocking Compilation Errors
-- [x] fix: Failing test compilation in genesis-render/src/particle/mod.rs - unresolved import `genesis_core::config::ParticleConfigResource` (type does not exist in genesis-core::config module)
 - [ ] fix: Failing test compilation in genesis-render/src/camera/mod.rs - no field `initial_mode` on type `&CameraConfig` (available fields: initial_position, initial_target, camera_mode, movement_speed, orbit_radius)
 
 ---
@@ -171,6 +176,8 @@
 - [ ] refactor: Remove EpochCameraConfig::with_* builder methods
 
 ## Incomplete Phase 1 Features
+- [ ] feature: Implement timeline scrubbing that reverses particle expansion per PRD line 122 - currently particles only move forward in time
+- [ ] feature: Implement physics-based particle movement per PRD line 117 - particles spawned at origin with outward velocity, color-mapped by energy; currently update_particles() uses simple constant-speed movement
 - [ ] incomplete: Implement config loading from TOML files
 - [ ] incomplete: Integrate particle velocity with physics movement
 - [ ] incomplete: Implement per-instance particle size/color rendering
@@ -178,3 +185,8 @@
 - [ ] incomplete: Add epoch info display to overlay UI
 - [ ] incomplete: Implement smooth camera mode transitions
 - [ ] incomplete: Implement timeline scrubbing that affects particle positions
+
+---
+
+### Sprint QA
+- [ ] SPRINT QA: Run full build and test suite. Fix ALL errors. If green, create/update '.sprint_complete' with the current date.

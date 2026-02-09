@@ -5,6 +5,34 @@
 //! create particle clusters. Uses GPU-accelerated instanced rendering
 //! (automatic batching) via shared mesh and material handles for
 //! efficient rendering of thousands of particles.
+//!
+//! # Per-Instance Attribute Synchronization
+//!
+//! The PointMesh has custom vertex attributes for per-instance particle size and color:
+//! - [`ATTRIBUTE_INSTANCE_SIZE`]: Float32 at location(1) for per-instance particle size
+//! - [`ATTRIBUTE_INSTANCE_COLOR`]: Float32x4 at location(2) for per-instance particle color
+//!
+//! These attributes are initialized in [`init_point_mesh()`] with default values but are
+//! **NOT SYNCHRONIZED** with the [`Particle`] component data. Each particle entity has a
+//! Particle component with `position`, `color`, and `size` fields, but these values are
+//! not transferred to the GPU instance attributes.
+//!
+//! **Current Behavior**:
+//! - The shader uses the default instance_size (1.0) and instance_color ([1.0, 1.0, 1.0, 1.0])
+//! - Individual particle colors and sizes from the Particle component are ignored by the GPU
+//! - [`update_particle_energy_colors()`] updates Particle.color, but this doesn't affect rendering
+//!
+//! **TODO**: Implement per-instance data transfer system that syncs Particle component
+//! data with the GPU instance attributes. This may require:
+//! - Custom instance buffer with dynamic updates
+//! - Bevy's instancing API if available for per-instance attributes
+//! - Custom render pipeline for per-instance attribute updates
+//!
+//! # Configuration Field Mismatch
+//!
+//! genesis.toml has fields `initial_count`, `max_count`, `base_size` but [`ParticleConfig`]
+//! struct has `particle_count`, `particle_size_base`, `particle_size_variation`, `color_hot`, `color_cool`.
+//! The [`spawn_particles()`] system uses `particle_count` directly from the config resource.
 
 use bevy::asset::Asset;
 use bevy::pbr::Material;
@@ -201,13 +229,19 @@ fn lerp_rgb(r1: f32, g1: f32, b1: f32, r2: f32, g2: f32, b2: f32, t: f32) -> Col
 /// efficient rendering.
 ///
 /// Spawns particles based on the configuration specified in
-/// ParticleConfigResource. GPU instancing allows efficient rendering
+/// ParticleConfig (via the Resource derive). GPU instancing allows efficient rendering
 /// of 100K-1M particles.
 ///
 /// In Bevy 0.15, GPU instancing is automatic: when multiple entities
 /// share the same Mesh3d and MeshMaterial3d handles, the renderer
 /// batches them for GPU instancing without requiring explicit
 /// instance components.
+///
+/// # Configuration Note
+///
+/// main.rs references a non-existent `ParticleConfigResource` wrapper, but
+/// ParticleConfig itself has `#[derive(Resource)]` and can be used directly.
+/// This system receives ParticleConfig as a Bevy Resource.
 pub fn spawn_particles(
     mut commands: Commands,
     mut materials: ResMut<Assets<PointSpriteMaterial>>,
@@ -216,10 +250,6 @@ pub fn spawn_particles(
 ) {
     println!("DEBUG: spawn_particles STARTED - PointMesh resource accessed successfully");
 
-    // TODO: ParticleConfigResource wrapper is not defined in genesis-core.
-    // ParticleConfig has `particle_count` field, but this code expects
-    // `initial_count` and `max_count` fields. Either define ParticleConfigResource
-    // with those fields or update this code to use particle_count directly.
     let particle_count = config.particle_count as u32;
     println!(
         "DEBUG: Spawning {} particles (particle_count: {})",

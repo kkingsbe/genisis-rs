@@ -13,8 +13,7 @@ pub use config::{
     CameraConfig, Config, ParticleConfig,
     TimeConfig, WindowConfig,
 };
-pub use epoch::singularity::SingularityEpoch;
-pub use epoch::{EpochChangeEvent, EpochManager, EpochManagerPlugin};
+pub use epoch::SingularityEpoch;
 pub use time::TimeIntegrationPlugin;
 
 /// Version of the core library

@@ -2,6 +2,27 @@
 //!
 //! Defines resource for tracking and accumulating cosmic time.
 //! Includes SECONDS_PER_YEAR constant and time scaling via acceleration factor.
+//!
+//! # Dual Time System
+//!
+//! The application uses two separate time resources that can become desynchronized:
+//!
+//! - **TimeAccumulator.years** (this module): Tracks accumulated cosmic time in years,
+//!   updated each frame via [`add_time()`] based on delta time and acceleration factor.
+//!
+//! - **CosmicTime.cosmic_time** (genesis-ui): Stores timeline position used by the slider UI,
+//!   updated by timeline scrubbing in [`timeline_panel_ui()`](genesis_ui::timeline::timeline_panel_ui).
+//!
+//! The [`sync_time_resources()`](genesis_ui::timeline::sync_time_resources) system synchronizes:
+//! - TimeAccumulator's paused state with PlaybackState.playing
+//! - PlaybackState.speed to TimeAccumulator.acceleration (logarithmic mapping)
+//!
+//! **Known Issue**: Timeline scrubbing updates CosmicTime.cosmic_time but does NOT sync back
+//! to TimeAccumulator.years. The two resources can become desynchronized when the user
+//! scrubs the timeline. This is a TODO item for future implementation.
+//!
+//! # TODO
+//! - Add synchronization from CosmicTime.cosmic_time to TimeAccumulator.years when timeline is scrubbed
 
 use bevy::prelude::{Commands, Plugin, Res, ResMut, Resource, Startup, Update};
 use bevy::time::Time;

@@ -1,16 +1,15 @@
 {
-  "lastRun": "2026-02-09T05:55:17.706Z",
-  "lastSuccess": "2026-02-09T05:39:55.797Z",
-  "lastFailure": "2026-02-09T06:01:04.777Z",
-  "errorCount": 56,
-  "consecutiveFailures": 4,
+  "lastRun": null,
+  "lastSuccess": null,
+  "lastFailure": "2026-02-09T10:55:37.794Z",
+  "errorCount": 1,
+  "consecutiveFailures": 1,
   "status": "failed",
-  "lastTerminationReason": "mistake_limit_reached",
-  "earlyTerminationCount": 2,
-  "totalExecutionTimeMs": 15680567,
-  "averageExecutionTimeMs": 5226856,
+  "lastTerminationReason": null,
+  "earlyTerminationCount": 0,
+  "totalExecutionTimeMs": 0,
+  "averageExecutionTimeMs": 0,
   "successfulTerminations": 0,
-  "failedTerminations": 2,
-  "lastOutputFile": "/workspace/.janitor-output-1770615595798.md",
-  "error": "Failed to acquire lock for task 'janitor' after 3 attempts: Failed to acquire lock for task 'janitor': timeout after 5000ms"
+  "failedTerminations": 0,
+  "error": "Failed to record early termination for task 'janitor': No state found for task 'janitor'"
 }

@@ -11,10 +11,19 @@ use bevy::prelude::*;
 use bevy::time::Time;
 
 use crate::input::InputState;
-use genesis_core::epoch::CameraMode;
 use genesis_core::config::CameraConfig;
 
-mod epoch_transition;
+/// Camera mode enumeration
+///
+/// Defines the available camera control modes for the simulator.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub enum CameraMode {
+    /// Free-flight camera mode with WASD movement and mouse look
+    #[default]
+    FreeFlight,
+    /// Orbit camera mode that rotates around a target point
+    Orbit,
+}
 
 /// Resource tracking camera state
 ///
@@ -132,8 +141,13 @@ impl CameraState {
     /// All other fields are set to their default values. The orbit_distance from
     /// config is used to initialize the OrbitController in setup_camera().
     pub fn from_config(config: &CameraConfig) -> Self {
+        let mode = match config.camera_mode.as_str() {
+            "free" | "free_flight" | "FreeFlight" => CameraMode::FreeFlight,
+            "orbit" | "Orbit" => CameraMode::Orbit,
+            _ => CameraMode::default(),
+        };
         Self {
-            mode: config.initial_mode,
+            mode,
             ..Default::default()
         }
     }
@@ -236,38 +250,6 @@ impl OrbitController {
             self.target.y + self.distance * self.pitch.sin(),
             self.target.z + self.distance * self.pitch.cos() * self.yaw.cos(),
         )
-    }
-}
-
-/// Component marking an entity as a camera target
-///
-/// Can be added to any entity to indicate that the camera should look at it
-/// or move toward it. Camera systems can query for this component to identify
-/// entities that should affect camera behavior.
-#[derive(Component, Default, Debug)]
-pub struct CameraTarget {
-    /// The target position in world space
-    pub position: Vec3,
-    /// Whether the camera should look at this target (true) or just move toward it (false)
-    pub look_at: bool,
-    /// Optional offset from the target position
-    pub offset: Vec3,
-}
-
-impl CameraTarget {
-    /// Creates a new CameraTarget with the specified position
-    ///
-    /// # Parameters
-    /// * `position` - The target position in world space
-    ///
-    /// # Returns
-    /// A CameraTarget with look_at=true and offset=Vec3::ZERO
-    pub fn new(position: Vec3) -> Self {
-        Self {
-            position,
-            look_at: true,
-            offset: Vec3::ZERO,
-        }
     }
 }
 
@@ -476,58 +458,6 @@ fn interpolate_camera(
     }
 }
 
-/// System to update camera targets
-///
-/// Queries for CameraTarget components and updates CameraState to interpolate
-/// the camera toward the target position. When look_at is true, also calculates
-/// the target rotation to face the target.
-///
-/// This system processes CameraTarget entities and triggers camera interpolation
-/// without modifying the CameraTarget entities themselves.
-fn update_camera_targets(
-    mut camera_state: ResMut<CameraState>,
-    camera_targets: Query<&CameraTarget>,
-    cameras: Query<&Transform, With<Camera3d>>,
-) {
-    // Only process if we have at least one CameraTarget
-    if camera_targets.is_empty() {
-        return;
-    }
-
-    // Get the current camera transform
-    if let Ok(camera_transform) = cameras.get_single() {
-        // Process the first CameraTarget found
-        for target in camera_targets.iter() {
-            let target_position = target.position + target.offset;
-
-            // Calculate target rotation if look_at is true
-            let target_rotation = if target.look_at {
-                // Calculate rotation to look at the target position
-                let direction = (target.position - camera_transform.translation).normalize();
-                // Avoid division by zero if camera is at the target position
-                if direction.length_squared() < 0.0001 {
-                    camera_transform.rotation
-                } else {
-                    Quat::from_rotation_arc(Vec3::NEG_Z, direction)
-                }
-            } else {
-                camera_transform.rotation
-            };
-
-            // Start interpolation to the target (using 1.0 second duration)
-            camera_state.start_interpolation_to_target(
-                target_position,
-                target_rotation,
-                1.0,
-                camera_transform,
-            );
-
-            // Only process the first target found
-            break;
-        }
-    }
-}
-
 /// System to toggle between camera modes
 ///
 /// Switches between FreeFlight and Orbit camera modes when the 'O' key is pressed.
@@ -567,8 +497,6 @@ fn toggle_camera_mode(
     }
 }
 
-use self::epoch_transition::handle_epoch_change_transition;
-
 pub struct CameraPlugin;
 
 impl Plugin for CameraPlugin {
@@ -579,11 +507,6 @@ impl Plugin for CameraPlugin {
             .add_systems(Update, update_orbit_camera)
             .add_systems(Update, handle_orbit_zoom)
             .add_systems(Update, handle_orbit_pan)
-            .add_systems(Update, handle_epoch_change_transition)
-            .add_systems(PostUpdate, update_camera_targets)
-            .add_systems(
-                PostUpdate,
-                interpolate_camera.after(update_camera_targets),
-            );
+            .add_systems(PostUpdate, interpolate_camera);
     }
 }

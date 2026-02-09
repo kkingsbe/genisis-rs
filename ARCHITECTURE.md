@@ -19,20 +19,22 @@ genesis/
 ├── genesis-core/      # Core simulation logic and physics
 │   └── src/
 │       ├── time/         # Cosmic time accumulator and time integration
+│       │   └── mod.rs   # TimeAccumulator resource, TimeIntegrationPlugin, time conversion functions
 │       ├── physics/      # Particle physics data structures
-│       ├── epoch/        # Epoch management and transitions
-│       │   ├── mod.rs    # EpochPlugin trait, EpochManager resource, update_epoch_transition system
-│       │   ├── singularity.rs  # Singularity epoch implementation
-│       │   └── camera_config.rs  # Camera configuration for epoch transitions
-│       ├── config.rs     # Configuration structures (WindowConfig, ParticleConfig, etc.)
+│       │   └── mod.rs   # Particle struct (data structure only, physics calculations not implemented)
+│       ├── epoch/        # Epoch markers and camera configuration
+│       │   ├── mod.rs        # Exports: CameraMode enum, EpochCameraConfig struct
+│       │   ├── singularity.rs    # Singularity epoch marker struct (does NOT implement EpochPlugin trait)
+│       │   └── camera_config.rs  # EpochCameraConfig, CameraMode enum for epoch camera transitions
+│       ├── config.rs     # Configuration structures (WindowConfig, ParticleConfig, CameraConfig, etc.)
 │       └── lib.rs
 ├── genesis-render/   # Rendering systems and visuals
 │   └── src/
 │       ├── particle/     # Instanced particle rendering
-│       │   └── mod.rs   # PointSpriteMaterial, PointMesh, Particle component, spawn/update systems
+│       │   ├── mod.rs           # PointSpriteMaterial, PointMesh, Particle component, spawn/update systems
+│       │   └── point_sprite.wgsl  # WGSL shader for point sprite rendering
 │       ├── camera/       # Camera mode definitions and state
-│       │   ├── mod.rs   # CameraState, CameraController, OrbitController, CameraTarget, interpolation systems
-│       │   └── epoch_transition.rs  # Epoch transition camera handling
+│       │   └── mod.rs   # CameraState, CameraController, OrbitController, camera control systems
 │       ├── input/        # Keyboard and mouse input handling
 │       │   └── mod.rs   # InputState resource, handle_keyboard_input, handle_mouse_input
 │       └── lib.rs
@@ -40,7 +42,7 @@ genesis/
     └── src/
         ├── timeline/     # Timeline scrubber and time controls
         │   └── mod.rs   # CosmicTime resource, PlaybackState resource, timeline_panel_ui system
-        ├── overlay/      # FPS, particle count, epoch info panels
+        ├── overlay/      # FPS and particle count panels
         │   └── mod.rs   # OverlayState resource, update_overlay_ui system
         └── lib.rs
 ```
@@ -54,19 +56,27 @@ src/
 The application registers the following plugins and resources:
 - **DefaultPlugins**: Bevy's default set of plugins
 - **TimeIntegrationPlugin** (genesis-core): Cosmic time accumulation with f64 precision
-- **EpochManagerPlugin** (genesis-core): Epoch management and automatic transitions
-- **SingularityEpochPlugin** (main.rs): Local plugin that registers SingularityEpoch (from genesis-core) with EpochManager
 - **InputPlugin** (genesis-render): Keyboard and mouse input handling with InputState resource
 - **ParticlePlugin** (genesis-render): Particle system initialization and spawning (with PointSpriteMaterial and PointMesh resources)
-- **CameraPlugin** (genesis-render): Camera control systems (free-flight, orbit, interpolation, epoch transitions) with CameraState resource
-- **GenesisUiPlugin** (genesis-ui): UI system with bevy_egui integration, overlay, and timeline controls
-- **OverlayState** (genesis-ui): Resource for overlay visibility (initialized with show_fps, show_particle_count, show_epoch_info = true)
-- **setup_camera**: Camera setup system that spawns 3D camera at z=50.0 looking at origin with OrbitController and CameraController components
-- **setup_test_camera_target**: Spawns a test CameraTarget entity for testing camera interpolation
-- **TimeAccumulator** (genesis-core): Resource for tracking cosmic years (auto-initialized)
-- **CameraState** (genesis-render): Resource for tracking camera mode, target, and interpolation state (auto-initialized, defaults to FreeFlight mode)
-- **CosmicTime** (genesis-ui): Resource for timeline state management with logarithmic slider mapping (auto-initialized)
-- **PlaybackState** (genesis-ui): Resource for playback control (auto-initialized, playing state and speed)
+- **CameraPlugin** (genesis-render): Camera control systems (free-flight, orbit, interpolation, orbit pan/zoom) with CameraState resource
+- **GenesisUiPlugin** (genesis-ui): UI system with bevy_egui integration, overlay, and timeline controls (includes TimelinePlugin internally)
+- **ConfigResource** (main.rs): Wrapper for Config as a Bevy Resource (NOTE: Config::load() is NOT implemented - uses Config::default())
+- **ParticleConfig** (genesis-core): Resource for particle spawning configuration (NOTE: main.rs references ParticleConfigResource which does NOT exist - should use ParticleConfig directly with Resource derive)
+- **CameraState** (genesis-render): Resource for tracking camera mode, target, and interpolation state (initialized from CameraConfig)
+- **OverlayState** (genesis-ui): Resource for overlay visibility (initialized from DisplayConfig: show_fps, show_particle_count; NOTE: show_epoch_info field is missing from OverlayState struct but present in DisplayConfig and genesis.toml)
+- **CosmicTime** (genesis-ui): Resource for timeline state management with logarithmic slider mapping (auto-initialized by TimelinePlugin)
+- **PlaybackState** (genesis-ui): Resource for playback control (auto-initialized by TimelinePlugin)
+- **TimeAccumulator** (genesis-core): Resource for tracking cosmic years (auto-initialized by TimeIntegrationPlugin)
+- **setup_camera**: Camera setup system that spawns 3D camera at orbit_radius looking at origin with OrbitController and CameraController components (NOTE: main.rs references config.camera.orbit_distance which doesn't exist; should use config.camera.orbit_radius)
+
+**NOTE**: The following epoch management infrastructure does NOT exist in the codebase (though documented as if it does):
+- EpochManager resource - NOT defined
+- EpochManagerPlugin - NOT defined
+- EpochPlugin trait - NOT defined
+- update_epoch_transition system - NOT defined
+- SingularityEpoch - defined as marker struct but does NOT implement EpochPlugin trait (trait doesn't exist)
+
+Only EpochCameraConfig, CameraMode enum, and SingularityEpoch marker struct exist.
 
 ## Core Architectural Decisions
 
@@ -74,31 +84,36 @@ The application registers the following plugins and resources:
 - **Rationale**: Separates concerns into core, render, and UI domains
 - **Benefit**: Clear dependency boundaries, easier testing, parallel development
 - **genesis-core**: Pure simulation logic (epoch, physics, time), depends on Bevy for Resource trait
+  - Exports: Config, ParticleConfig, CameraConfig, TimeConfig, WindowConfig, DisplayConfig, TimeIntegrationPlugin, CameraMode, EpochCameraConfig, SingularityEpoch
+  - **NOTE**: EpochManager, EpochManagerPlugin, EpochPlugin, and EpochChangeEvent are NOT exported (not defined in codebase)
 - **genesis-render**: Rendering systems using Bevy ECS (camera, particle components)
+  - Exports: CameraPlugin, CameraState, InputPlugin, ParticlePlugin
 - **genesis-ui**: UI state resources using Bevy ECS (timeline, overlay)
+  - Exports: GenesisUiPlugin, TimelinePlugin, CosmicTime, PlaybackState, OverlayState
 
 ### 2. Bevy ECS Pattern
 - **Components**: `Particle` (rendering component with position: Vec3, color: Color, size: f32)
   - Particles are spawned with Mesh3d, MeshMaterial3d<PointSpriteMaterial>, Transform, and Particle components
-  - Camera components: `CameraController` (free-flight), `OrbitController` (orbit), `CameraTarget` (marker for camera interpolation)
+  - Camera components: `CameraController` (free-flight), `OrbitController` (orbit)
 - **Resources**: Global state organized by crate:
-   - genesis-core: EpochManager, TimeAccumulator
+   - genesis-core: TimeAccumulator
    - genesis-render: CameraState, InputState, PointMesh
    - genesis-ui: CosmicTime, OverlayState, PlaybackState
 - **Systems**:
-   - Core: update_epoch_transition
-   - Particle: init_point_mesh, spawn_particles, update_particles (basic outward expansion animation), update_particle_energy_colors (thermal gradient coloring)
-   - Camera: update_free_flight_camera, update_orbit_camera, toggle_camera_mode, handle_orbit_zoom, interpolate_camera, update_camera_targets, handle_epoch_change_transition
-   - Input: handle_keyboard_input, handle_mouse_input
-   - Time: initialize_time_accumulator, update_cosmic_time, sync_time_resources (syncs play/pause state only - speed mapping pending)
-   - UI: update_overlay_ui (overlay rendering), timeline_panel_ui (timeline controls)
+   - Core: (none - epoch infrastructure does NOT exist)
+   - Particle: init_point_mesh (Startup), spawn_particles (Startup), update_particles (basic outward expansion animation), update_particle_energy_colors (thermal gradient coloring)
+   - Camera: update_free_flight_camera (Update), update_orbit_camera (Update), toggle_camera_mode (Update), handle_orbit_zoom (Update), handle_orbit_pan (Update), interpolate_camera (PostUpdate)
+   - Input: handle_keyboard_input (PreUpdate), handle_mouse_input (PreUpdate)
+   - Time: initialize_time_accumulator (Startup), update_cosmic_time (Update)
+   - UI: update_overlay_ui (Update), timeline_panel_ui (PostUpdate), sync_time_resources (Update)
 - **Plugins**:
-   - EpochManagerPlugin (implemented): Epoch registration and transition management
    - TimeIntegrationPlugin (implemented): Cosmic time accumulation with Bevy integration
    - InputPlugin (implemented): Keyboard and mouse input processing
-   - CameraPlugin (implemented): Camera control systems for free-flight, orbit, interpolation, and epoch transitions
-   - ParticlePlugin (implemented): Particle spawning and rendering systems
-   - GenesisUiPlugin (implemented): UI system with overlay, timeline, and camera fade panels
+   - CameraPlugin (implemented): Camera control systems for free-flight, orbit, interpolation, orbit pan, and orbit zoom
+   - ParticlePlugin (implemented): Particle spawning and rendering systems with custom point sprite shader
+   - TimelinePlugin (implemented within GenesisUiPlugin): Timeline UI with play/pause, logarithmic slider, and speed control
+   - GenesisUiPlugin (implemented): UI system with EguiPlugin integration, overlay, and timeline controls
+   - **NOTE**: EpochManagerPlugin does NOT exist (not defined in codebase)
 
 ### 3. Instanced Particle Rendering
 - **Design**: GPU instancing with custom PointSpriteMaterial using WGSL shaders
@@ -165,6 +180,11 @@ Currently, the rendering-level Particle is directly populated in [`spawn_particl
 
 ### 4. Cosmic Time System
 - **Type**: f64 accumulator for precision over 13.8B years
+- **Dual Time System**: The application uses two separate time resources:
+  - **TimeAccumulator.years** (genesis-core): Tracks accumulated cosmic time in years, updated each frame via add_time() with acceleration factor
+  - **CosmicTime.cosmic_time** (genesis-ui): Stores timeline position used by the slider UI, updated by timeline scrubbing
+  - **Synchronization**: The sync_time_resources system synchronizes TimeAccumulator's paused state with PlaybackState.playing and maps speed to acceleration
+  - **Known Issue**: Timeline scrubbing updates CosmicTime.cosmic_time but does NOT sync back to TimeAccumulator.years. The two resources can become desynchronized when the user scrubs the timeline.
 - **Acceleration**:
   - TimeAccumulator.acceleration handles the actual 1x-10¹²x scaling
   - TimeAccumulator provides pause() and resume() methods for playback control
@@ -176,29 +196,37 @@ Currently, the rendering-level Particle is directly populated in [`spawn_particl
 - **Status**:
   - TimeAccumulator resource fully implemented with pause/resume/toggle/is_paused methods
   - TimeIntegrationPlugin integrates with Bevy's time system
-  - Epoch tracking via update_epoch_transition system is implemented
   - Timeline UI controls fully implemented with logarithmic slider mapping
-  - Time synchronization between UI and accumulator fully implemented
-  - Speed-to-acceleration mapping: **Pending** - PlaybackState.speed is not yet mapped to TimeAccumulator.acceleration
+  - Time synchronization between UI playback controls and accumulator fully implemented
+  - Speed-to-acceleration mapping: **Implemented** - PlaybackState.speed (0.1-10.0) maps to TimeAccumulator.acceleration (1.0-1e12) using logarithmic scaling
+  - Timeline scrubbing to TimeAccumulator synchronization: **NOT IMPLEMENTED** - slider changes only affect CosmicTime resource
 
 ### 5. Camera System Design
 - **Camera Modes**: FreeFlight and Orbit enum variants defined (Orbit is default)
 - **State Tracking**: CameraState resource with mode, target, current_orbit_target, and interpolation state fields
 - **Components**:
   - CameraController: Free-flight camera with yaw, pitch, movement_speed, mouse_sensitivity
-  - OrbitController: Orbit camera with distance, yaw, pitch, target, zoom limits, rotation sensitivity, zoom sensitivity
-  - CameraTarget: Marker component that identifies entities the camera should look at or move toward
+  - OrbitController: Orbit camera with distance, yaw, pitch, target, zoom limits, rotation sensitivity, zoom sensitivity, pan sensitivity
 - **Dual-Controller Architecture**: Both OrbitController and CameraController components are always present on the camera entity. Mode switching (via toggle_camera_mode) affects which controller responds to input, not component attachment.
-- **Camera Interpolation**: CameraState includes interpolation support with start_interpolation_to_target(), start_interpolation_to_position_only() methods. The interpolate_camera system handles smooth transitions.
-- **Epoch Camera Configuration**: EpochPlugin trait includes camera_config() method that returns EpochCameraConfig with optional target_position, target_rotation, and target_mode. The handle_epoch_change_transition system automatically transitions the camera when epochs change.
+- **Camera Interpolation**: CameraState includes interpolation support with start_interpolation_to_target(), start_interpolation_to_position_only() methods. The interpolate_camera system handles smooth transitions with smoothstep easing.
+- **Configuration**:
+  - CameraConfig in genesis-core has fields: initial_position, initial_target, camera_mode (String), movement_speed, orbit_radius
+  - CameraMode enum exists in genesis-core::epoch but CameraConfig uses String for camera_mode field
+  - genesis.toml has fields: initial_mode (String), orbit_distance (f64)
+- **Configuration Field Mismatches**:
+  - **orbit_radius vs orbit_distance**: CameraConfig struct has `orbit_radius` field but genesis.toml uses `orbit_distance`. Additionally, main.rs line 75 references `config.camera.orbit_distance` which doesn't exist (should be `config.camera.orbit_radius`)
+  - **camera_mode vs CameraMode enum vs initial_mode**: CameraConfig.camera_mode is a String, and CameraMode enum exists. However, CameraState::from_config() in genesis-render/src/camera/mod.rs (line 134) accesses `config.initial_mode`, which does NOT exist in the CameraConfig struct. CameraConfig only has `camera_mode` (String), not `initial_mode`. This causes a compilation error. Either:
+     - Add `initial_mode: CameraMode` field to CameraConfig, or
+     - Change CameraState::from_config() to use `config.camera_mode` and convert String to CameraMode enum
+  - **initial_time_acceleration vs default_time_acceleration**: genesis.toml has `initial_time_acceleration` field, but TimeConfig struct has `default_time_acceleration` field
 - **Status**:
-  - Camera setup (setup_camera system): Implemented - spawns 3D camera at z=50.0 looking at origin with OrbitController::default() and CameraController::default()
+  - Camera setup (setup_camera system): Implemented - spawns 3D camera at orbit_radius looking at origin with OrbitController (distance: orbit_radius) and CameraController::default(). NOTE: main.rs line 75 references config.camera.orbit_distance which doesn't exist (should be config.camera.orbit_radius)
   - Camera movement controls: Implemented for both free-flight (update_free_flight_camera) and orbit (update_orbit_camera) modes
   - Camera mode switching: Implemented via toggle_camera_mode system (press 'O' key to toggle between FreeFlight and Orbit)
-  - Orbit camera zoom: Implemented via handle_orbit_zoom system (scroll wheel controls zoom distance)
+  - Orbit camera zoom: Implemented via handle_orbit_zoom system (scroll wheel controls zoom distance, clamped between min_distance and max_distance)
+  - Orbit camera pan: Implemented via handle_orbit_pan system (middle or right mouse button to pan orbit target)
   - Camera interpolation: Implemented via interpolate_camera system with smoothstep easing
-  - Camera targets: Implemented via CameraTarget component and update_camera_targets system
-  - Epoch transition camera handling: Implemented via handle_epoch_change_transition system
+  - Epoch transition camera handling: EpochCameraConfig exists but EpochPlugin trait does NOT exist, so no system is implemented
 
 ### 6. Input System Architecture
 - **InputState Resource**: Tracks keyboard direction vector, mouse delta, and mouse button states
@@ -207,24 +235,39 @@ Currently, the rendering-level Particle is directly populated in [`spawn_particl
 - **Status**: InputPlugin fully implemented with handle_keyboard_input and handle_mouse_input systems (run in PreUpdate schedule)
 
 ### 7. Epoch Plugin Architecture
-- **Registration System**: EpochPlugin trait for defining epoch time ranges, camera configuration, and building systems
-- **EpochManager**: Resource that tracks registered epochs and manages transitions
-- **EpochChangeEvent**: Event emitted when simulation transitions between epochs
-- **update_epoch_transition**: System that automatically transitions epochs based on cosmic time
-- **EpochCameraConfig**: Configuration for camera transitions when entering an epoch (target_position, target_rotation, target_mode)
-- **handle_epoch_change_transition**: System that responds to EpochChangeEvent and triggers camera interpolation to the new epoch's camera configuration
-- **Benefit**: Extensible for adding new cosmic epochs with automatic camera transitions
+- **What Exists**: Only the following epoch-related types are defined:
+  - CameraMode enum (FreeFlight, Orbit) in genesis-core::epoch::camera_config
+  - EpochCameraConfig struct in genesis-core::epoch::camera_config (camera transition configuration)
+  - SingularityEpoch marker struct in genesis-core::epoch::singularity
+- **What Does NOT Exist** (despite being documented as if it does):
+  - EpochPlugin trait - NOT defined anywhere
+  - EpochManager resource - NOT defined anywhere
+  - EpochManagerPlugin - NOT defined anywhere
+  - EpochChangeEvent - NOT defined anywhere
+  - update_epoch_transition system - NOT defined anywhere
+  - handle_epoch_change_transition system - NOT defined anywhere
+- **SingularityEpoch**: Marker struct defined but does NOT implement EpochPlugin trait (trait doesn't exist)
+- **Benefit**: EpochCameraConfig provides infrastructure for future epoch transitions
+- **Status**: Epoch management infrastructure is NOT implemented. Only epoch marker and camera configuration types exist.
 
 ### 8. Configuration Management
 - **Format**: TOML for human-readable configuration
-- **Override**: Command-line arguments can override config values
-- **Defaults**: Embedded default configuration for "Standard Model" preset
-- **Status**: Configuration system fully implemented
-  - Config struct with WindowConfig, ParticleConfig, CameraConfig, TimeConfig, DisplayConfig
-  - TOML serialization/deserialization via serde
-  - CLI argument parsing via clap (--config flag)
-  - Default location search (./genesis.toml, ~/.config/genesis/config.toml, /etc/genesis/config.toml)
+- **Status**: Configuration system partially implemented with field name mismatches
+  - Config struct with WindowConfig, ParticleConfig, CameraConfig, TimeConfig, DisplayConfig fully defined
+  - Default implementations provided for all config structs
   - ConfigResource wrapper for Bevy integration
+- **Missing**: Config::load() method is referenced in main.rs but not implemented in genesis-core/src/config.rs
+  - TOML serialization/deserialization via serde is defined but load() method not implemented
+  - CLI argument parsing via clap (--config flag) is defined but not connected
+  - Default location search logic not implemented
+- **Configuration Field Mismatches**:
+  - **ParticleConfig**: genesis.toml has `initial_count`, `max_count`, `base_size` but ParticleConfig struct has `particle_count`, `particle_size_base`, `particle_size_variation`, `color_hot`, `color_cool`
+  - **CameraConfig**: genesis.toml has `initial_mode`, `orbit_distance` but CameraConfig struct has `initial_position`, `initial_target`, `camera_mode` (String), `movement_speed`, `orbit_radius`
+  - **DisplayConfig**: genesis.toml has `show_epoch_info` but OverlayState struct does not have this field
+  - **TimeConfig**: genesis.toml has `initial_time_acceleration` but TimeConfig struct has `default_time_acceleration`
+- **Missing Resources**:
+  - **ParticleConfigResource**: Referenced in main.rs and genesis-render but NOT defined in genesis-core
+- **Note**: Configuration loading infrastructure needs to be implemented to enable external TOML configuration, and field names need to be reconciled between genesis.toml and Config structs
 
 ## Phase 1 Scope (Current Sprint)
 
@@ -235,29 +278,42 @@ A running Bevy application with a 3D particle system, camera controls, and a tim
 **Implemented:**
 - Core infrastructure setup (workspace, Cargo.toml)
 - Bevy 0.15+ application scaffold with window and event loop
-- Epoch manager plugin architecture (EpochManager, EpochPlugin trait, EpochChangeEvent)
-- Epoch camera configuration (EpochCameraConfig, camera_config() method on EpochPlugin)
-- Epoch transition camera handling (handle_epoch_change_transition system)
 - Basic input handling (keyboard, mouse) - InputPlugin with InputState, handle_keyboard_input, handle_mouse_input (runs in PreUpdate)
 - Time integration system with f64 accumulator - TimeIntegrationPlugin, TimeAccumulator, update_cosmic_time system, pause/resume methods
-- Epoch tracking via update_epoch_transition system
-- Particle rendering system with custom point sprite shader (PointSpriteMaterial, PointMesh)
-- Particle spawning system (spawn_particles) that creates test cluster at origin
+- Particle rendering system with custom point sprite shader (PointSpriteMaterial, PointMesh) with GPU instancing
+- Particle spawning system (spawn_particles) that creates test cluster at origin with configurable count
 - Particle update system (update_particles) with basic outward expansion animation
 - Energy-based particle color system (update_particle_energy_colors) with thermal gradient (white-hot core → red edges)
 - Camera system with free-flight and orbit modes - CameraPlugin, CameraController, OrbitController, update_free_flight_camera, update_orbit_camera
 - Camera mode switching via toggle_camera_mode (press 'O' key)
-- Orbit camera zoom via scroll wheel (handle_orbit_zoom)
+- Orbit camera zoom via scroll wheel (handle_orbit_zoom) with distance clamping
+- Orbit camera pan via middle/right mouse button (handle_orbit_pan)
 - Camera interpolation support with smoothstep easing (interpolate_camera)
-- Camera target support (CameraTarget component, update_camera_targets system)
-- Overlay UI with FPS, particle count, and epoch info panels - update_overlay_ui system
+- Overlay UI with FPS and particle count panels - update_overlay_ui system
 - Timeline UI with play/pause, logarithmic slider, and speed control - TimelinePlugin, CosmicTime resource with logarithmic mapping, timeline_panel_ui system (runs in PostUpdate)
-- Time synchronization (sync_time_resources) between PlaybackState and TimeAccumulator
+- Time synchronization (sync_time_resources) between PlaybackState and TimeAccumulator including speed-to-acceleration mapping
+
+**Partially Implemented (Infrastructure exists but not connected):**
+- Epoch camera configuration (EpochCameraConfig struct defined, CameraMode enum defined) - infrastructure exists but not used
+- SingularityEpoch - defined as marker struct but does NOT implement EpochPlugin trait (trait doesn't exist)
+- Per-instance particle attributes (ATTRIBUTE_INSTANCE_SIZE, ATTRIBUTE_INSTANCE_COLOR) - mesh attributes defined but not synchronized with Particle component data
+- Dual time system (TimeAccumulator.years + CosmicTime.cosmic_time) - both exist but timeline scrubbing doesn't sync back to TimeAccumulator
 
 **Pending:**
+- Config::load() method implementation for external TOML configuration (main.rs calls Config::load() but method doesn't exist)
+- SingularityEpoch implementation of EpochPlugin trait (trait doesn't exist - would need to create trait first)
+- EpochManager, EpochManagerPlugin, EpochPlugin trait, EpochChangeEvent - entire epoch management system needs implementation
+- Epoch transition systems (update_epoch_transition, handle_epoch_change_transition) - do not exist
 - Full physics-based particle updates with simulation-level particle sync (update_particles has basic outward expansion, full physics sync pending)
 - Per-instance particle color and size synchronization with GPU instance attributes (Particle component → GPU attributes)
-- PlaybackState.speed to TimeAccumulator.acceleration mapping (speed control exists but not connected)
+- OverlayState.show_epoch_info field addition to struct and UI rendering
+- Timeline scrubbing to TimeAccumulator synchronization (slider changes CosmicTime but not TimeAccumulator.years)
+- ParticleConfigResource definition in genesis-core (main.rs references it but ParticleConfig has Resource derive - should use ParticleConfig directly)
+- Configuration field name reconciliation between genesis.toml and Config structs:
+  - ParticleConfig: reconcile genesis.toml fields (initial_count, max_count, base_size) with struct fields (particle_count, particle_size_base, particle_size_variation, color_hot, color_cool)
+  - CameraConfig: reconcile genesis.toml fields (initial_mode, orbit_distance) with struct fields (camera_mode, orbit_radius) and CameraMode enum usage
+- CameraState::from_config fix: main.rs references config.initial_mode which doesn't exist (should be config.camera_mode, and convert String to CameraMode enum)
+- setup_camera fix: main.rs line 75 references config.camera.orbit_distance which doesn't exist (should be config.camera.orbit_radius)
 
 ## Dependency Graph
 
@@ -275,8 +331,11 @@ genesis-core (Bevy - for Resource trait)
 - `CameraState` (genesis-render) is used by camera systems
 - `CosmicTime` (genesis-ui) is used by timeline UI
 - `PlaybackState` (genesis-ui) is synchronized with `TimeAccumulator` (genesis-core)
-- `EpochManager` (genesis-core) is used by epoch transition systems in genesis-render
-- `OverlayState` (genesis-ui) is used by overlay UI system
+- `OverlayState` (genesis-ui) is used by overlay UI system (NOTE: missing show_epoch_info field)
+- `ConfigResource` (main.rs) wraps Config for Bevy resource system
+- `ParticleConfig` (genesis-core) can be used directly as Resource (has Resource derive), but main.rs references non-existent ParticleConfigResource
+- `PointMesh` (genesis-render) is a shared resource for all particle entities
+- **NOTE**: EpochManager does NOT exist (not defined in codebase)
 
 ## Development Guidelines
 
@@ -302,7 +361,11 @@ genesis-core (Bevy - for Resource trait)
 - Compute shaders for advanced particle interactions
 - Audio integration for cosmic events
 - Per-instance particle attribute synchronization for individual particle colors and sizes
-- Speed-to-acceleration mapping for timeline speed control
+- Epoch manager system implementation (create EpochPlugin trait, EpochManager resource, EpochManagerPlugin, update_epoch_transition system)
+- Config::load() method implementation for external TOML configuration
+- Timeline scrubbing to TimeAccumulator synchronization
+- OverlayState.show_epoch_info field addition and UI rendering
+- Configuration field name reconciliation between genesis.toml and Config structs
 
 ## Architectural Decisions Log
 

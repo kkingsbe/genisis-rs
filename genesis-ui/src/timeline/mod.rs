@@ -3,6 +3,29 @@
 //! Defines resources for tracking playback state, cosmic time, and speed.
 //! Timeline UI system (timeline_panel_ui) is implemented with egui, featuring play/pause,
 //! logarithmic slider, and speed control.
+//!
+//! # Dual Time System
+//!
+//! The timeline uses [`CosmicTime`] to track the current cosmic time in years.
+//! This resource stores the timeline position used by the slider UI (0.0 to 13.8 billion years).
+//!
+//! The core simulation uses [`TimeAccumulator::years`] (genesis_core::time) which
+//! tracks accumulated cosmic time based on frame delta and acceleration.
+//!
+//! **Known Issue**: The timeline slider updates [`CosmicTime::cosmic_time`] directly
+//! (line 162 in timeline_panel_ui), but this change is NOT synchronized back to
+//! [`TimeAccumulator::years`]. This means scrubbing the timeline only affects the
+//! UI display but not the actual simulation time accumulator.
+//!
+//! The [`sync_time_resources()`] system synchronizes:
+//! - TimeAccumulator's paused state with PlaybackState.playing
+//! - PlaybackState.speed to TimeAccumulator.acceleration (logarithmic mapping)
+//!
+//! **TODO**: Add synchronization from CosmicTime.cosmic_time to TimeAccumulator.years
+//! when the timeline is scrubbed, or redesign to use a single time resource.
+//!
+//! # TODO
+//! - Implement timeline scrubbing to TimeAccumulator synchronization
 
 use bevy::prelude::*;
 use bevy_egui::{egui, EguiContexts};
@@ -189,9 +212,8 @@ pub fn timeline_panel_ui(
 /// - When playing is true and TimeAccumulator is paused, resume TimeAccumulator
 /// - When playing is false and TimeAccumulator is not paused, pause TimeAccumulator
 ///
-/// Note: This system currently only synchronizes the play/pause state. The PlaybackState.speed
-/// value is not yet mapped to TimeAccumulator.acceleration. Future implementation should
-/// add speed-to-acceleration mapping with logarithmic scaling.
+/// Also maps PlaybackState.speed (0.1-10.0) to TimeAccumulator.acceleration (1.0-1e12)
+/// using logarithmic scaling: acceleration = 10^((log10(speed) + 1.0) * 6.0)
 pub fn sync_time_resources(
     mut time_accumulator: ResMut<TimeAccumulator>,
     playback_state: Res<PlaybackState>,
@@ -203,6 +225,7 @@ pub fn sync_time_resources(
     }
 
     // Map PlaybackState.speed (0.1-10.0) to TimeAccumulator.acceleration (1.0-1e12)
+    // using logarithmic scaling: acceleration = 10^((log10(speed) + 1.0) * 6.0)
     let speed = playback_state.speed as f64;
     let acceleration = 10_f64.powf((speed.log10() + 1.0) * 6.0);
     time_accumulator.set_acceleration(acceleration);
