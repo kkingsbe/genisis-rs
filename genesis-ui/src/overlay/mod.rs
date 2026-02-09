@@ -1,7 +1,7 @@
-//! Overlay state tracking
+//! Overlay state tracking and UI rendering
 //!
 //! Defines resource for tracking which overlay elements should be displayed.
-//! Actual overlay UI rendering and display systems are not yet implemented.
+//! Overlay UI rendering system (update_overlay_ui) is implemented with egui integration.
 
 use bevy::prelude::*;
 use bevy_egui::{egui, EguiContexts};
@@ -9,7 +9,7 @@ use bevy_egui::{egui, EguiContexts};
 /// Resource tracking overlay visibility
 ///
 /// Stores visibility flags for various HUD elements.
-/// Overlay rendering systems need to be implemented separately.
+/// Overlay UI rendering is implemented via update_overlay_ui system with egui.
 #[derive(Resource, Default)]
 pub struct OverlayState {
     pub show_fps: bool,

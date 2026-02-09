@@ -62,3 +62,10 @@
 
 ### UI Overlay
 - ✅ Overlay UI (FPS counter, particle count display) - Implemented bevy_egui integration with overlay UI displaying FPS counter, particle count, and epoch information. Added UIPlugin, update_overlay_ui system, and initialized OverlayState resource.
+
+## [2026-02-09]
+
+### Phase 1 Features
+- [x] implement: Add timeline scrubber UI - Create bevy_egui panel with logarithmic scale spanning 13.8 billion years, allowing playback control and scrubbing
+- [x] implement: Add overlay UI - Create FPS counter and particle count display using bevy_egui
+- [x] implement: Implement orbit camera mode - Add click-drag orbit camera functionality to complement free-flight mode

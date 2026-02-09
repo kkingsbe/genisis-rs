@@ -89,39 +89,41 @@ pub struct Particle {
 /// This mesh is reused by all particle entities for efficient rendering.
 /// The Transform component on each particle entity provides the actual
 /// position in world space.
-/// 
+///
 /// The mesh includes an instance_size attribute for per-instance particle size.
 /// This allows the vertex shader to apply size attenuation based on each particle's size.
 pub fn init_point_mesh(mut commands: Commands, mut meshes: ResMut<Assets<Mesh>>) {
+    println!("DEBUG: init_point_mesh STARTED");
     // Create a simple point mesh with PointList topology
     // Single vertex at origin since Transform provides actual position
     let mut mesh = Mesh::new(
         PrimitiveTopology::PointList,
         RenderAssetUsages::default(),
     );
-    
+
     // Add a single vertex at the origin
     mesh.insert_attribute(
         Mesh::ATTRIBUTE_POSITION,
         vec![[0.0, 0.0, 0.0]],
     );
-    
+
     // Add instance_size attribute for per-instance particle size
     // This will be at location(1) to match the shader's VertexInput
     mesh.insert_attribute(
         ATTRIBUTE_INSTANCE_SIZE,
         vec![1.0f32],  // Default size, will be updated per-instance
     );
-    
+
     // Add instance_color attribute for per-instance particle color
     // This will be at location(2) to match the shader's VertexInput
     mesh.insert_attribute(
         ATTRIBUTE_INSTANCE_COLOR,
         vec![[1.0f32, 1.0f32, 1.0f32, 1.0f32]],  // Default white color, will be updated per-instance
     );
-    
+
     let mesh_handle = meshes.add(mesh);
     commands.insert_resource(PointMesh(mesh_handle));
+    println!("DEBUG: init_point_mesh COMPLETED - PointMesh resource inserted");
 }
 
 /// System to spawn a cluster of particles around the origin
@@ -143,6 +145,7 @@ pub fn spawn_particles(
     mut materials: ResMut<Assets<PointSpriteMaterial>>,
     point_mesh: Res<PointMesh>,
 ) {
+    println!("DEBUG: spawn_particles STARTED - PointMesh resource accessed successfully");
     // Create point sprite material for all particles (single material shared by all)
     // Using white color for visibility - individual particle colors will be
     // handled by the shader in future updates
@@ -246,7 +249,7 @@ impl Plugin for ParticlePlugin {
     fn build(&self, app: &mut App) {
         app.add_plugins(MaterialPlugin::<PointSpriteMaterial>::default())
             .add_systems(Startup, init_point_mesh)
-            .add_systems(Startup, spawn_particles)
+            .add_systems(Startup, spawn_particles.after(init_point_mesh))
             .add_systems(Update, update_particles);
     }
 }

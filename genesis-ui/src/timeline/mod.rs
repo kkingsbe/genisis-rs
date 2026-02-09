@@ -1,15 +1,17 @@
-//! Timeline playback state
+//! Timeline playback state and UI controls
 //!
 //! Defines resources for tracking playback state, cosmic time, and speed.
-//! Actual timeline UI widgets and controls are not yet implemented.
+//! Timeline UI system (timeline_panel_ui) is implemented with egui, featuring play/pause,
+//! logarithmic slider, and speed control.
 
 use bevy::prelude::*;
 use bevy_egui::{egui, EguiContexts, EguiPlugin};
+use genesis_core::time::TimeAccumulator;
 
 /// Resource tracking playback state
 ///
 /// Stores playing state and speed factor for time control.
-/// Timeline UI systems need to be implemented separately.
+/// Timeline UI is implemented via timeline_panel_ui system with egui.
 #[derive(Resource, Default)]
 pub struct PlaybackState {
     pub playing: bool,
@@ -125,6 +127,7 @@ pub fn timeline_panel_ui(
     mut contexts: EguiContexts,
     mut cosmic_time: ResMut<CosmicTime>,
     mut playback_state: ResMut<PlaybackState>,
+    mut time_accumulator: ResMut<TimeAccumulator>,
 ) {
     egui::Window::new("Timeline")
         .resizable(false)
@@ -141,6 +144,13 @@ pub fn timeline_panel_ui(
                     if ui.button("▶ Play").clicked() {
                         playback_state.playing = true;
                     }
+                }
+
+                // Reset button
+                if ui.button("⏮ Reset").clicked() {
+                    cosmic_time.reset();
+                    time_accumulator.reset();
+                    playback_state.playing = false;
                 }
 
                 ui.separator();
@@ -171,6 +181,22 @@ pub fn timeline_panel_ui(
         });
 }
 
+/// System that synchronizes TimeAccumulator with PlaybackState.
+///
+/// Ensures that TimeAccumulator's paused state is consistent with PlaybackState.playing:
+/// - When playing is true and TimeAccumulator is paused, resume TimeAccumulator
+/// - When playing is false and TimeAccumulator is not paused, pause TimeAccumulator
+pub fn sync_time_resources(
+    mut time_accumulator: ResMut<TimeAccumulator>,
+    playback_state: Res<PlaybackState>,
+) {
+    if playback_state.playing && time_accumulator.is_paused() {
+        time_accumulator.resume();
+    } else if !playback_state.playing && !time_accumulator.is_paused() {
+        time_accumulator.pause();
+    }
+}
+
 /// Plugin that sets up the timeline UI system and resources.
 pub struct TimelinePlugin;
 
@@ -178,6 +204,7 @@ impl Plugin for TimelinePlugin {
     fn build(&self, app: &mut App) {
         app.insert_resource(CosmicTime::new())
             .insert_resource(PlaybackState::default())
-            .add_systems(bevy::app::PostUpdate, timeline_panel_ui);
+            .add_systems(bevy::app::PostUpdate, timeline_panel_ui)
+            .add_systems(bevy::app::Update, sync_time_resources);
     }
 }
