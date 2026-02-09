@@ -10,7 +10,7 @@ vsync = true
 
 # Particle system configuration
 [particle]
-initial_count = 100000
+initial_count = 1000
 max_count = 1000000
 base_size = 2.0
 

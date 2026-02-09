@@ -7,8 +7,7 @@
 ## Sprint 1 - Phase 1: The Singularity
 
 ### Critical Fixes (Blockers)
-- [x] fix: Implement particle spawning at configured count - genesis.toml has 100K but only 1000 spawning
-- [ ] fix: Update genesis.toml particle.initial_count to match Phase 1 testing (1000 instead of 100K)
+- [x] fix: Update genesis.toml particle.initial_count to match Phase 1 testing (1000 instead of 100K)
 - [ ] fix: Update genesis.toml time.initial_time_acceleration to match PRD Phase 1 starting range
 
 ### Phase 1 Completeness Items
