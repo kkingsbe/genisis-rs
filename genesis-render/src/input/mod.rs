@@ -21,7 +21,10 @@ pub struct InputState {
 }
 
 /// System to handle keyboard input and update InputState
-pub fn handle_keyboard_input(keyboard: Res<ButtonInput<KeyCode>>, mut input_state: ResMut<InputState>) {
+pub fn handle_keyboard_input(
+    keyboard: Res<ButtonInput<KeyCode>>,
+    mut input_state: ResMut<InputState>,
+) {
     // Reset direction to zero
     input_state.keyboard_direction = Vec3::ZERO;
 
@@ -56,7 +59,9 @@ pub fn handle_mouse_input(
 
     // Update mouse button states
     for button in [MouseButton::Left, MouseButton::Right, MouseButton::Middle] {
-        input_state.mouse_buttons.insert(button, mouse_buttons.pressed(button));
+        input_state
+            .mouse_buttons
+            .insert(button, mouse_buttons.pressed(button));
     }
 
     // Reset mouse delta

@@ -188,6 +188,10 @@ pub fn timeline_panel_ui(
 /// Ensures that TimeAccumulator's paused state is consistent with PlaybackState.playing:
 /// - When playing is true and TimeAccumulator is paused, resume TimeAccumulator
 /// - When playing is false and TimeAccumulator is not paused, pause TimeAccumulator
+///
+/// Note: This system currently only synchronizes the play/pause state. The PlaybackState.speed
+/// value is not yet mapped to TimeAccumulator.acceleration. Future implementation should
+/// add speed-to-acceleration mapping with logarithmic scaling.
 pub fn sync_time_resources(
     mut time_accumulator: ResMut<TimeAccumulator>,
     playback_state: Res<PlaybackState>,

@@ -8,56 +8,109 @@ This document contains tasks for future sprints. Items here are not yet schedule
 #### Window, Particle Engine & Time
 
 ### Core Visualization
-- [ ] Implement procedural singularity visualization: spawn particles at origin with radial outward velocity vectors
-- [ ] Calculate particle energy based on distance from origin (E = E₀ * exp(-d/λ) or similar decay function)
-- [ ] Implement energy-based color mapping for singularity visualization (map particle energy to white-hot → yellow → red gradient: E > 0.8 → white, 0.5 < E < 0.8 → yellow, E < 0.5 → red)
-- [ ] Create cooling model tied to particle distance from origin or elapsed time (T ∝ 1/r for adiabatic expansion)
-- [ ] Replace random particle spawning in spawn_particles() with procedural singularity generation
-- [ ] Add Energy component to Particle entities to track individual particle energy values
-- [ ] Create energy update system that decreases particle energy as they expand outward
+- [ ] ~~Implement procedural singularity visualization: spawn particles at origin with radial outward velocity vectors~~ (COMPLETED: See genesis-render/src/particle/mod.rs spawn_particles())
+- [ ] ~~Replace random particle spawning in spawn_particles() with procedural singularity generation~~ (COMPLETED: Already implemented with deterministic pseudo-random distribution)
+- [ ] Scale particle system from 1000 to 100K-1M particles
+  - [ ] Implement adaptive particle spawning system that scales based on config.particle.initial_count
+  - [ ] Add performance monitoring to ensure target FPS with increasing particle counts
+  - [ ] Optimize spawn_particles() to handle 100K+ entities efficiently (use batch spawning)
+  - [ ] Implement particle LOD (Level of Detail) system to reduce rendering load for distant particles
+  - [ ] Add GPU memory management for large particle systems (buffer reuse, streaming)
+- [ ] Add Energy component to Particle entities to track individual particle energy values (create separate genesis_core::physics::Energy component)
+- [ ] Create energy update system that decreases particle energy as they expand outward (E = E₀ * exp(-d/λ) where λ is decay constant)
+- [ ] ~~Calculate particle energy based on distance from origin~~ (COMPLETED: See update_particle_energy_colors())
+- [ ] ~~Implement energy-based color mapping for singularity visualization~~ (COMPLETED: See energy_to_color() function)
+- [ ] Create cooling model tied to particle distance from origin or elapsed time (T ∝ 1/r for adiabatic expansion, track Temperature resource)
 
 ### Camera Controls
 - [ ] Implement scroll wheel zoom controls for free-flight camera (move along forward vector with adjustable zoom speed)
-- [ ] Implement scroll wheel zoom controls for orbit camera (adjust distance with clamping to min/max bounds: min_distance=5.0, max_distance=200.0)
+  - [ ] Add scroll wheel event handling to free-flight camera system (genesis-render/src/camera/mod.rs update_free_flight_camera)
+  - [ ] Implement zoom speed parameter in CameraController (zoom_speed: f32)
+  - [ ] Apply scroll delta to move camera along forward vector (translation += forward * scroll_delta * zoom_speed)
+- [ ] ~~Implement scroll wheel zoom controls for orbit camera (adjust distance with clamping to min/max bounds: min_distance=5.0, max_distance=200.0)~~ (COMPLETED: See handle_orbit_zoom() in genesis-render/src/camera/mod.rs)
 - [ ] Add pan controls for free-flight camera (use WASD + Shift keys or middle mouse button drag for lateral movement)
-- [ ] Add pan controls for orbit camera (use Shift + drag or middle mouse button to move target point)
-- [ ] Implement smooth camera interpolation system (camera tween resource with start/end positions, duration, easing function)
+  - [ ] Add middle mouse button drag detection to InputState
+  - [ ] Implement pan system for free-flight camera that moves camera laterally based on mouse drag
+  - [ ] Add Shift key modifier detection for alternative pan mode
+- [ ] ~~Add pan controls for orbit camera (use Shift + drag or middle mouse button to move target point)~~ (COMPLETED: See handle_orbit_pan() in genesis-render/src/camera/mod.rs)
+- [ ] ~~Implement smooth camera interpolation system (camera tween resource with start/end positions, duration, easing function)~~ (COMPLETED: See CameraState interpolation infrastructure in genesis-render/src/camera/mod.rs)
 - [ ] Define easing functions (Linear, EaseInQuad, EaseOutQuad, EaseInOutCubic) for camera transitions
-- [ ] Create CameraTween resource tracking active tween (start_pos, end_pos, start_time, duration, easing_type)
-- [ ] Implement camera tween update system that interpolates camera position over time
+  - [ ] Create easing function module in genesis-render/src/camera/easing.rs
+  - [ ] Implement Linear easing: f(t) = t
+  - [ ] Implement EaseInQuad easing: f(t) = t²
+  - [ ] Implement EaseOutQuad easing: f(t) = t * (2 - t)
+  - [ ] Implement EaseInOutCubic easing: f(t) = t < 0.5 ? 4t³ : 1 - (-2t + 2)³ / 2
+  - [ ] Add EasingType enum to CameraState to select active easing function
+  - [ ] Apply easing function in interpolate_camera() system
+- [ ] ~~Create CameraTween resource tracking active tween~~ (REPLACED BY: CameraState already tracks interpolation state with start_pos, end_pos, interpolation_speed, interpolation_progress)
+- [ ] ~~Implement camera tween update system that interpolates camera position over time~~ (COMPLETED: See interpolate_camera() in genesis-render/src/camera/mod.rs)
 - [ ] Add camera tween trigger system that initiates interpolation when epoch changes
+  - [ ] Create system that listens for EpochChangeEvent events
+  - [ ] Extract camera_config from target epoch (target_position, target_rotation, fade_duration)
+  - [ ] Call CameraState::start_interpolation_to_target() with epoch camera config
+  - [ ] Register this system in main.rs after epoch_manager plugin
 
 ### UI Implementation
 - [ ] Create epoch indicator UI panel showing era name, temperature (Kelvin), scale factor a(t), and cosmic time
-- [ ] Build FPS counter overlay system using bevy_egui (display in corner, update every frame using time diagnostics)
-- [ ] Create particle count overlay system (query with<Particle> component, display count)
-- [ ] Build time control UI (play/pause button, speed slider, reset button)
-- [ ] Implement logarithmic timeline scrubber using bevy_egui Slider widget (span 0 to 13.8e9 years, map slider to cosmic time)
+  - [ ] Add Temperature resource to genesis-core tracking current cosmic temperature (initial: ~10²⁷ K at Planck boundary)
+  - [ ] Add ScaleFactor resource to genesis-core tracking metric expansion a(t) (initial: a=1 at Planck boundary)
+  - [ ] Update epoch indicator UI (genesis-ui/src/overlay/mod.rs) to display temperature and scale factor
+  - [ ] Implement temperature evolution model for Singularity epoch (T ∝ 1/a for adiabatic expansion)
+  - [ ] Connect epoch data to UI display: query current epoch's temperature and scale factor values
+- [ ] ~~Build FPS counter overlay system using bevy_egui~~ (COMPLETED: See update_overlay_ui() in genesis-ui/src/overlay/mod.rs)
+- [ ] ~~Create particle count overlay system~~ (COMPLETED: See update_overlay_ui() in genesis-ui/src/overlay/mod.rs)
+- [ ] ~~Build time control UI (play/pause button, speed slider, reset button)~~ (COMPLETED: See timeline_panel_ui() in genesis-ui/src/timeline/mod.rs)
+- [ ] ~~Implement logarithmic timeline scrubber using bevy_egui Slider widget~~ (COMPLETED: See timeline_panel_ui() in genesis-ui/src/timeline/mod.rs)
+- [ ] ~~Update main.rs to initialize PlaybackState resource~~ (COMPLETED: TimelinePlugin already inserts PlaybackState)
 - [ ] Implement timeline scrubbing sync with particle simulation (enable reverse/replay, save/restore particle states)
-- [ ] Update main.rs to initialize PlaybackState resource with .init_resource::<PlaybackState>()
+  - [ ] Create SimulationSnapshot resource tracking particle states at key timeline positions
+  - [ ] Implement state capture system that saves particle positions, velocities, energies at current time
+  - [ ] Add snapshot history buffer (store last N snapshots at fixed time intervals)
+  - [ ] Implement state restoration system that restores particles from nearest snapshot when scrubbing
+  - [ ] Add reverse playback mode (when playing and scrubbing backward, decrease cosmic time)
+  - [ ] Connect timeline slider changes to state restoration (on scrub, restore particle state)
+  - [ ] Handle edge cases: scrubbing beyond snapshot history, scrubbing to unvisited time regions
 
 ### Configuration System
-- [ ] Create genesis-config module with Config struct defining Phase 1 parameters (particle_count, time_acceleration, camera_movement_speed, mouse_sensitivity)
-- [ ] Add serde and serde_json dependencies to genesis-core/Cargo.toml for TOML serialization
-- [ ] Implement TOML deserialization for Config struct using serde
-- [ ] Create default Config constants for "Standard Model" preset (Planck 2018 best-fit cosmological parameters)
-- [ ] Implement config file loader with path resolution (default: genesis.toml, fallback: embedded defaults)
-- [ ] Implement clap argument parser for --config flag to override default config path (add clap to Cargo.toml)
-- [ ] Add ConfigResource and insert into main.rs via `.insert_resource(config)`
+- [ ] ~~Create genesis-config module with Config struct~~ (COMPLETED: See genesis-core/src/config.rs)
+- [ ] ~~Add serde dependencies to genesis-core/Cargo.toml~~ (COMPLETED: serde already present in Cargo.toml)
+- [ ] ~~Implement TOML deserialization for Config struct~~ (COMPLETED: See Config::load_from_file() in genesis-core/src/config.rs)
+- [ ] ~~Create default Config constants~~ (COMPLETED: See Default impl for Config struct)
+- [ ] ~~Implement config file loader with path resolution~~ (COMPLETED: See Config::load_from_path() in genesis-core/src/config.rs)
+- [ ] ~~Implement clap argument parser for --config flag~~ (COMPLETED: See CliArgs and Config::load() in genesis-core/src/config.rs)
+- [ ] ~~Add ConfigResource and insert into main.rs~~ (COMPLETED: See ConfigResource wrapper in src/main.rs)
 - [ ] Update existing systems to read from ConfigResource instead of hardcoded values
+  - [ ] Refactor spawn_particles() to use config.particle.initial_count instead of constant PARTICLE_COUNT=1000
+  - [ ] Refactor ParticlePlugin to read base_size from config.particle.base_size
+  - [ ] Refactor CameraController to read movement_speed from config (add to CameraConfig)
+  - [ ] Refactor CameraController to read mouse_sensitivity from config (add to CameraConfig)
+  - [ ] Refactor time acceleration to use config.time.initial_time_acceleration in TimeAccumulator
 
 ### Epoch Plugin System
-- [ ] Implement epoch plugin registration system (actual plugin trait and registration, not just documentation)
-- [ ] Define EpochPlugin trait with required methods: on_enter(), on_exit(), update_systems()
-- [ ] Create SingularityEpoch plugin implementing the Singularity epoch from Planck Boundary to Inflation
-- [ ] Implement EpochManager resource to track active epoch and handle transitions
+- [ ] ~~Implement epoch plugin registration system~~ (COMPLETED: See EpochManager and EpochPlugin trait in genesis-core/src/epoch/mod.rs)
+- [ ] ~~Define EpochPlugin trait~~ (COMPLETED: See EpochPlugin trait with name(), start_year(), end_year(), build(), camera_config() methods)
+- [ ] ~~Create SingularityEpoch plugin~~ (COMPLETED: See genesis-core/src/epoch/singularity.rs)
+- [ ] ~~Implement EpochManager resource~~ (COMPLETED: See EpochManager in genesis-core/src/epoch/mod.rs)
 - [ ] Add epoch transition crossfade system (handle epoch change events, trigger camera and visual transitions)
-- [ ] Register epoch plugins in main.rs using EpochManager::register_and_build_plugin()
-- [ ] Implement actual epoch plugins (SingularityEpoch, InflationEpoch, QGPEpoch, NucleosynthesisEpoch, RecombinationEpoch, DarkAgesEpoch, CosmicDawnEpoch) with build() methods that register their specific systems
+  - [ ] Implement visual crossfade system for epoch transitions (alpha blend between epoch render layers)
+  - [ ] Create camera fade effect during epoch transitions (camera fade to black on exit, fade in on enter)
+  - [ ] Implement parameter interpolation during transitions (smooth temperature, scale factor changes)
+  - [ ] Add epoch transition event handling in GenesisUiPlugin to update UI
+- [ ] ~~Register epoch plugins in main.rs~~ (COMPLETED: See SingularityEpochPlugin in src/main.rs)
+- [ ] Implement future epoch plugins (InflationEpoch, QGPEpoch, NucleosynthesisEpoch, RecombinationEpoch, DarkAgesEpoch, CosmicDawnEpoch)
+  - [ ] Create InflationEpoch plugin in genesis-core/src/epoch/inflation.rs (10⁻³²s to 10⁻⁶s)
+  - [ ] Create QGPEpoch plugin in genesis-core/src/epoch/qgp.rs (10⁻⁶s to 3 min)
+  - [ ] Create NucleosynthesisEpoch plugin in genesis-core/src/epoch/nucleosynthesis.rs (3 min to 20 min)
+  - [ ] Create RecombinationEpoch plugin in genesis-core/src/epoch/recombination.rs (~380,000 yr)
+  - [ ] Create DarkAgesEpoch plugin in genesis-core/src/epoch/dark_ages.rs (380 Kyr to 100 Myr)
+  - [ ] Create CosmicDawnEpoch plugin in genesis-core/src/epoch/cosmic_dawn.rs (100 Myr to 1 Gyr)
+  - [ ] Each epoch plugin must implement build() method to register epoch-specific systems
+  - [ ] Each epoch plugin must define camera_config() with optimal camera settings
+  - [ ] Register all epoch plugins in main.rs using EpochManager registration pattern
 
 ### Core System Integration
-- [ ] Implement pause() method in TimeAccumulator resource (add `paused: bool` field and pause/play methods)
-- [ ] Implement smooth camera interpolation system (camera_tween_resource with start/end positions, duration, easing function)
+- [ ] ~~Implement pause() method in TimeAccumulator resource~~ (COMPLETED: See TimeAccumulator::pause() and resume() in genesis-core/src/time/mod.rs)
+- [ ] ~~Implement smooth camera interpolation system~~ (COMPLETED: See CameraState interpolation infrastructure in genesis-render/src/camera/mod.rs)
 
 ### Documentation
 - [ ] Update ARCHITECTURE.md with final crate structure and responsibilities (document genesis-core, genesis-render, genesis-ui responsibilities)
@@ -75,6 +128,50 @@ This document contains tasks for future sprints. Items here are not yet schedule
 
 ### Testing
 - [ ] SPRINT QA: Run full build and test suite. Fix ALL errors. If green, create/update '.sprint_complete' with the current date.
+
+---
+
+### Additional PRD Requirements (Identified During Gap Analysis)
+
+#### Timeline Speed Integration
+- [ ] Map PlaybackState.speed slider value to TimeAccumulator.acceleration
+  - [ ] Implement logarithmic speed mapping: slider (0.1 to 10.0) → acceleration (1.0 to 1e12)
+  - [ ] Formula: acceleration = 10^(slider_value * log10(1e12/1.0)) or similar logarithmic scale
+  - [ ] Add system in sync_time_resources() to update acceleration when speed slider changes
+  - [ ] Add visual feedback for current acceleration factor (display "10ⁿx" where n is exponent)
+  - [ ] Document speed-to-acceleration mapping in timeline/mod.rs comments
+
+#### Temperature & Scale Factor Tracking
+- [ ] Add Temperature resource to genesis-core for tracking cosmic temperature
+  - [ ] Create Temperature struct in genesis-core/src/temperature.rs with value (f64 in Kelvin) and update_systems()
+  - [ ] Implement temperature evolution model for Singularity epoch: T(t) = T₀ * (a(t))^(-1) where a is scale factor
+  - [ ] Define initial temperature at Planck boundary (T₀ ≈ 10²⁷ K)
+  - [ ] Add system to update Temperature based on cosmic time acceleration
+  - [ ] Register Temperature as Bevy resource via TemperaturePlugin
+- [ ] Add ScaleFactor resource to genesis-core for tracking metric expansion
+  - [ ] Create ScaleFactor struct in genesis-core/src/scale_factor.rs with value (f64) and update_systems()
+  - [ ] Implement scale factor evolution: for Singularity epoch, a(t) = 1 (constant before inflation)
+  - [ ] Add system to update ScaleFactor based on cosmic time acceleration
+  - [ ] Register ScaleFactor as Bevy resource via ScaleFactorPlugin
+- [ ] Connect Temperature and ScaleFactor to UI display
+  - [ ] Query Temperature resource in epoch indicator UI
+  - [ ] Query ScaleFactor resource in epoch indicator UI
+  - [ ] Format temperature display with appropriate units (e.g., "10^27 K", "10^15 K")
+  - [ ] Format scale factor display (e.g., "a = 1.000", "a = 10^23")
+
+#### Particle State Synchronization with Transform
+- [ ] Sync Particle component data with entity Transform components
+  - [ ] Add system to copy Transform.translation to Particle.position each frame
+  - [ ] Add system to update Transform based on particle physics (velocity integration)
+  - [ ] Ensure particle physics update system writes to Transform, not just Particle component
+  - [ ] This ensures the rendering system (which reads Transform) reflects particle motion
+
+#### Timeline Pause State Synchronization
+- [ ] Fix timeline pause/play button state synchronization
+  - [ ] Currently sync_time_resources() only handles play/pause state
+  - [ ] Add two-way binding: when PlaybackState.playing changes, update TimeAccumulator.paused
+  - [ ] When timeline UI pause button is clicked, update both PlaybackState.playing and TimeAccumulator.paused
+  - [ ] Ensure button reflects correct state (Play vs Pause) at all times
 
 ---
 

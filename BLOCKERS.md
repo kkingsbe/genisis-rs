@@ -1,8 +1,22 @@
 # Blockers
 
-No blockers currently reported.
+**No other active blockers.**
 
 ---
+
+## Resolved Blockers
+
+### [2026-02-09] - Point Sprite Shader Path Not Found
+
+**Status:** Resolved - See ARCHITECTURE.md "Architectural Decisions Log" (2026-02-09)
+
+**Resolution:** Architectural decision made to recreate `assets/` directory and copy shader file to standard Bevy location. Implementation task added to TODO.md (Sprint 1, Sprint QA section).
+
+### [2026-02-09] - Point Sprite Shader Compilation Error
+
+**Status:** Resolved - See ARCHITECTURE.md "Architectural Decisions Log" (2026-02-09)
+
+**Resolution:** Solution documented in ARCHITECTURE.md. Task added to TODO.md as priority fix: "fix: Resolve ViewUniform shader compilation error". The ViewUniform struct must be defined in the shader file.
 
 ## Format for New Blockers
 

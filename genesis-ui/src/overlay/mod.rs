@@ -32,7 +32,10 @@ pub fn update_overlay_ui(
     let ctx = contexts.ctx_mut();
 
     // Don't show overlay if all visibility flags are false
-    if !overlay_state.show_fps && !overlay_state.show_particle_count && !overlay_state.show_epoch_info {
+    if !overlay_state.show_fps
+        && !overlay_state.show_particle_count
+        && !overlay_state.show_epoch_info
+    {
         return;
     }
 
@@ -44,7 +47,9 @@ pub fn update_overlay_ui(
         .show(ctx, |ui| {
             // Display FPS if enabled
             if overlay_state.show_fps {
-                if let Some(fps) = diagnostics.get(&bevy::diagnostic::FrameTimeDiagnosticsPlugin::FPS) {
+                if let Some(fps) =
+                    diagnostics.get(&bevy::diagnostic::FrameTimeDiagnosticsPlugin::FPS)
+                {
                     if let Some(fps_value) = fps.smoothed() {
                         ui.label(format!("FPS: {:.1}", fps_value));
                     }
@@ -59,7 +64,8 @@ pub fn update_overlay_ui(
 
             // Display epoch info if enabled
             if overlay_state.show_epoch_info {
-                let epoch_name = epoch_manager.get_current_epoch()
+                let epoch_name = epoch_manager
+                    .get_current_epoch()
                     .map(|epoch| epoch.name())
                     .unwrap_or("N/A");
                 ui.label(format!("Epoch: {}", epoch_name));

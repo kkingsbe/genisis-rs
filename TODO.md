@@ -9,7 +9,6 @@
 ### Critical Blocker Resolution (Priority: IMMEDIATE)
 
 ### Camera System
-- [x] Add zoom and pan controls
 
 ### Time & Timeline
 - [ ] Implement time controls: play/pause, reset, speed adjustment (1x to 10¹²x)
@@ -56,3 +55,28 @@
 
 ### Sprint QA
 - [ ] SPRINT QA: Run full build and test suite. Fix ALL errors. If green, create/update '.sprint_complete' with the current date.
+
+---
+
+## Drift Remediation (Identified 2026-02-09)
+
+### Unrequested Features
+- [ ] refactor: Remove unrequested camera fade system from genesis-ui/src/overlay/camera_fade.rs (Phase 7 feature in Phase 1 code)
+- [ ] refactor: Remove camera mode interpolation from toggle_camera_mode() in genesis-render/src/camera/mod.rs:542-584
+- [ ] refactor: Remove CameraTarget component and update_camera_targets() system from genesis-render/src/camera/mod.rs
+- [ ] refactor: Remove general-purpose camera interpolation infrastructure from CameraState in genesis-render/src/camera/mod.rs (Phase 7 feature)
+- [ ] refactor: Remove epoch transition camera handling system from genesis-render/src/camera/epoch_transition.rs (Phase 1 only has Singularity epoch)
+- [ ] refactor: Simplify epoch management for Phase 1 - remove automatic transitions and event system from genesis-core/src/epoch/mod.rs
+- [ ] refactor: Remove EpochCameraConfig from genesis-core/src/epoch/camera_config.rs (not needed for single epoch in Phase 1)
+- [ ] refactor: Remove separate CosmicTime resource - timeline should read directly from TimeAccumulator in genesis-ui/src/timeline/mod.rs
+- [ ] refactor: Remove sync_time_resources() system - timeline should directly control TimeAccumulator in genesis-ui/src/timeline/mod.rs
+
+### PRD Contradictions
+- [ ] fix: Clarify time_acceleration_min default value in genesis-core/src/config.rs:138 - should explicitly be 1.0 to match PRD "1x to 10¹²x"
+- [ ] fix: Align timeline speed slider range with PRD specification (1x to 10¹²x) in genesis-ui/src/timeline/mod.rs:170-175
+- [ ] fix: Timeline slider scrubbing should update TimeAccumulator.years in genesis-ui/src/timeline/mod.rs:155-163
+- [ ] fix: Map PlaybackState.speed to TimeAccumulator.acceleration with proper logarithmic scaling in genesis-ui/src/timeline/mod.rs:195-204
+- [ ] fix: Camera initial mode should be set from config.initial_mode in src/main.rs:87-97
+- [ ] fix: Particle rendering should use individual Particle.color values instead of single material color in genesis-render/src/particle/mod.rs:214-267
+- [ ] fix: Particle.color changes in update_particle_energy_colors() should affect rendering in genesis-render/src/particle/mod.rs:314-328
+- [ ] fix: SingularityEpoch time range should be extended to allow visualization (PRD describes visible particle explosion) in genesis-core/src/epoch/singularity.rs:32-38

@@ -6,8 +6,8 @@
 use bevy::prelude::*;
 use bevy_egui::EguiPlugin;
 
-pub mod timeline;
 pub mod overlay;
+pub mod timeline;
 
 use timeline::TimelinePlugin;
 

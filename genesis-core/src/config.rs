@@ -39,6 +39,7 @@
 //! show_epoch_info = true
 //! ```
 
+use bevy::prelude::Resource;
 use clap::Parser;
 use serde::{Deserialize, Serialize};
 use std::env;
@@ -55,21 +56,8 @@ pub struct CliArgs {
     pub config: Option<String>,
 }
 
-/// Camera mode enumeration
-#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq)]
-#[serde(rename_all = "snake_case")]
-pub enum CameraMode {
-    /// Free flight camera mode for unrestricted navigation
-    FreeFlight,
-    /// Orbit camera mode for rotating around a central point
-    Orbit,
-}
-
-impl Default for CameraMode {
-    fn default() -> Self {
-        Self::Orbit
-    }
-}
+// Re-export CameraMode from epoch module to maintain API compatibility
+pub use crate::epoch::CameraMode;
 
 /// Window configuration settings
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -115,6 +103,13 @@ impl Default for ParticleConfig {
         }
     }
 }
+
+/// Resource wrapper for particle configuration
+///
+/// This resource stores particle system configuration and can be
+/// accessed by systems via `Res<ParticleConfigResource>`.
+#[derive(Resource, Clone, Debug)]
+pub struct ParticleConfigResource(pub ParticleConfig);
 
 /// Camera configuration settings
 #[derive(Debug, Clone, Serialize, Deserialize)]

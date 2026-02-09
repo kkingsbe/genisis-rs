@@ -4,10 +4,33 @@
 //! different epochs of cosmological evolution. Includes update_epoch_transition
 //! system for automatic epoch transitions based on cosmic time.
 
+use crate::time::TimeAccumulator;
 use bevy::prelude::*;
 use std::collections::HashMap;
 use std::sync::Arc;
-use crate::time::TimeAccumulator;
+
+pub mod camera_config;
+pub mod singularity;
+
+pub use camera_config::{CameraMode, EpochCameraConfig};
+
+/// Event emitted when the simulation transitions between epochs
+///
+/// This event contains the names of the epochs being transitioned from and to,
+/// allowing systems to react to epoch changes (e.g., camera transitions).
+#[derive(Event, Clone, Debug)]
+pub struct EpochChangeEvent {
+    /// Name of the epoch we're transitioning FROM
+    pub from_epoch: String,
+    /// Name of the epoch we're transitioning TO
+    pub to_epoch: String,
+    /// Duration for one phase of the fade effect (fade out or fade in)
+    ///
+    /// Specifies the duration for ONE phase of the fade. The total fade sequence
+    /// duration will be 2 × fade_duration.
+    /// If None, a default value of 0.75 seconds per phase (1.5 seconds total) is used.
+    pub fade_duration: Option<f32>,
+}
 
 /// Trait that all epoch plugins must implement
 ///
@@ -28,6 +51,13 @@ pub trait EpochPlugin: Send + Sync {
     /// This is called when the epoch plugin is registered, enabling
     /// epoch-specific systems to be added to the simulation.
     fn build(&self, app: &mut App);
+
+    /// Returns the camera configuration for this epoch
+    ///
+    /// Specifies the target camera position, rotation, and mode that should
+    /// be applied when transitioning to this epoch. This allows each epoch to
+    /// define optimal camera settings for visualizing that phase of cosmic evolution.
+    fn camera_config(&self) -> EpochCameraConfig;
 }
 
 /// Resource that manages all registered epoch plugins
@@ -124,6 +154,18 @@ impl EpochManager {
     pub fn epoch_count(&self) -> usize {
         self.epochs.len()
     }
+
+    /// Returns a reference to an epoch plugin by name
+    ///
+    /// # Arguments
+    /// * `name` - The name of the epoch to retrieve
+    ///
+    /// # Returns
+    /// * `Some(Arc<dyn EpochPlugin>)` - If an epoch with that name exists
+    /// * `None` - If no epoch with that name exists
+    pub fn get_epoch_plugin(&self, name: &str) -> Option<Arc<dyn EpochPlugin>> {
+        self.epochs.get(name).cloned()
+    }
 }
 
 impl Default for EpochManager {
@@ -137,10 +179,12 @@ impl Default for EpochManager {
 /// This system queries the current cosmic time from `TimeAccumulator`
 /// and determines which epoch should be active based on the time range
 /// of each registered epoch. If the epoch has changed, it updates the
-/// `EpochManager` to reflect the new active epoch.
+/// `EpochManager` to reflect the new active epoch and emits an
+/// `EpochChangeEvent`.
 fn update_epoch_transition(
     time: Res<TimeAccumulator>,
     mut manager: ResMut<EpochManager>,
+    mut epoch_change_events: EventWriter<EpochChangeEvent>,
 ) {
     let current_year = time.years;
 
@@ -157,7 +201,22 @@ fn update_epoch_transition(
             if current_year >= start_year && current_year < end_year {
                 // Only update if the epoch has changed
                 if manager.current_epoch.as_ref() != Some(epoch_name) {
+                    // Store the previous epoch name before changing
+                    let from_epoch = manager.current_epoch.clone().unwrap_or_default();
+                    let to_epoch = epoch_name.clone();
+
+                    // Get the fade duration from the epoch's camera configuration
+                    let fade_duration = epoch.camera_config().fade_duration;
+
+                    // Update the current epoch
                     manager.set_current_epoch(epoch_name);
+
+                    // Emit the epoch change event with fade duration
+                    epoch_change_events.send(EpochChangeEvent {
+                        from_epoch,
+                        to_epoch,
+                        fade_duration,
+                    });
                 }
                 break;
             }
@@ -174,6 +233,7 @@ pub struct EpochManagerPlugin;
 impl Plugin for EpochManagerPlugin {
     fn build(&self, app: &mut App) {
         app.insert_resource(EpochManager::default())
+            .add_event::<EpochChangeEvent>()
             .add_systems(Update, update_epoch_transition);
     }
 }

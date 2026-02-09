@@ -5,12 +5,17 @@
 //! particle physics data structures, and epoch tracking.
 
 pub mod config;
-pub mod time;
-pub mod physics;
 pub mod epoch;
+pub mod physics;
+pub mod time;
 
+pub use config::{
+    CameraConfig, CameraMode, CliArgs, Config, DisplayConfig, ParticleConfig, ParticleConfigResource,
+    TimeConfig, WindowConfig,
+};
+pub use epoch::singularity::SingularityEpoch;
+pub use epoch::{EpochChangeEvent, EpochManager, EpochManagerPlugin};
 pub use time::TimeIntegrationPlugin;
-pub use config::{Config, CameraMode, WindowConfig, ParticleConfig, CameraConfig, TimeConfig, DisplayConfig};
 
 /// Version of the core library
 pub const VERSION: &str = env!("CARGO_PKG_VERSION");

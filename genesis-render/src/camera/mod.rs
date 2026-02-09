@@ -12,6 +12,7 @@ use bevy::time::Time;
 
 use crate::input::InputState;
 use genesis_core::epoch::CameraMode;
+use genesis_core::config::CameraConfig;
 
 mod epoch_transition;
 
@@ -119,6 +120,22 @@ impl CameraState {
             duration,
             current_transform,
         );
+    }
+
+    /// Creates a CameraState from a CameraConfig.
+    ///
+    /// # Parameters
+    /// * `config` - The camera configuration containing initial camera mode
+    ///
+    /// # Behavior
+    /// Initializes the camera state with the mode specified in the configuration.
+    /// All other fields are set to their default values. The orbit_distance from
+    /// config is used to initialize the OrbitController in setup_camera().
+    pub fn from_config(config: &CameraConfig) -> Self {
+        Self {
+            mode: config.initial_mode,
+            ..Default::default()
+        }
     }
 }
 

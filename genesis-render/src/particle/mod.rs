@@ -6,22 +6,29 @@
 //! (automatic batching) via shared mesh and material handles for
 //! efficient rendering of thousands of particles.
 
-use bevy::prelude::*;
-use bevy::render::mesh::{PrimitiveTopology, MeshVertexAttribute};
-use bevy::render::render_asset::RenderAssetUsages;
-use bevy::render::render_resource::ShaderRef;
-use bevy::render::alpha::AlphaMode;
-use bevy::render::render_resource::AsBindGroup;
 use bevy::asset::Asset;
 use bevy::pbr::Material;
+use bevy::prelude::*;
+use bevy::render::alpha::AlphaMode;
+use bevy::render::mesh::{MeshVertexAttribute, PrimitiveTopology};
+use bevy::render::render_asset::RenderAssetUsages;
+use bevy::render::render_resource::AsBindGroup;
+use bevy::render::render_resource::ShaderRef;
+use genesis_core::config::ParticleConfigResource;
 
 /// Custom vertex attribute for per-instance particle size
-const ATTRIBUTE_INSTANCE_SIZE: MeshVertexAttribute =
-    MeshVertexAttribute::new("instance_size", 921384470, bevy::render::render_resource::VertexFormat::Float32);
+const ATTRIBUTE_INSTANCE_SIZE: MeshVertexAttribute = MeshVertexAttribute::new(
+    "instance_size",
+    921384470,
+    bevy::render::render_resource::VertexFormat::Float32,
+);
 
 /// Custom vertex attribute for per-instance particle color
-const ATTRIBUTE_INSTANCE_COLOR: MeshVertexAttribute =
-    MeshVertexAttribute::new("instance_color", 921384471, bevy::render::render_resource::VertexFormat::Float32x4);
+const ATTRIBUTE_INSTANCE_COLOR: MeshVertexAttribute = MeshVertexAttribute::new(
+    "instance_color",
+    921384471,
+    bevy::render::render_resource::VertexFormat::Float32x4,
+);
 
 /// Point sprite material for efficient particle rendering
 ///
@@ -96,34 +103,94 @@ pub fn init_point_mesh(mut commands: Commands, mut meshes: ResMut<Assets<Mesh>>)
     println!("DEBUG: init_point_mesh STARTED");
     // Create a simple point mesh with PointList topology
     // Single vertex at origin since Transform provides actual position
-    let mut mesh = Mesh::new(
-        PrimitiveTopology::PointList,
-        RenderAssetUsages::default(),
-    );
+    let mut mesh = Mesh::new(PrimitiveTopology::PointList, RenderAssetUsages::default());
 
     // Add a single vertex at the origin
-    mesh.insert_attribute(
-        Mesh::ATTRIBUTE_POSITION,
-        vec![[0.0, 0.0, 0.0]],
-    );
+    mesh.insert_attribute(Mesh::ATTRIBUTE_POSITION, vec![[0.0, 0.0, 0.0]]);
 
     // Add instance_size attribute for per-instance particle size
     // This will be at location(1) to match the shader's VertexInput
     mesh.insert_attribute(
         ATTRIBUTE_INSTANCE_SIZE,
-        vec![1.0f32],  // Default size, will be updated per-instance
+        vec![1.0f32], // Default size, will be updated per-instance
     );
 
     // Add instance_color attribute for per-instance particle color
     // This will be at location(2) to match the shader's VertexInput
     mesh.insert_attribute(
         ATTRIBUTE_INSTANCE_COLOR,
-        vec![[1.0f32, 1.0f32, 1.0f32, 1.0f32]],  // Default white color, will be updated per-instance
+        vec![[1.0f32, 1.0f32, 1.0f32, 1.0f32]], // Default white color, will be updated per-instance
     );
 
     let mesh_handle = meshes.add(mesh);
     commands.insert_resource(PointMesh(mesh_handle));
     println!("DEBUG: init_point_mesh COMPLETED - PointMesh resource inserted");
+}
+
+/// Converts an energy value to a color on a thermal gradient.
+///
+/// Maps energy (0.0 to 1.0) to a color gradient representing temperature:
+/// - 1.0 = white-hot core (highest energy)
+/// - 0.0 = dark red edges (lowest energy)
+///
+/// The gradient follows: WHITE → YELLOW → ORANGE → RED → DARK_RED
+///
+/// # Arguments
+/// * `energy` - Energy value in range [0.0, 1.0], where:
+///   - 0.0 = lowest energy (dark red)
+///   - 1.0 = highest energy (white-hot)
+///
+/// # Returns
+/// A `Color` value corresponding to the energy level.
+///
+/// # Gradient Breakpoints
+/// - energy > 0.80: Interpolates WHITE (1.0) to YELLOW (0.80)
+/// - energy > 0.50: Interpolates YELLOW (0.80) to ORANGE (0.50)
+/// - energy > 0.20: Interpolates ORANGE (0.50) to RED (0.20)
+/// - energy <= 0.20: Interpolates RED (0.20) to DARK_RED (0.0)
+pub fn energy_to_color(energy: f32) -> Color {
+    // Clamp energy to [0.0, 1.0]
+    let energy = energy.clamp(0.0, 1.0);
+
+    if energy > 0.80 {
+        // WHITE to YELLOW: t in [0.80, 1.0], normalized to [0.0, 1.0]
+        let t = (energy - 0.80) / 0.20;
+        lerp_rgb(1.0, 1.0, 0.0, 1.0, 1.0, 1.0, t)
+    } else if energy > 0.50 {
+        // YELLOW to ORANGE: t in [0.50, 0.80], normalized to [0.0, 1.0]
+        let t = (energy - 0.50) / 0.30;
+        lerp_rgb(1.0, 0.5, 0.0, 1.0, 1.0, 0.0, t)
+    } else if energy > 0.20 {
+        // ORANGE to RED: t in [0.20, 0.50], normalized to [0.0, 1.0]
+        let t = (energy - 0.20) / 0.30;
+        lerp_rgb(1.0, 0.0, 0.0, 1.0, 0.5, 0.0, t)
+    } else {
+        // RED to DARK_RED: t in [0.0, 0.20], normalized to [0.0, 1.0]
+        let t = energy / 0.20;
+        lerp_rgb(0.5, 0.0, 0.0, 1.0, 0.0, 0.0, t)
+    }
+}
+
+/// Helper function for linear interpolation between two RGB color values.
+///
+/// # Arguments
+/// * `r1` - Red component of start color (when t = 0.0)
+/// * `g1` - Green component of start color (when t = 0.0)
+/// * `b1` - Blue component of start color (when t = 0.0)
+/// * `r2` - Red component of end color (when t = 1.0)
+/// * `g2` - Green component of end color (when t = 1.0)
+/// * `b2` - Blue component of end color (when t = 1.0)
+/// * `t` - Interpolation factor in [0.0, 1.0]
+///
+/// # Returns
+/// Interpolated color: color1 * (1-t) + color2 * t
+fn lerp_rgb(r1: f32, g1: f32, b1: f32, r2: f32, g2: f32, b2: f32, t: f32) -> Color {
+    let t = t.clamp(0.0, 1.0);
+    Color::srgb(
+        r1 * (1.0 - t) + r2 * t,
+        g1 * (1.0 - t) + g2 * t,
+        b1 * (1.0 - t) + b2 * t,
+    )
 }
 
 /// System to spawn a cluster of particles around the origin
@@ -133,8 +200,9 @@ pub fn init_point_mesh(mut commands: Commands, mut meshes: ResMut<Assets<Mesh>>)
 /// all entities share the same mesh and material handles for
 /// efficient rendering.
 ///
-/// This function spawns a test count of 1000 particles for development.
-/// GPU instancing allows efficient rendering of 100K-1M particles.
+/// Spawns particles based on the configuration specified in
+/// ParticleConfigResource. GPU instancing allows efficient rendering
+/// of 100K-1M particles.
 ///
 /// In Bevy 0.15, GPU instancing is automatic: when multiple entities
 /// share the same Mesh3d and MeshMaterial3d handles, the renderer
@@ -144,39 +212,52 @@ pub fn spawn_particles(
     mut commands: Commands,
     mut materials: ResMut<Assets<PointSpriteMaterial>>,
     point_mesh: Res<PointMesh>,
+    config: Res<ParticleConfigResource>,
 ) {
     println!("DEBUG: spawn_particles STARTED - PointMesh resource accessed successfully");
+
+    // Clamp initial_count to max_count to ensure we don't exceed the limit
+    let particle_count = config.0.initial_count.min(config.0.max_count) as u32;
+    println!(
+        "DEBUG: Spawning {} particles (initial_count: {}, max_count: {})",
+        particle_count, config.0.initial_count, config.0.max_count
+    );
+
     // Create point sprite material for all particles (single material shared by all)
     // Using white color for visibility - individual particle colors will be
     // handled by the shader in future updates
     let particle_material = PointSpriteMaterial {
         color: LinearRgba::new(1.0, 1.0, 1.0, 1.0),
-        base_size: 100.0,  // Base size in pixels before attenuation
-        attenuation_factor: 0.01,  // Size attenuation factor
+        base_size: config.0.base_size, // Use base_size from config
+        attenuation_factor: 0.01,      // Size attenuation factor
     };
     let material_handle = materials.add(particle_material);
 
-    // Spawn particles in a cluster around the origin
-    // Using 1000 particles for testing - will scale to 100K-1M later
-    let particle_count = 1000;
+    // Spawn particles at the exact origin with radial velocity
+    const BASE_SPEED: f32 = 0.5;
 
     for i in 0..particle_count {
         // Simple deterministic pseudo-random distribution using loop index
         // This provides variation without requiring the rand crate
         let fi = i as f32;
-        let scale = 10.0;
-        let offset_x = ((fi * 123.456).fract() - 0.5) * scale;
-        let offset_y = ((fi * 789.012).fract() - 0.5) * scale;
-        let offset_z = ((fi * 345.678).fract() - 0.5) * scale;
 
-        let position = Vec3::new(offset_x, offset_y, offset_z);
+        // Spawn ALL particles at exact origin
+        let position = Vec3::ZERO;
 
-        // Deterministic color variation (mostly white/blue for early universe feel)
-        let r = 0.8 + ((fi * 11.11).fract()) * 0.2;
-        let g = 0.8 + ((fi * 22.22).fract()) * 0.2;
-        let b = 1.0;
+        // Generate outward radial velocity vector using pseudo-random distribution
+        // Use the same pattern to create a direction vector on a unit sphere
+        let dir_x = ((fi * 123.456).fract() - 0.5) * 2.0;
+        let dir_y = ((fi * 789.012).fract() - 0.5) * 2.0;
+        let dir_z = ((fi * 345.678).fract() - 0.5) * 2.0;
+        let direction = Vec3::new(dir_x, dir_y, dir_z).normalize();
 
-        let color = Color::srgba(r, g, b, 1.0);
+        // Scale direction by base speed to get velocity
+        let velocity = direction * BASE_SPEED;
+        let velocity_magnitude = velocity.length();
+
+        // Set initial color to white-hot (maximum energy = 1.0)
+        // All particles start at the origin with maximum energy
+        let color = energy_to_color(1.0);
 
         // Random particle size in range [0.5, 2.0]
         let size = 0.5 + ((fi * 567.891).fract()) * 1.5;
@@ -184,10 +265,14 @@ pub fn spawn_particles(
         // Spawn particle entity with shared mesh/material handles
         // Bevy 0.15 automatically batches entities with same mesh/material for GPU instancing
         commands.spawn((
-            Mesh3d(point_mesh.0.clone()),  // Shared point mesh from resource
-            MeshMaterial3d(material_handle.clone()),  // Shared point sprite material
-            Transform::from_translation(position),  // Per-instance transform
-            Particle { position, color, size },
+            Mesh3d(point_mesh.0.clone()), // Shared point mesh from resource
+            MeshMaterial3d(material_handle.clone()), // Shared point sprite material
+            Transform::from_translation(position), // Per-instance transform (all at origin)
+            Particle {
+                position,
+                color,
+                size,
+            },
         ));
     }
 }
@@ -201,12 +286,12 @@ pub fn update_particles(
     mut query: Query<(Entity, &mut Transform), With<Particle>>,
     time: Res<Time>,
 ) {
-    let speed = 0.5;  // units per second
+    let speed = 0.5; // units per second
     let delta = time.delta_secs();
-    
+
     for (entity, mut transform) in query.iter_mut() {
         let pos = transform.translation;
-        
+
         // Calculate direction: normalize position to get outward direction
         let direction = if pos.length_squared() > f32::EPSILON {
             // Particle is away from origin - move outward along position vector
@@ -219,9 +304,35 @@ pub fn update_particles(
             let z = ((index * 345.678).fract() - 0.5) * 2.0;
             Vec3::new(x, y, z).normalize()
         };
-        
+
         // Move particle outward along its direction
         transform.translation += direction * speed * delta;
+    }
+}
+
+/// System to update particle colors based on energy (distance from origin)
+///
+/// Updates particle colors dynamically based on their distance from the origin.
+/// Particles closer to the origin have higher energy (white-hot), while
+/// particles further away have lower energy (red/dark-red).
+///
+/// Energy is calculated as: Energy = 1.0 - (distance / 50.0), clamped to [0.0, 1.0]
+///
+/// This creates a thermal gradient visualization where the singularity core
+/// appears white-hot and the outer regions appear red.
+pub fn update_particle_energy_colors(mut query: Query<&mut Particle>) {
+    const MAX_DISTANCE: f32 = 50.0;
+
+    for mut particle in query.iter_mut() {
+        // Calculate distance from origin
+        let distance = particle.position.length();
+
+        // Normalize distance to energy value (0.0 to 1.0)
+        // Energy decreases as distance increases
+        let energy = (1.0 - (distance / MAX_DISTANCE)).clamp(0.0, 1.0);
+
+        // Update particle color based on energy
+        particle.color = energy_to_color(energy);
     }
 }
 
@@ -250,7 +361,8 @@ impl Plugin for ParticlePlugin {
         app.add_plugins(MaterialPlugin::<PointSpriteMaterial>::default())
             .add_systems(Startup, init_point_mesh)
             .add_systems(Startup, spawn_particles.after(init_point_mesh))
-            .add_systems(Update, update_particles);
+            .add_systems(Update, update_particles)
+            .add_systems(Update, update_particle_energy_colors);
     }
 }
 
@@ -386,4 +498,3 @@ impl Plugin for ParticlePlugin {
 // which would be prohibitively expensive for large particle systems.
 //
 // ============================================================================
-

@@ -3,7 +3,18 @@
 ## [2026-02-09]
 
 ### Camera System
+- [x] Add zoom and pan controls
+
+## [2026-02-09]
+
+### Camera System
+- [x] Implement camera transition crossfade for epoch changes
+
+## [2026-02-09]
+
+### Camera System
 - [x] Add smooth camera interpolation between positions - CameraState resource with target_position, target_rotation, interpolation_speed, is_interpolating fields; CameraTarget component with position, look_at, offset; update_camera_targets system for smooth interpolation using smoothstep easing
+- [x] Add smooth camera interpolation between positions
 
 ## [2026-02-08]
 
@@ -121,3 +132,6 @@
 ### Build & Infrastructure
 - [x] Implement shader path fix (ARCHITECTURAL DECISION 2026-02-09) - Create assets/ directory and copy genesis-render/src/particle/point_sprite.wgsl to assets/point_sprite.wgsl to resolve critical startup blocker
 - [x] fix: Resolve ViewUniform shader compilation error - Fixed: Added ViewUniform struct definition to point_sprite.wgsl shader with view_proj matrix and world_position fields
+
+### Drift Items Resolved
+- [x] refactor: Remove test_interpolation function from genesis-render/src/camera/mod.rs - Development testing function triggered by 'T' key (lines 544-564) is not specified in PRD and should be removed for production code

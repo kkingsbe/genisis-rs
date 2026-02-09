@@ -6,6 +6,7 @@ use bevy::prelude::*;
 use bevy::window::{PresentMode, WindowResolution};
 use genesis_core::epoch::{EpochManager, EpochManagerPlugin, EpochPlugin};
 use genesis_core::Config;
+use genesis_core::ParticleConfigResource;
 use genesis_core::SingularityEpoch;
 use genesis_core::TimeIntegrationPlugin;
 use genesis_render::camera::{CameraController, CameraState, CameraTarget, OrbitController};
@@ -72,7 +73,8 @@ fn main() {
         .add_plugins(ParticlePlugin)
         .add_plugins(CameraPlugin)
         .insert_resource(ConfigResource(config.clone()))
-        .init_resource::<CameraState>()
+        .insert_resource(ParticleConfigResource(config.particle.clone()))
+        .insert_resource(CameraState::from_config(&config.camera))
         .add_plugins(GenesisUiPlugin)
         .insert_resource(OverlayState {
             show_fps: config.display.show_fps,
@@ -84,15 +86,16 @@ fn main() {
         .run();
 }
 
-fn setup_camera(mut commands: Commands) {
+fn setup_camera(mut commands: Commands, config: Res<ConfigResource>) {
     // Spawn camera with both controllers to allow switching between modes
     // The active controller is determined by CameraState.mode
-    // CameraState defaults to FreeFlight mode, but setup_camera does not read from config
     // Both controllers are always present; mode switching toggles which one responds to input
+    // Camera configuration is loaded from config.camera
+    let orbit_distance = config.0.camera.orbit_distance;
     commands.spawn((
         Camera3d::default(),
-        Transform::from_xyz(0.0, 0.0, 50.0).looking_at(Vec3::ZERO, Vec3::Y),
-        OrbitController::default(),
+        Transform::from_xyz(0.0, 0.0, orbit_distance).looking_at(Vec3::ZERO, Vec3::Y),
+        OrbitController { distance: orbit_distance, ..default() },
         CameraController::default(),
     ));
 }
