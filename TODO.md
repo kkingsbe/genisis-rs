@@ -17,7 +17,7 @@
 - [ ] fix: Align ParticleConfig with genesis.toml - Reconcile field names between genesis.toml (initial_count, max_count, base_size) and ParticleConfig struct (particle_count, particle_size_base, particle_size_variation, color_hot, color_cool)
 - [ ] fix: Align CameraConfig with genesis.toml - Reconcile orbit_distance vs orbit_radius field name inconsistency; update CameraConfig struct or main.rs to use consistent field name
 - [ ] fix: Align particle data structures - Consolidate duplicate Particle definitions; use consistent field types (Vec3 vs [f32; 3], Color vs [f32; 3]) across genesis-core and genesis-render modules
-- [ ] Remove EpochManager with automatic transitions from genesis-core/src/epoch/mod.rs
+- [x] Remove EpochManager with automatic transitions from genesis-core/src/epoch/mod.rs
 - [ ] Remove EpochCameraConfig from genesis-core/src/epoch/camera_config.rs
 - [ ] Remove epoch transition camera handling from genesis-render/src/camera/
 - [ ] Remove general-purpose camera interpolation from CameraState
