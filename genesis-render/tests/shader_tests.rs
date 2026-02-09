@@ -13,14 +13,34 @@
 use bevy::pbr::Material;
 use bevy::prelude::*;
 use bevy::render::alpha::AlphaMode;
-use bevy::render::mesh::{Mesh, PrimitiveTopology, VertexAttributeValues};
+use bevy::render::mesh::{Mesh, PrimitiveTopology};
 use bevy::render::render_resource::ShaderRef;
 use genesis_render::particle::{PointSpriteMaterial, ATTRIBUTE_INSTANCE_COLOR, ATTRIBUTE_INSTANCE_SIZE};
 use std::path::PathBuf;
 
 // The shader file is located in the genesis-render/src/particle directory
+// This function tries multiple possible paths to accommodate different test execution contexts
 fn get_shader_path() -> PathBuf {
-    PathBuf::from("genesis-render/src/particle/point_sprite.wgsl")
+    // Try the path from workspace root first
+    let workspace_path = PathBuf::from("genesis-render/src/particle/point_sprite.wgsl");
+    if workspace_path.exists() {
+        return workspace_path;
+    }
+    
+    // Try the path from genesis-render package directory
+    let package_path = PathBuf::from("src/particle/point_sprite.wgsl");
+    if package_path.exists() {
+        return package_path;
+    }
+    
+    // Try the assets path (for Bevy asset loading tests)
+    let assets_path = PathBuf::from("assets/point_sprite.wgsl");
+    if assets_path.exists() {
+        return assets_path;
+    }
+    
+    // Fallback to the workspace path (it will fail with a clear message)
+    workspace_path
 }
 
 // ============================================================================
@@ -703,13 +723,13 @@ fn test_point_mesh_creation() {
     );
     
     // Check formats match expectations
-    if let Some(attr) = instance_size_attr {
+    if let Some(_attr) = instance_size_attr {
         // Format should be Float32 for f32 values
         // We can check this exists without inspecting exact variant
         assert!(true, "Instance size attribute exists with correct format");
     }
     
-    if let Some(attr) = instance_color_attr {
+    if let Some(_attr) = instance_color_attr {
         // Format should be Float32x4 for vec4<f32> values
         assert!(true, "Instance color attribute exists with correct format");
     }

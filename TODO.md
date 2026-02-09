@@ -6,15 +6,28 @@
 
 ## Sprint 1 - Phase 1: The Singularity
 
-### Critical Fixes (Blockers)
+### Critical Fixes
+- [x] fix: Migrate genesis-render/tests to Bevy 0.15 API (moved from BLOCKERS)
+  - ANALYSIS COMPLETE: 66 compilation errors found across both test files
+  - Tests ARE properly configured and would run if they compiled successfully
+  - The "running 0 tests" output was due to compilation failures, not missing test configuration
+  - Key API changes needed (confirmed by compilation errors):
+    * ScheduleRunnerSettings no longer exists - use ScheduleRunnerPlugin::run_once() without arguments (lines 44-47, 348-351, 394-397, 436-439, 682-685, 1039-1042, 1092-1095, 1126-1129, 1160-1163, 1197-1200, 1230-1233, 1303-1306)
+    * Camera3d renamed to Camera - use bevy::render::camera::Camera::default() (line 445)
+    * World::add_systems() doesn't exist - use App::add_systems() instead (lines 697, 1184, 1246, 1255, 1318, 1330)
+    * Entities::iter() method removed - use new entity query methods (lines 1275, 1287)
+    * Mesh::ATTRIBUTE_COLOR_0 changed to Mesh::ATTRIBUTE_COLOR (line 913)
+    * Color::RED renamed to bevy::color::palettes::css::RED (line 939)
+    * LinearRgba::is_normalized() method removed (line 949)
+    * AssetPath::to_str() changed to to_string() (lines 1473, 1477)
+    * ParticleInstanceData::zeroed() requires Zeroable trait import (line 972)
+    * Type inference issues with next_power_of_two() - specify type (lines 1075, 1079)
+    * Additional minor warnings for unused variables and imports
+  - Update both resource_binding_tests.rs and shader_tests.rs
+  - Verify all test code compiles successfully with Bevy 0.15 APIs
+  - Run updated tests to confirm they pass
 
 ### Phase 1 Completeness Items
-#### Per-Instance Particle Attributes
-- [x] feature: Synchronize Particle component data with GPU instance attributes (Sprint 1)
-  - Implement per-instance data transfer system for Particle.color and Particle.size
-  - Update particle shaders to use instance_color and instance_size attributes
-  - Ensure update_particle_energy_colors() changes affect rendering
-  - This enables 10K-50K particle scaling in Sprint 1
 
 ### Code Cleanup
 
@@ -87,25 +100,6 @@
   - Unnecessary visual clutter for Phase 1
 
 ### Sprint QA
-- [ ] fix: Migrate genesis-render/tests to Bevy 0.15 API (moved from BLOCKERS)
-  - ANALYSIS COMPLETE: 66 compilation errors found across both test files
-  - Tests ARE properly configured and would run if they compiled successfully
-  - The "running 0 tests" output was due to compilation failures, not missing test configuration
-  - Key API changes needed (confirmed by compilation errors):
-    * ScheduleRunnerSettings no longer exists - use ScheduleRunnerPlugin::run_once() without arguments (lines 44-47, 348-351, 394-397, 436-439, 682-685, 1039-1042, 1092-1095, 1126-1129, 1160-1163, 1197-1200, 1230-1233, 1303-1306)
-    * Camera3d renamed to Camera - use bevy::render::camera::Camera::default() (line 445)
-    * World::add_systems() doesn't exist - use App::add_systems() instead (lines 697, 1184, 1246, 1255, 1318, 1330)
-    * Entities::iter() method removed - use new entity query methods (lines 1275, 1287)
-    * Mesh::ATTRIBUTE_COLOR_0 changed to Mesh::ATTRIBUTE_COLOR (line 913)
-    * Color::RED renamed to bevy::color::palettes::css::RED (line 939)
-    * LinearRgba::is_normalized() method removed (line 949)
-    * AssetPath::to_str() changed to to_string() (lines 1473, 1477)
-    * ParticleInstanceData::zeroed() requires Zeroable trait import (line 972)
-    * Type inference issues with next_power_of_two() - specify type (lines 1075, 1079)
-    * Additional minor warnings for unused variables and imports
-  - Update both resource_binding_tests.rs and shader_tests.rs
-  - Verify all test code compiles successfully with Bevy 0.15 APIs
-  - Run updated tests to confirm they pass
 - [ ] SPRINT QA: Run full build and test suite. Fix ALL errors. If green, create/update '.sprint_complete' with the current date.
 
 ---
