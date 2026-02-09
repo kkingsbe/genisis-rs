@@ -14,9 +14,9 @@
 ### Code Cleanup
 
 #### Remove Phase-Inappropriate Features
-- [ ] refactor: Remove unrequested time conversion functions from genesis-core/src/time/mod.rs
+- [x] refactor: Remove unrequested time conversion functions from genesis-core/src/time/mod.rs
   - Remove seconds_to_years(), minutes_to_years() (not required for Phase 1)
-- [ ] refactor: Remove unrequested time constants from genesis-core/src/time/mod.rs
+- [x] refactor: Remove unrequested time constants from genesis-core/src/time/mod.rs
   - Remove SECONDS_PER_MINUTE, SECONDS_PER_HOUR, SECONDS_PER_DAY (not in PRD Phase 1)
 - [ ] refactor: Remove unrequested TimeConfig fields from genesis-core/src/config.rs
   - Remove initial_time, initial_time_acceleration (not used in Phase 1)
@@ -87,6 +87,21 @@
 
 ### Sprint QA
 - [ ] SPRINT QA: Run full build and test suite. Fix ALL errors. If green, create/update '.sprint_complete' with the current date.
+
+### Repository Cleanup
+
+#### Temporary Output Files
+- [ ] chore: Remove .architect-output-1770673436052.md - temporary architect mode output file
+- [ ] chore: Remove .architect-output-1770673991273.md - temporary architect mode output file
+- [ ] chore: Remove .janitor-output-1770672479399.md - temporary janitor mode output file
+- [ ] chore: Remove .janitor-output-1770673025376.md - temporary janitor mode output file
+
+#### Leftover/Unused Files
+- [ ] chore: Remove bin/run.bat - contains hardcoded paths to another user's directory (c:\Users\Kyle\Documents\code\agent-coding-container\automation-parallel), not part of this Rust project
+- [ ] chore: Remove commit-msg.md - saved commit message from past commit, not a template file
+
+#### Code Review Candidates
+- [ ] review: genesis-core/src/physics/Particle struct is not used anywhere in codebase - consider if needed for future physics implementation or remove
 
 ---
 
