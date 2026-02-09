@@ -41,8 +41,7 @@ genesis/
         ├── timeline/     # Timeline scrubber and time controls
         │   └── mod.rs   # CosmicTime resource, PlaybackState resource, timeline_panel_ui system
         ├── overlay/      # FPS, particle count, epoch info panels
-        │   ├── mod.rs   # OverlayState resource, update_overlay_ui system
-        │   └── camera_fade.rs  # Camera fade effect for epoch transitions
+        │   └── mod.rs   # OverlayState resource, update_overlay_ui system
         └── lib.rs
 ```
 
@@ -62,7 +61,6 @@ The application registers the following plugins and resources:
 - **CameraPlugin** (genesis-render): Camera control systems (free-flight, orbit, interpolation, epoch transitions) with CameraState resource
 - **GenesisUiPlugin** (genesis-ui): UI system with bevy_egui integration, overlay, and timeline controls
 - **OverlayState** (genesis-ui): Resource for overlay visibility (initialized with show_fps, show_particle_count, show_epoch_info = true)
-- **CameraFadeState** (genesis-ui): Resource for camera fade effect during epoch transitions (auto-initialized)
 - **setup_camera**: Camera setup system that spawns 3D camera at z=50.0 looking at origin with OrbitController and CameraController components
 - **setup_test_camera_target**: Spawns a test CameraTarget entity for testing camera interpolation
 - **TimeAccumulator** (genesis-core): Resource for tracking cosmic years (auto-initialized)
@@ -86,14 +84,14 @@ The application registers the following plugins and resources:
 - **Resources**: Global state organized by crate:
    - genesis-core: EpochManager, TimeAccumulator
    - genesis-render: CameraState, InputState, PointMesh
-   - genesis-ui: CosmicTime, OverlayState, PlaybackState, CameraFadeState
+   - genesis-ui: CosmicTime, OverlayState, PlaybackState
 - **Systems**:
    - Core: update_epoch_transition
    - Particle: init_point_mesh, spawn_particles, update_particles (basic outward expansion animation), update_particle_energy_colors (thermal gradient coloring)
    - Camera: update_free_flight_camera, update_orbit_camera, toggle_camera_mode, handle_orbit_zoom, interpolate_camera, update_camera_targets, handle_epoch_change_transition
    - Input: handle_keyboard_input, handle_mouse_input
    - Time: initialize_time_accumulator, update_cosmic_time, sync_time_resources (syncs play/pause state only - speed mapping pending)
-   - UI: update_overlay_ui (overlay rendering), timeline_panel_ui (timeline controls), setup_camera_fade_overlay, update_camera_fade
+   - UI: update_overlay_ui (overlay rendering), timeline_panel_ui (timeline controls)
 - **Plugins**:
    - EpochManagerPlugin (implemented): Epoch registration and transition management
    - TimeIntegrationPlugin (implemented): Cosmic time accumulation with Bevy integration
@@ -228,15 +226,6 @@ Currently, the rendering-level Particle is directly populated in [`spawn_particl
   - Default location search (./genesis.toml, ~/.config/genesis/config.toml, /etc/genesis/config.toml)
   - ConfigResource wrapper for Bevy integration
 
-### 9. Camera Fade System
-- **Purpose**: Provides visual crossfade effect during epoch transitions
-- **Components**: CameraFade (marker component identifying the fade overlay entity)
-- **Resources**: CameraFadeState tracks fade opacity, state (None/FadingOut/FadingIn), and duration
-- **Systems**:
-  - setup_camera_fade_overlay: Creates full-screen white overlay that is initially transparent
-  - update_camera_fade: Responds to EpochChangeEvent, fades out to white, then fades back in using smoothstep easing
-- **Status**: Fully implemented for smooth epoch transition visualization
-
 ## Phase 1 Scope (Current Sprint)
 
 ### Goal
@@ -249,7 +238,6 @@ A running Bevy application with a 3D particle system, camera controls, and a tim
 - Epoch manager plugin architecture (EpochManager, EpochPlugin trait, EpochChangeEvent)
 - Epoch camera configuration (EpochCameraConfig, camera_config() method on EpochPlugin)
 - Epoch transition camera handling (handle_epoch_change_transition system)
-- Camera fade effect for epoch transitions (CameraFadeState, setup_camera_fade_overlay, update_camera_fade)
 - Basic input handling (keyboard, mouse) - InputPlugin with InputState, handle_keyboard_input, handle_mouse_input (runs in PreUpdate)
 - Time integration system with f64 accumulator - TimeIntegrationPlugin, TimeAccumulator, update_cosmic_time system, pause/resume methods
 - Epoch tracking via update_epoch_transition system
@@ -289,7 +277,6 @@ genesis-core (Bevy - for Resource trait)
 - `PlaybackState` (genesis-ui) is synchronized with `TimeAccumulator` (genesis-core)
 - `EpochManager` (genesis-core) is used by epoch transition systems in genesis-render
 - `OverlayState` (genesis-ui) is used by overlay UI system
-- `CameraFadeState` (genesis-ui) is used by camera fade system
 
 ## Development Guidelines
 

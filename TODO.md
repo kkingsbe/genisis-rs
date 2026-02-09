@@ -61,7 +61,7 @@
 ## Drift Remediation (Identified 2026-02-09)
 
 ### Unrequested Features
-- [ ] refactor: Remove unrequested camera fade system from genesis-ui/src/overlay/camera_fade.rs (Phase 7 feature in Phase 1 code)
+- [x] refactor: Remove unrequested camera fade system from genesis-ui/src/overlay/camera_fade.rs (Phase 7 feature in Phase 1 code)
 - [ ] refactor: Remove camera mode interpolation from toggle_camera_mode() in genesis-render/src/camera/mod.rs:542-584
 - [ ] refactor: Remove CameraTarget component and update_camera_targets() system from genesis-render/src/camera/mod.rs
 - [ ] refactor: Remove general-purpose camera interpolation infrastructure from CameraState in genesis-render/src/camera/mod.rs (Phase 7 feature)
@@ -80,3 +80,22 @@
 - [ ] fix: Particle rendering should use individual Particle.color values instead of single material color in genesis-render/src/particle/mod.rs:214-267
 - [ ] fix: Particle.color changes in update_particle_energy_colors() should affect rendering in genesis-render/src/particle/mod.rs:314-328
 - [ ] fix: SingularityEpoch time range should be extended to allow visualization (PRD describes visible particle explosion) in genesis-core/src/epoch/singularity.rs:32-38
+
+---
+
+## Documentation Sync (Identified 2026-02-09)
+
+### Critical Priority
+- [ ] docs: Fix camera fade system registration in genesis-ui/src/lib.rs - add CameraFadeState, setup_camera_fade_overlay, and update_camera_fade to GenesisUiPlugin
+
+### High Priority
+- [ ] docs: Add missing camera systems to ARCHITECTURE.md:93 - include handle_orbit_pan and update_camera_targets
+- [ ] docs: Document particle helper functions in ARCHITECTURE.md:109 - include energy_to_color() and lerp_rgb()
+
+### Medium Priority
+- [ ] docs: Add camera_fade module exports to genesis-ui/src/overlay/mod.rs:9
+
+### Low Priority
+- [ ] docs: Clarify default camera mode in ARCHITECTURE.md:187 - distinguish between enum default (FreeFlight) and initial setup (Orbit)
+- [ ] docs: Fix TimeConfig min value inconsistency in ARCHITECTURE.md:31 - update from 0.1 to 1.0 to match code
+- [ ] docs: Remove #[allow(dead_code)] or document public API methods in genesis-core/src/epoch/camera_config.rs and genesis-core/src/time/mod.rs
