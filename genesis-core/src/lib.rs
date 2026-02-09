@@ -10,7 +10,7 @@ pub mod physics;
 pub mod time;
 
 pub use config::{
-    CameraConfig, CameraMode, CliArgs, Config, DisplayConfig, ParticleConfig, ParticleConfigResource,
+    CameraConfig, Config, ParticleConfig,
     TimeConfig, WindowConfig,
 };
 pub use epoch::singularity::SingularityEpoch;

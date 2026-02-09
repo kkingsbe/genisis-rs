@@ -30,7 +30,7 @@
 - [ ] Add timeline scrubber widget
 
 ### Configuration & Initialization
-- [ ] Define Config struct with all Phase 1 parameters (particle_count, time_acceleration, etc.)
+- [x] Define Config struct with all Phase 1 parameters (particle_count, time_acceleration, etc.)
 - [ ] Implement TOML deserialization for Config struct
 - [ ] Create default Config constants for "Standard Model" preset
 - [ ] Implement config file loader with path resolution (default: genesis.toml, fallback: embedded defaults)
@@ -60,26 +60,33 @@
 
 ## Drift Remediation (Identified 2026-02-09)
 
+### Phase-Inappropriate Features
+- [ ] refactor: Remove epoch manager architecture from Phase 1 code in genesis-core/src/epoch/mod.rs (complete EpochPlugin, EpochManager, and epoch transition systems are Phase 2+)
+- [ ] refactor: Remove epoch-specific camera configuration from Phase 1 code in genesis-core/src/epoch/camera_config.rs (EpochCameraConfig with crossfade synchronization is Phase 2+)
+- [ ] refactor: Remove epoch transition handling from Phase 1 code in genesis-render/src/camera/epoch_transition.rs (entire module handles multi-epoch transitions)
+- [ ] fix: Align timeline UI with PRD logarithmic scrubber requirement in genesis-ui/src/timeline/mod.rs (currently uses linear slider instead of logarithmic scrubber spanning 13.8B years)
+
 ### Unrequested Features
-- [x] refactor: Remove unrequested camera fade system from genesis-ui/src/overlay/camera_fade.rs (Phase 7 feature in Phase 1 code)
-- [x] refactor: Remove camera mode interpolation from toggle_camera_mode() in genesis-render/src/camera/mod.rs:542-584
-- [ ] refactor: Remove CameraTarget component and update_camera_targets() system from genesis-render/src/camera/mod.rs
 - [ ] refactor: Remove general-purpose camera interpolation infrastructure from CameraState in genesis-render/src/camera/mod.rs (Phase 7 feature)
 - [ ] refactor: Remove epoch transition camera handling system from genesis-render/src/camera/epoch_transition.rs (Phase 1 only has Singularity epoch)
 - [ ] refactor: Simplify epoch management for Phase 1 - remove automatic transitions and event system from genesis-core/src/epoch/mod.rs
 - [ ] refactor: Remove EpochCameraConfig from genesis-core/src/epoch/camera_config.rs (not needed for single epoch in Phase 1)
 - [ ] refactor: Remove separate CosmicTime resource - timeline should read directly from TimeAccumulator in genesis-ui/src/timeline/mod.rs
 - [ ] refactor: Remove sync_time_resources() system - timeline should directly control TimeAccumulator in genesis-ui/src/timeline/mod.rs
+- [ ] refactor: Remove test camera target from src/main.rs (setup_test_camera_target() is test infrastructure not required by PRD)
+- [ ] refactor: Remove epoch info overlay from genesis-ui/src/overlay/mod.rs (Phase 1 PRD only requires FPS counter and particle count overlay)
 
 ### PRD Contradictions
 - [ ] fix: Clarify time_acceleration_min default value in genesis-core/src/config.rs:138 - should explicitly be 1.0 to match PRD "1x to 10¹²x"
 - [ ] fix: Align timeline speed slider range with PRD specification (1x to 10¹²x) in genesis-ui/src/timeline/mod.rs:170-175
 - [ ] fix: Timeline slider scrubbing should update TimeAccumulator.years in genesis-ui/src/timeline/mod.rs:155-163
+- [ ] fix: Complete speed-to-acceleration mapping in genesis-ui/src/timeline/mod.rs (sync_time_resources() only syncs play/pause, not acceleration)
 - [ ] fix: Map PlaybackState.speed to TimeAccumulator.acceleration with proper logarithmic scaling in genesis-ui/src/timeline/mod.rs:195-204
 - [ ] fix: Camera initial mode should be set from config.initial_mode in src/main.rs:87-97
 - [ ] fix: Particle rendering should use individual Particle.color values instead of single material color in genesis-render/src/particle/mod.rs:214-267
 - [ ] fix: Particle.color changes in update_particle_energy_colors() should affect rendering in genesis-render/src/particle/mod.rs:314-328
 - [ ] fix: SingularityEpoch time range should be extended to allow visualization (PRD describes visible particle explosion) in genesis-core/src/epoch/singularity.rs:32-38
+- [ ] fix: Correct epoch time boundary documentation in ARCHITECTURE.md (line 26 lists 10⁻³² as Planck time, but correct value is 10⁻⁴³ seconds)
 
 ---
 

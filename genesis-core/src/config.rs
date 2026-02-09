@@ -1,66 +1,90 @@
 //! Configuration for Genesis Engine
 //!
 //! This module defines the configuration structure for Phase 1 parameters.
-//! The configuration supports TOML serialization and provides sensible defaults.
-//!
-//! # TOML Configuration File Format
-//!
-//! The configuration file should use the following TOML structure:
-//!
-//! ```toml
-//! # Window configuration
-//! [window]
-//! width = 1280
-//! height = 720
-//! title = "Genesis Engine - Big Bang Simulator"
-//! vsync = true
-//!
-//! # Particle system configuration
-//! [particle]
-//! initial_count = 100000
-//! max_count = 1000000
-//! base_size = 2.0
-//!
-//! # Camera configuration
-//! [camera]
-//! initial_mode = "orbit"  # or "free_flight"
-//! orbit_distance = 100.0
-//!
-//! # Time configuration
-//! [time]
-//! time_acceleration_min = 0.1
-//! time_acceleration_max = 1000000000000.0
-//! initial_time_acceleration = 1.0
-//!
-//! # Display/HUD configuration
-//! [display]
-//! show_fps = true
-//! show_particle_count = true
-//! show_epoch_info = true
-//! ```
+//! The configuration supports TOML deserialization and provides sensible defaults.
 
-use bevy::prelude::Resource;
-use clap::Parser;
-use serde::{Deserialize, Serialize};
-use std::env;
-use std::fs;
-use std::path::Path;
+use serde::Deserialize;
 
-/// Command-line arguments for Genesis Engine
-#[derive(Parser, Debug)]
-#[command(name = "genesis")]
-#[command(about = "Real-time Big Bang & Cosmological Evolution Simulator", long_about = None)]
-pub struct CliArgs {
-    /// Path to TOML configuration file
-    #[arg(short, long, value_name = "FILE")]
-    pub config: Option<String>,
+/// Time configuration settings for cosmic simulation
+#[derive(Debug, Clone, Deserialize)]
+pub struct TimeConfig {
+    /// Initial cosmic time in seconds (e.g., 10⁻⁴³s for singularity)
+    pub initial_time: f64,
+    /// Minimum time acceleration factor (1.0 = no acceleration)
+    pub time_acceleration_min: f64,
+    /// Maximum time acceleration factor (10¹² = maximum acceleration)
+    pub time_acceleration_max: f64,
+    /// Default time acceleration factor
+    pub default_time_acceleration: f64,
 }
 
-// Re-export CameraMode from epoch module to maintain API compatibility
-pub use crate::epoch::CameraMode;
+impl Default for TimeConfig {
+    fn default() -> Self {
+        Self {
+            initial_time: 1e-43,
+            time_acceleration_min: 1.0,
+            time_acceleration_max: 1e12,
+            default_time_acceleration: 1.0,
+        }
+    }
+}
+
+/// Particle system configuration settings
+#[derive(Debug, Clone, Deserialize)]
+pub struct ParticleConfig {
+    /// Number of particles to simulate
+    pub particle_count: usize,
+    /// Base size for particle rendering in world units
+    pub particle_size_base: f32,
+    /// Random variation factor for particle sizes
+    pub particle_size_variation: f32,
+    /// RGBA color for hot particles (e.g., white-hot)
+    pub color_hot: [f32; 4],
+    /// RGBA color for cooled particles
+    pub color_cool: [f32; 4],
+}
+
+impl Default for ParticleConfig {
+    fn default() -> Self {
+        Self {
+            particle_count: 10_000,
+            particle_size_base: 2.0,
+            particle_size_variation: 0.5,
+            color_hot: [1.0, 1.0, 1.0, 1.0],
+            color_cool: [1.0, 0.3, 0.0, 1.0],
+        }
+    }
+}
+
+/// Camera system configuration settings
+#[derive(Debug, Clone, Deserialize)]
+pub struct CameraConfig {
+    /// Initial camera position [x, y, z]
+    pub initial_position: [f64; 3],
+    /// Initial camera target/look-at point [x, y, z]
+    pub initial_target: [f64; 3],
+    /// Camera mode: "free" or "orbit"
+    pub camera_mode: String,
+    /// Movement speed for free-flight camera mode
+    pub movement_speed: f64,
+    /// Default orbit radius for orbit camera mode
+    pub orbit_radius: f64,
+}
+
+impl Default for CameraConfig {
+    fn default() -> Self {
+        Self {
+            initial_position: [0.0, 0.0, 100.0],
+            initial_target: [0.0, 0.0, 0.0],
+            camera_mode: "orbit".to_string(),
+            movement_speed: 10.0,
+            orbit_radius: 100.0,
+        }
+    }
+}
 
 /// Window configuration settings
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Deserialize)]
 pub struct WindowConfig {
     /// Window width in pixels
     pub width: u32,
@@ -83,121 +107,30 @@ impl Default for WindowConfig {
     }
 }
 
-/// Particle system configuration settings
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct ParticleConfig {
-    /// Initial number of particles to spawn
-    pub initial_count: usize,
-    /// Maximum number of particles allowed
-    pub max_count: usize,
-    /// Base size for particle rendering
-    pub base_size: f32,
-}
-
-impl Default for ParticleConfig {
-    fn default() -> Self {
-        Self {
-            initial_count: 100_000,
-            max_count: 1_000_000,
-            base_size: 2.0,
-        }
-    }
-}
-
-/// Resource wrapper for particle configuration
-///
-/// This resource stores particle system configuration and can be
-/// accessed by systems via `Res<ParticleConfigResource>`.
-#[derive(Resource, Clone, Debug)]
-pub struct ParticleConfigResource(pub ParticleConfig);
-
-/// Camera configuration settings
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct CameraConfig {
-    /// Initial camera mode
-    pub initial_mode: CameraMode,
-    /// Distance for orbit camera mode
-    pub orbit_distance: f32,
-}
-
-impl Default for CameraConfig {
-    fn default() -> Self {
-        Self {
-            initial_mode: CameraMode::Orbit,
-            orbit_distance: 100.0,
-        }
-    }
-}
-
-/// Time configuration settings
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct TimeConfig {
-    /// Minimum time acceleration factor
-    pub time_acceleration_min: f64,
-    /// Maximum time acceleration factor (10^12 for cosmic scale)
-    pub time_acceleration_max: f64,
-    /// Initial time acceleration factor
-    pub initial_time_acceleration: f64,
-}
-
-impl Default for TimeConfig {
-    fn default() -> Self {
-        Self {
-            time_acceleration_min: 1.0,
-            time_acceleration_max: 1_000_000_000_000.0, // 10^12
-            initial_time_acceleration: 1.0,
-        }
-    }
-}
-
-/// Display/HUD configuration settings
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct DisplayConfig {
-    /// Show FPS counter
-    pub show_fps: bool,
-    /// Show particle count
-    pub show_particle_count: bool,
-    /// Show epoch information
-    pub show_epoch_info: bool,
-}
-
-impl Default for DisplayConfig {
-    fn default() -> Self {
-        Self {
-            show_fps: true,
-            show_particle_count: true,
-            show_epoch_info: true,
-        }
-    }
-}
-
 /// Main configuration structure for Genesis Engine
 ///
 /// This struct contains all Phase 1 parameters for the engine configuration.
-/// It supports serialization to/from TOML format and provides sensible defaults
-/// corresponding to the "Standard Model" preset.
-#[derive(Debug, Clone, Serialize, Deserialize)]
+/// It supports deserialization from TOML format and provides sensible defaults.
+#[derive(Debug, Clone, Deserialize)]
+#[serde(default)]
 pub struct Config {
-    /// Window configuration
-    pub window: WindowConfig,
+    /// Time configuration
+    pub time: TimeConfig,
     /// Particle system configuration
     pub particle: ParticleConfig,
     /// Camera configuration
     pub camera: CameraConfig,
-    /// Time configuration
-    pub time: TimeConfig,
-    /// Display/HUD configuration
-    pub display: DisplayConfig,
+    /// Window configuration
+    pub window: WindowConfig,
 }
 
 impl Default for Config {
     fn default() -> Self {
         Self {
-            window: WindowConfig::default(),
+            time: TimeConfig::default(),
             particle: ParticleConfig::default(),
             camera: CameraConfig::default(),
-            time: TimeConfig::default(),
-            display: DisplayConfig::default(),
+            window: WindowConfig::default(),
         }
     }
 }
@@ -207,133 +140,5 @@ impl Config {
     #[must_use]
     pub fn new() -> Self {
         Self::default()
-    }
-
-    /// Loads configuration from a TOML file at the specified path.
-    ///
-    /// # Arguments
-    ///
-    /// * `path` - Path to the TOML configuration file
-    ///
-    /// # Returns
-    ///
-    /// Returns `Ok(Config)` if the file was successfully read and parsed,
-    /// or an error if the file cannot be read or contains invalid TOML.
-    ///
-    /// # Errors
-    ///
-    /// This function will return an error if:
-    /// - The file cannot be read (e.g., file not found, permission denied)
-    /// - The file contains invalid TOML syntax
-    /// - The TOML structure does not match the Config structure
-    pub fn load_from_file(path: &str) -> Result<Self, Box<dyn std::error::Error>> {
-        let contents = fs::read_to_string(path)?;
-        let config: Config = toml::from_str(&contents)?;
-        Ok(config)
-    }
-
-    /// Loads configuration from an optional path or searches default locations.
-    ///
-    /// If a path is provided, it attempts to load the configuration from that path.
-    /// If the path is `None`, it searches the following locations in order:
-    ///
-    /// 1. `./genesis.toml` (current directory)
-    /// 2. `~/.config/genesis/config.toml` (user config directory)
-    /// 3. `/etc/genesis/config.toml` (system-wide config)
-    ///
-    /// If no configuration file is found in any of the default locations,
-    /// it returns the default configuration.
-    ///
-    /// # Arguments
-    ///
-    /// * `path` - Optional path to a specific configuration file
-    ///
-    /// # Returns
-    ///
-    /// Returns `Ok(Config)` with either the loaded configuration or the default
-    /// if no file was found.
-    ///
-    /// # Errors
-    ///
-    /// This function will return an error if:
-    /// - A specific path is provided but the file cannot be read
-    /// - The file contains invalid TOML syntax
-    /// - The TOML structure does not match the Config structure
-    pub fn load_from_path(path: Option<String>) -> Result<Self, Box<dyn std::error::Error>> {
-        if let Some(p) = path {
-            // Load from the specified path
-            return Self::load_from_file(&p);
-        }
-
-        // Define default locations to search
-        let default_locations = [
-            "./genesis.toml".to_string(),
-            "~/.config/genesis/config.toml".to_string(),
-            "/etc/genesis/config.toml".to_string(),
-        ];
-
-        // Try each location in order
-        for location in default_locations {
-            // Expand tilde for home directory if present
-            let expanded_path = if location.starts_with("~/") {
-                match env::var("HOME") {
-                    Ok(home) => format!("{}/{}", home, &location[2..]),
-                    Err(_) => location,
-                }
-            } else {
-                location
-            };
-
-            // Check if file exists before attempting to read
-            if Path::new(&expanded_path).exists() {
-                match Self::load_from_file(&expanded_path) {
-                    Ok(config) => return Ok(config),
-                    Err(_) => continue, // Try next location if this one fails
-                }
-            }
-        }
-
-        // No config file found, return default configuration
-        Ok(Self::default())
-    }
-
-    /// Loads configuration from command-line arguments.
-    ///
-    /// This method parses the command-line arguments to extract the --config flag,
-    /// then loads the configuration from the specified path (if provided) or searches
-    /// default locations.
-    ///
-    /// # Returns
-    ///
-    /// Returns a tuple of `(Config, CliArgs)` containing the loaded configuration
-    /// and the parsed CLI arguments.
-    ///
-    /// # Panics
-    ///
-    /// This method will panic if command-line argument parsing fails.
-    pub fn from_cli_args() -> (Self, CliArgs) {
-        let args = CliArgs::parse();
-        let config =
-            Self::load_from_path(args.config.clone()).expect("Failed to load configuration");
-        (config, args)
-    }
-
-    /// Convenience method to load configuration from CLI arguments.
-    ///
-    /// This method parses command-line arguments and returns only the
-    /// loaded configuration, discarding the parsed arguments.
-    ///
-    /// # Returns
-    ///
-    /// Returns the loaded `Config`.
-    ///
-    /// # Panics
-    ///
-    /// This method will panic if command-line argument parsing fails or
-    /// configuration loading fails.
-    #[must_use]
-    pub fn load() -> Self {
-        let (config, _args) = Self::from_cli_args();
-        config
     }
 }
