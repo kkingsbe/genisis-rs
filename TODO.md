@@ -10,12 +10,6 @@
 
 ### Phase 1 Completeness Items
 
-#### Particle System Scaling
-- [ ] feature: Scale particle system from 1000 to 100K-1M particles
-  - Implement adaptive particle spawning based on config.particle.initial_count
-  - Add performance monitoring to ensure target FPS with increasing particle counts
-  - Optimize spawn_particles() to handle 100K+ entities efficiently
-
 #### Per-Instance Particle Attributes
 - [ ] feature: Synchronize Particle component data with GPU instance attributes
   - Implement per-instance data transfer system for Particle.color and Particle.size
