@@ -191,12 +191,11 @@ This document contains tasks for future sprints. Items here are not yet schedule
 - [ ] ~~Implement config file loader with path resolution~~ (COMPLETED: See Config::load_from_path() in genesis-core/src/config.rs)
 - [ ] ~~Implement clap argument parser for --config flag~~ (COMPLETED: See CliArgs and Config::load() in genesis-core/src/config.rs)
 - [ ] ~~Add ConfigResource and insert into main.rs~~ (COMPLETED: See ConfigResource wrapper in src/main.rs)
-- [ ] Update existing systems to read from ConfigResource instead of hardcoded values
-  - [ ] Refactor spawn_particles() to use config.particle.initial_count instead of constant PARTICLE_COUNT=1000
-  - [ ] Refactor ParticlePlugin to read base_size from config.particle.base_size
-  - [ ] Refactor CameraController to read movement_speed from config (add to CameraConfig)
-  - [ ] Refactor CameraController to read mouse_sensitivity from config (add to CameraConfig)
-  - [ ] Refactor time acceleration to use config.time.initial_time_acceleration in TimeAccumulator
+- [ ] Update spawn_particles() to use config.particle.initial_count instead of constant PARTICLE_COUNT=1000
+- [ ] Refactor ParticlePlugin to read base_size from config.particle.base_size
+- [ ] Add movement_speed field to CameraConfig in genesis-core/src/config.rs
+- [ ] Add mouse_sensitivity field to CameraConfig in genesis-core/src/config.rs
+- [ ] Refactor time acceleration to use config.time.initial_time_acceleration in TimeAccumulator
 
 ### Epoch Plugin System (DEFERRED - Planned for Phase 2+)
 **NOTE: The following infrastructure is NOT currently implemented:**
@@ -216,7 +215,8 @@ The following items were previously marked as completed but are NOT implemented:
 - [ ] Implement EpochManager resource (NOT YET IMPLEMENTED)
 - [ ] Register epoch plugins in main.rs (NOT YET IMPLEMENTED - requires EpochManager and EpochPlugin trait)
 
-Note: Epoch transition crossfade system is Phase 2+ scope (moved to Sprint 2 below)
+**NOTE:** The following epoch plugin creation tasks (lines 220-269) span all future phases (2-7). These umbrella tasks are well-broken down into subtasks but should be distributed to their respective sprint sections for better organization. Consider moving these tasks to: Sprint 2 (InflationEpoch, QGPEpoch), Sprint 3 (NucleosynthesisEpoch), Sprint 4 (RecombinationEpoch), Sprint 5 (DarkAgesEpoch), Sprint 6 (CosmicDawnEpoch).
+
 - [ ] Implement future epoch plugins (InflationEpoch, QGPEpoch, NucleosynthesisEpoch, RecombinationEpoch, DarkAgesEpoch, CosmicDawnEpoch)
   - [ ] Create InflationEpoch plugin in genesis-core/src/epoch/inflation.rs (10⁻³²s to 10⁻⁶s)
     - [ ] Implement InflationEpoch struct with EpochPlugin trait
@@ -283,6 +283,8 @@ Note: Epoch transition crossfade system is Phase 2+ scope (moved to Sprint 2 bel
 - [ ] Document OrbitController spherical coordinate system (distance, yaw, pitch, target)
 
 ### Build System
+**NOTE:** Cross-platform build configuration tasks (lines 285-368) are listed in Sprint 1 but per PRD.md line 251, these should be part of Sprint 7 (Phase 7: Polish, Cinematic Mode & Release). These tasks are well-broken down into subtasks and should be moved to Sprint 7 section.
+
 - [ ] Configure Cargo.toml for cross-platform builds in project root
   - [ ] Add [target.'cfg(all(target_os = "macos", target_arch = "aarch64")'.dependencies] section for Apple Silicon specific dependencies
   - [ ] Add [target.'cfg(target_os = "windows")'.dependencies] section for Windows-specific dependencies (e.g., winapi)

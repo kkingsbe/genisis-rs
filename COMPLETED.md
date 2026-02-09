@@ -49,6 +49,9 @@
   - Document that epoch management is Phase 2+ scope
   - Clarify current scope: single epoch (Singularity) only
 
+#### Refactoring
+- [x] refactor: Remove camera interpolation - it's a Phase 7 feature per PRD but implemented in Phase 1
+
 ## [2026-02-09]
 
 ### Configuration System
@@ -247,3 +250,8 @@
   - Implement adaptive particle spawning based on config.particle.initial_count
   - Add performance monitoring to ensure target FPS with increasing particle counts
   - Optimize spawn_particles() to handle 100K+ entities efficiently
+
+## [2026-02-09]
+
+### Critical Fixes (Blockers)
+- [x] refactor: Remove orbit camera zoom/pan - not specified in Phase 1 PRD but implemented

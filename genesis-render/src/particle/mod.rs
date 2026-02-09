@@ -147,8 +147,13 @@ pub struct Particle {
 /// The Transform component on each particle entity provides the actual
 /// position in world space.
 ///
-/// The mesh includes an instance_size attribute for per-instance particle size.
-/// This allows the vertex shader to apply size attenuation based on each particle's size.
+/// # Per-Instance Data Handling
+///
+/// Storage buffer systems (extract_particle_instances, prepare_particle_instance_buffers) exist
+/// for transferring Particle component data to GPU, but shader integration is pending.
+/// The current shader (point_sprite.wgsl) uses mesh attributes instead of the
+/// storage buffer. Full per-instance color and size synchronization requires updating
+/// the shader to use @builtin(instance_index) and the ParticleInstanceBuffer.
 pub fn init_point_mesh(mut commands: Commands, mut meshes: ResMut<Assets<Mesh>>) {
     println!("DEBUG: init_point_mesh STARTED");
     // Create a simple point mesh with PointList topology
@@ -158,9 +163,10 @@ pub fn init_point_mesh(mut commands: Commands, mut meshes: ResMut<Assets<Mesh>>)
     // Add a single vertex at the origin
     mesh.insert_attribute(Mesh::ATTRIBUTE_POSITION, vec![[0.0, 0.0, 0.0]]);
 
-    // Note: Per-instance size and color are now handled through storage buffer
-    // The shader reads instance data using @builtin(instance_index) from
-    // the ParticleInstanceBuffer. No mesh attributes needed.
+    // Note: Per-instance size and color attributes were previously added to the mesh,
+    // but are now handled through storage buffer infrastructure.
+    // Storage buffer systems (extract_particle_instances, prepare_particle_instance_buffers) exist,
+    // but shader integration is pending - the current shader still uses mesh attributes.
 
     let mesh_handle = meshes.add(mesh);
     commands.insert_resource(PointMesh(mesh_handle));

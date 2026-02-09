@@ -74,7 +74,6 @@ The application registers the following plugins and resources:
 - SingularityEpoch marker struct - epoch marker for Singularity phase (defined in genesis-core/epoch/singularity.rs)
 
 **The following epoch management infrastructure is NOT implemented and is planned for future phases**:
-- EpochCameraConfig struct - NOT defined
 - EpochManager resource - NOT defined
 - EpochManagerPlugin - NOT defined
 - EpochPlugin trait - NOT defined
@@ -255,9 +254,10 @@ Per-Instance Rendering
   - CameraConfig in genesis-core has fields: initial_position, initial_target, camera_mode (String), movement_speed, orbit_distance
   - CameraMode enum exists in genesis-render::camera but CameraConfig uses String for camera_mode field
   - genesis.toml has fields: initial_mode (String), orbit_distance (f64)
-- **Configuration Field Mismatches**:
+- **Configuration Field Status**:
   - **camera_mode vs CameraMode enum**: CameraConfig.camera_mode is a String, and CameraMode enum exists. CameraState::from_config() in genesis-render/src/camera/mod.rs (line 60) correctly accesses `config.camera_mode` and converts it to CameraMode enum.
   - **initial_time_acceleration vs default_time_acceleration**: genesis.toml has `initial_time_acceleration` field, and TimeConfig struct also has `initial_time_acceleration` field (field names match)
+  - **All configuration fields match correctly** between genesis.toml and Config structs (ParticleConfig, CameraConfig, TimeConfig, WindowConfig, DisplayConfig)
 - **Status**:
   - Camera setup (setup_camera system): Implemented - spawns 3D camera at orbit_distance looking at origin with OrbitController (distance: orbit_distance) and CameraController::default().
   - Camera movement controls: Implemented for both free-flight (update_free_flight_camera) and orbit (update_orbit_camera) modes
@@ -334,19 +334,14 @@ A running Bevy application with a 3D particle system, camera controls, and a tim
 - Time synchronization (sync_time_resources) between PlaybackState and TimeAccumulator including speed-to-acceleration mapping
 
 **Partially Implemented (Infrastructure exists but not connected):**
-- Epoch camera configuration (EpochCameraConfig struct defined, CameraMode enum defined) - infrastructure exists but not used
 - SingularityEpoch - defined as marker struct but does NOT implement EpochPlugin trait (trait doesn't exist)
-- Per-instance particle attributes (ATTRIBUTE_INSTANCE_SIZE, ATTRIBUTE_INSTANCE_COLOR) - mesh attributes defined but not synchronized with Particle component data
+- Per-instance particle attributes (storage buffer systems extract_particle_instances and prepare_particle_instance_buffers exist, but shader integration is pending)
 - Dual time system (TimeAccumulator.years + CosmicTime.cosmic_time) - both exist, timeline scrubbing DOES sync to TimeAccumulator.years via timeline_panel_ui
 
 **Pending (Phase 1 Completion Items):**
 - Full physics-based particle updates with simulation-level particle sync (update_particles has basic outward expansion, full physics sync pending)
-- Per-instance particle color and size synchronization with GPU instance attributes (storage buffer systems exist but shader uses mesh attributes, not storage buffer)
+- Per-instance particle color and size synchronization with GPU instance attributes (storage buffer systems exist but shader integration pending)
 - Timeline scrubbing state restoration for reverse/replay with snapshot history (slider changes update both CosmicTime and TimeAccumulator.years, but reverse/replay capability pending)
-- Configuration field name reconciliation between genesis.toml and Config structs:
-  - ParticleConfig: genesis.toml fields (initial_count, max_count, base_size) MATCH struct fields (no changes needed)
-  - CameraConfig: genesis.toml has fields (initial_mode, orbit_distance), struct has camera_mode (String) and orbit_distance (f64) - field names match (camera_mode uses String instead of enum)
-  - OverlayState.show_epoch_info field EXISTS in struct and UI rendering (no changes needed)
 
 **Deferred to Future Phases (Phase 2+):**
 - Epoch management system implementation (EpochPlugin trait, EpochManager resource, EpochManagerPlugin, EpochChangeEvent, update_epoch_transition system, handle_epoch_change_transition system)
@@ -418,12 +413,9 @@ The following features are planned for future phases and are not currently imple
 - Cinematic mode with pre-authored camera paths
 
 **Phase 1 Completion Items (Pending)**:
-- Per-instance particle attribute synchronization for individual particle colors and sizes
-- Config::load() method implementation for external TOML configuration
-- Timeline scrubbing to TimeAccumulator synchronization (reverse/replay with state restoration)
-- OverlayState.show_epoch_info field addition and UI rendering
-- Configuration field name reconciliation between genesis.toml and Config structs
-- Particle scaling to 100K particles (currently at ~1000)
+- Per-instance particle attribute synchronization for individual particle colors and sizes (storage buffer systems exist, shader integration pending)
+- Timeline scrubbing to TimeAccumulator synchronization with reverse/replay capability (slider changes update both resources, but reverse/replay with snapshot history is pending)
+- Full physics-based particle updates with simulation-level particle sync (update_particles has basic outward expansion, full physics sync pending)
 
 ## Architectural Decisions Log
 
@@ -545,13 +537,12 @@ The gap analysis was conducted by:
    - **Impact:** Timeline scrubbing works forward but cannot replay backward smoothly
 
 4. **Config::load() Implementation** (PRD line 113: "TOML configuration presets")
-   - **Status:** NOT documented in TODO.md or BACKLOG.md
-   - **Gap:** Configuration loading infrastructure is missing:
-     - Config::load() method exists but needs external TOML file reading
-     - No task to implement config file path resolution (./genesis.toml, user config, system config)
-     - No task to implement CLI --config flag parsing with clap
-     - No task for config validation and error handling
-   - **Impact:** Cannot load external configuration files, only uses defaults
+   - **Status:** Implemented
+   - Config::load() method is fully implemented and reads from genesis.toml with file path search logic
+   - Searches ./genesis.toml, ~/.config/genesis/config.toml, /etc/genesis/config.toml in order
+   - Config struct with WindowConfig, ParticleConfig, CameraConfig, TimeConfig, DisplayConfig fully defined
+   - All configuration fields match correctly between genesis.toml and Config structs
+   - **Note:** CLI --config flag parsing with clap is not yet implemented (future enhancement)
 
 **Gaps Between PRD Requirements and BACKLOG.md:**
 
@@ -620,11 +611,8 @@ The gap analysis was conducted by:
 
 11. **CameraConfig.camera_mode vs CameraMode enum**
     - **Status:** CameraConfig uses String (genesis.toml field: "initial_mode") but CameraMode enum exists
-    - **Gap:** No task to resolve this inconsistency:
-      - No task for converting CameraConfig.camera_mode String to CameraMode enum consistently
-      - No task for adding derive(Serialize) to CameraMode enum in genesis-core/epoch/camera_config.rs
-      - No task for updating CameraConfig to use CameraMode instead of String
-    - **Impact:** Requires string-to-enum conversion in CameraState::from_config()
+    - **Resolution:** String-to-enum conversion is implemented in CameraState::from_config() (genesis-render/src/camera/mod.rs line 60)
+    - **Impact:** None - configuration loading works correctly with proper string-to-enum conversion
 
 12. **ParticleConfig field names**
     - **Status:** genesis.toml uses `initial_count`, `max_count`, `base_size` which match ParticleConfig struct
@@ -835,13 +823,13 @@ The gap analysis was conducted by:
 #### Implementation Priority Recommendations
 
 **Sprint 1 Completion (Phase 1):**
-1. Implement Config::load() method with external TOML file reading
+1. ~~Implement Config::load() method with external TOML file reading~~ (COMPLETED)
 2. Implement Temperature resource module with epoch-based updates
 3. Implement Scale Factor resource module with epoch-based updates
 4. Create Epoch Indicator UI panel with era name, temperature, scale factor display
-5. Implement per-instance particle attribute synchronization system
+5. Implement per-instance particle attribute synchronization system (storage buffer systems exist, shader integration pending)
 6. Add simulation snapshot and history system for reverse/replay
-7. Resolve configuration field mismatches (CameraConfig.camera_mode string vs enum)
+7. ~~Resolve configuration field mismatches (CameraConfig.camera_mode string vs enum)~~ (RESOLVED - string-to-enum conversion in CameraState::from_config())
 8. Add particle scaling tasks with performance monitoring for 100K-1M target
 
 **Sprint 2 (Phase 2 - Inflation):**
@@ -855,8 +843,8 @@ The gap analysis was conducted by:
 1. **Strong Foundation:** Phase 1 infrastructure is well-implemented with Bevy ECS, rendering pipeline, camera controls, and UI framework
 2. **Comprehensive Planning:** BACKLOG.md shows excellent sprint planning with granular subtasks for all phases
 3. **Missing Infrastructure Core:** Temperature and Scale Factor resources are foundational for all phases and should be implemented in Sprint 1
-4. **Configuration System:** Config structures are well-defined but external loading is missing
-5. **Per-Instance Rendering:** GPU attribute infrastructure exists but synchronization is incomplete
+4. **Configuration System:** Config structures are well-defined and external loading is fully implemented
+5. **Per-Instance Rendering:** GPU attribute infrastructure exists but synchronization is incomplete (storage buffer systems exist, shader integration pending)
 
 **Issues to Address:**
 
