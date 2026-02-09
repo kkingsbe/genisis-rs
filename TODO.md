@@ -7,7 +7,7 @@
 ## Sprint 1 - Phase 1: The Singularity
 
 ### Critical Fixes (Blockers)
-- [ ] refactor: Disable display.show_epoch_info config - this is a Phase 2+ feature enabled in Phase 1
+- [x] refactor: Disable display.show_epoch_info config - this is a Phase 2+ feature enabled in Phase 1
 - [ ] refactor: Remove unused config fields from genesis.toml that don't map to Phase 1 PRD
 - [ ] fix: Align speed slider range with PRD - PRD specifies 1x-10¹²x but code has 0.1-10.0
 - [ ] fix: Implement particle spawning at configured count - genesis.toml has 100K but only 1000 spawning
@@ -71,6 +71,13 @@
 - [ ] refactor: Remove unused clap dependency from genesis-core/Cargo.toml - PRD doesn't specify command-line argument parsing
 - [ ] fix: Implement Epoch Plugin Architecture per PRD section 4.1 - convert SingularityEpoch from marker struct to actual Bevy plugin, create EpochManager for epoch transitions
 - [ ] fix: Add missing ParticleIndex component or remove the broken extract_particle_instances query in instance_buffer.rs
+- [ ] refactor: Remove unrequested time conversion functions from genesis-core/src/time/mod.rs - seconds_to_years(), minutes_to_years() are not required for Phase 1
+- [ ] refactor: Remove unrequested time constants from genesis-core/src/time/mod.rs - SECONDS_PER_MINUTE, SECONDS_PER_HOUR, SECONDS_PER_DAY are not in PRD Phase 1
+- [ ] refactor: Remove unrequested TimeConfig fields from genesis-core/src/config.rs - initial_time, initial_time_acceleration are not used in Phase 1
+- [ ] refactor: Remove unrequested CameraConfig fields from genesis-core/src/config.rs - initial_position, initial_target, movement_speed are not specified in PRD Phase 1
+- [ ] refactor: Remove unrequested ParticleConfig fields from genesis-core/src/config.rs - particle_size_variation, color_hot, color_cool are not in PRD Phase 1
+- [ ] refactor: Remove unrequested particle update systems from genesis-render/src/particle/mod.rs - update_particles() and update_particle_energy_colors() add physics and energy-based coloring not specified in Phase 1 PRD
+- [ ] refactor: Remove "Epoch: Not implemented" placeholder from genesis-ui/src/overlay/mod.rs - unnecessary visual clutter for Phase 1
 
 ### Sprint QA
 - [ ] SPRINT QA: Run full build and test suite. Fix ALL errors. If green, create/update '.sprint_complete' with the current date.

@@ -22,7 +22,7 @@ impl Default for OverlayState {
         Self {
             show_fps: true,
             show_particle_count: true,
-            show_epoch_info: true,
+            show_epoch_info: false,
         }
     }
 }

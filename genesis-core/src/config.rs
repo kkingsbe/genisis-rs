@@ -166,7 +166,7 @@ impl Default for DisplayConfig {
         Self {
             show_fps: true,
             show_particle_count: true,
-            show_epoch_info: true,
+            show_epoch_info: false,
         }
     }
 }
