@@ -19,6 +19,9 @@ use bevy::prelude::Event;
 ///
 /// Systems can listen to this event by querying `EventReader<ScrubbingEvent>`:
 /// ```no_run
+/// use bevy::prelude::EventReader;
+/// use genesis_core::ScrubbingEvent;
+///
 /// fn handle_scrubbing(mut events: EventReader<ScrubbingEvent>) {
 ///     for event in events.read() {
 ///         if event.is_scrubbing {

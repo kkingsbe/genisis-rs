@@ -68,7 +68,6 @@ pub enum CameraMode {
     /// # Controls
     /// - **W/S**: Move forward/backward
     /// - **A/D**: Move left/right
-    /// - **Q/E**: Move down/up
     /// - **Mouse movement**: Look around
     #[default]
     FreeFlight,
@@ -216,9 +215,9 @@ impl CameraController {
     /// Calculate forward direction from yaw and pitch
     pub fn forward(&self) -> Vec3 {
         Vec3::new(
-            self.yaw.cos() * self.pitch.cos(),
-            self.pitch.sin(),
             self.yaw.sin() * self.pitch.cos(),
+            self.pitch.sin(),
+            self.yaw.cos() * self.pitch.cos(),
         )
         .normalize()
     }
@@ -695,6 +694,7 @@ mod tests {
         // Set camera mode to FreeFlight
         let mut camera_state = CameraState::default();
         camera_state.mode = CameraMode::FreeFlight;
+        camera_state.interpolating = false;
         world.insert_resource(camera_state);
 
         // Set scroll delta to simulate zoom input (positive = forward)
@@ -716,23 +716,14 @@ mod tests {
             },
         )).id();
 
-        // Verify the system behavior manually
-        let controller = world.get::<CameraController>(entity).unwrap();
-        
-        // Extract needed values BEFORE mutable borrow to avoid borrow conflict
-        let scroll_delta = world.get_resource::<InputState>().map(|i| i.scroll_delta).unwrap_or(0.0);
-        let forward = controller.forward();
-        let zoom_speed = controller.zoom_speed;
-        
-        // Now it's safe to create mutable borrow
-        let mut transform = world.get_mut::<Transform>(entity).unwrap();
-        
-        // With yaw=0, pitch=0, forward is (0, 0, 1)
-        // scroll_delta=10.0, zoom_speed=1.0 => movement = 10.0
-        let movement = forward * scroll_delta * zoom_speed;
-        transform.translation += movement;
-        
+        // Run the actual system - register it first, then run by system id
+        use bevy::prelude::*;
+        let system = IntoSystem::into_system(handle_free_flight_zoom);
+        let system_id = world.register_system(system);
+        world.run_system(system_id);
+
         // Verify camera moved forward along its forward vector
+        let transform = world.get::<Transform>(entity).unwrap();
         assert!(
             transform.translation.z > initial_position.z,
             "Camera should move forward (positive Z) with positive scroll_delta"
@@ -762,11 +753,12 @@ mod tests {
         // Set camera mode to FreeFlight
         let mut camera_state = CameraState::default();
         camera_state.mode = CameraMode::FreeFlight;
+        camera_state.interpolating = false;
         world.insert_resource(camera_state);
 
         // Set scroll delta to move closer to origin
         let mut input_state = InputState::default();
-        input_state.scroll_delta = -100.0;
+        input_state.scroll_delta = -4.2;
         world.insert_resource(input_state);
 
         // Spawn a camera entity very close to origin
@@ -782,26 +774,14 @@ mod tests {
             },
         )).id();
 
-        // Verify the system behavior manually
-        let controller = world.get::<CameraController>(entity).unwrap();
-        
-        // Extract needed values BEFORE mutable borrow to avoid borrow conflict
-        let forward = controller.forward();
-        let zoom_speed = controller.zoom_speed;
-        
-        // Now it's safe to create mutable borrow
-        let mut transform = world.get_mut::<Transform>(entity).unwrap();
-        
-        let movement = forward * (-100.0) * zoom_speed;
-        transform.translation += movement;
-        
-        // Clamp to minimum
-        let distance = transform.translation.length();
-        if distance < 1.0 {
-            transform.translation = transform.translation.normalize() * 1.0;
-        }
+        // Run the actual system - register it first, then run by system id
+        use bevy::prelude::*;
+        let system = IntoSystem::into_system(handle_free_flight_zoom);
+        let system_id = world.register_system(system);
+        world.run_system(system_id);
 
         // Verify camera distance is clamped to minimum 1.0
+        let transform = world.get::<Transform>(entity).unwrap();
         let distance = transform.translation.length();
         assert!(
             distance >= 1.0,
@@ -809,11 +789,11 @@ mod tests {
             distance
         );
 
-        // For a camera at (0, 0, 5) facing positive Z, moving -100 units
-        // would put it at (0, 0, -95), distance 95.0
-        // So it should be clamped to exactly 1.0 distance from origin
+        // For a camera at (0, 0, 5) facing positive Z, moving -4.2 units
+        // would put it at (0, 0, 0.8), distance 0.8
+        // Since this is below minimum distance, it should be clamped to exactly 1.0
         // Position would be normalized and scaled to 1.0
-        // With position (0, 0, -95), normalized is (0, 0, -1), scaled to 1.0 is (0, 0, -1)
+        // With position (0, 0, 0.8), normalized is (0, 0, 1), scaled to 1.0 is (0, 0, 1)
         assert!(
             (distance - 1.0).abs() < 0.001,
             "Camera distance should be exactly 1.0 after minimum clamping, got: {}",
@@ -829,6 +809,7 @@ mod tests {
         // Set camera mode to FreeFlight
         let mut camera_state = CameraState::default();
         camera_state.mode = CameraMode::FreeFlight;
+        camera_state.interpolating = false;
         world.insert_resource(camera_state);
 
         // Set scroll delta to move far from origin
@@ -849,26 +830,14 @@ mod tests {
             },
         )).id();
 
-        // Verify the system behavior manually
-        let controller = world.get::<CameraController>(entity).unwrap();
-        
-        // Extract needed values BEFORE mutable borrow to avoid borrow conflict
-        let forward = controller.forward();
-        let zoom_speed = controller.zoom_speed;
-        
-        // Now it's safe to create mutable borrow
-        let mut transform = world.get_mut::<Transform>(entity).unwrap();
-        
-        let movement = forward * 300.0 * zoom_speed;
-        transform.translation += movement;
-        
-        // Clamp to maximum
-        let distance = transform.translation.length();
-        if distance > 200.0 {
-            transform.translation = transform.translation.normalize() * 200.0;
-        }
+        // Run the actual system - register it first, then run by system id
+        use bevy::prelude::*;
+        let system = IntoSystem::into_system(handle_free_flight_zoom);
+        let system_id = world.register_system(system);
+        world.run_system(system_id);
 
         // Verify camera distance is clamped to maximum 200.0
+        let transform = world.get::<Transform>(entity).unwrap();
         let distance = transform.translation.length();
         assert!(
             distance <= 200.0,
@@ -896,6 +865,7 @@ mod tests {
         // Set camera mode to FreeFlight
         let mut camera_state = CameraState::default();
         camera_state.mode = CameraMode::FreeFlight;
+        camera_state.interpolating = false;
         world.insert_resource(camera_state);
 
         // Set scroll delta
@@ -916,20 +886,14 @@ mod tests {
             },
         )).id();
 
-        // Verify the system behavior manually
-        let controller = world.get::<CameraController>(entity).unwrap();
-        
-        // Extract needed values BEFORE mutable borrow to avoid borrow conflict
-        let forward = controller.forward();
-        let zoom_speed = controller.zoom_speed;
-        
-        // Now it's safe to create mutable borrow
-        let mut transform = world.get_mut::<Transform>(entity).unwrap();
-        
-        let movement = forward * 5.0 * zoom_speed;
-        transform.translation += movement;
+        // Run the actual system - register it first, then run by system id
+        use bevy::prelude::*;
+        let system = IntoSystem::into_system(handle_free_flight_zoom);
+        let system_id = world.register_system(system);
+        world.run_system(system_id);
 
         // Verify camera moved using the custom zoom_speed
+        let transform = world.get::<Transform>(entity).unwrap();
         assert!(
             (transform.translation.z - (initial_position.z + 10.0)).abs() < 0.001,
             "Camera should move 10.0 units (scroll_delta * zoom_speed = 5.0 * 2.0), got: {}",
@@ -945,6 +909,7 @@ mod tests {
         // Set camera mode to FreeFlight
         let mut camera_state = CameraState::default();
         camera_state.mode = CameraMode::FreeFlight;
+        camera_state.interpolating = false;
         world.insert_resource(camera_state);
 
         // Set negative scroll delta to zoom out
@@ -965,20 +930,14 @@ mod tests {
             },
         )).id();
 
-        // Verify the system behavior manually
-        let controller = world.get::<CameraController>(entity).unwrap();
-        
-        // Extract needed values BEFORE mutable borrow to avoid borrow conflict
-        let forward = controller.forward();
-        let zoom_speed = controller.zoom_speed;
-        
-        // Now it's safe to create mutable borrow
-        let mut transform = world.get_mut::<Transform>(entity).unwrap();
-        
-        let movement = forward * (-10.0) * zoom_speed;
-        transform.translation += movement;
+        // Run the actual system - register it first, then run by system id
+        use bevy::prelude::*;
+        let system = IntoSystem::into_system(handle_free_flight_zoom);
+        let system_id = world.register_system(system);
+        world.run_system(system_id);
 
         // Verify camera moved backward
+        let transform = world.get::<Transform>(entity).unwrap();
         assert!(
             transform.translation.z < initial_position.z,
             "Camera should move backward (negative Z) with negative scroll_delta"
@@ -1000,6 +959,7 @@ mod tests {
         // Set camera mode to FreeFlight
         let mut camera_state = CameraState::default();
         camera_state.mode = CameraMode::FreeFlight;
+        camera_state.interpolating = false;
         world.insert_resource(camera_state);
 
         // Set scroll delta
@@ -1020,20 +980,14 @@ mod tests {
             },
         )).id();
 
-        // Verify the system behavior manually
-        let controller = world.get::<CameraController>(entity).unwrap();
-        
-        // Extract needed values BEFORE mutable borrow to avoid borrow conflict
-        let forward = controller.forward();
-        let zoom_speed = controller.zoom_speed;
-        
-        // Now it's safe to create mutable borrow
-        let mut transform = world.get_mut::<Transform>(entity).unwrap();
-        
-        let movement = forward * 10.0 * zoom_speed;
-        transform.translation += movement;
+        // Run the actual system - register it first, then run by system id
+        use bevy::prelude::*;
+        let system = IntoSystem::into_system(handle_free_flight_zoom);
+        let system_id = world.register_system(system);
+        world.run_system(system_id);
 
         // Verify camera moved along its rotated forward vector
+        let transform = world.get::<Transform>(entity).unwrap();
         // With yaw=90 degrees (PI/2), forward is (1, 0, 0)
         // Camera should move along positive X axis
         assert!(
@@ -1068,6 +1022,7 @@ mod tests {
         // Set camera mode to FreeFlight
         let mut camera_state = CameraState::default();
         camera_state.mode = CameraMode::FreeFlight;
+        camera_state.interpolating = false;
         world.insert_resource(camera_state);
 
         // Test with moderate scroll delta
@@ -1088,20 +1043,14 @@ mod tests {
             },
         )).id();
 
-        // Verify the system behavior manually
-        let controller = world.get::<CameraController>(entity).unwrap();
-        
-        // Extract needed values BEFORE mutable borrow to avoid borrow conflict
-        let forward = controller.forward();
-        let zoom_speed = controller.zoom_speed;
-        
-        // Now it's safe to create mutable borrow
-        let mut transform = world.get_mut::<Transform>(entity).unwrap();
-        
-        let movement = forward * 20.0 * zoom_speed;
-        transform.translation += movement;
-        
+        // Run the actual system - register it first, then run by system id
+        use bevy::prelude::*;
+        let system = IntoSystem::into_system(handle_free_flight_zoom);
+        let system_id = world.register_system(system);
+        world.run_system(system_id);
+
         // Verify camera moved forward
+        let transform = world.get::<Transform>(entity).unwrap();
         assert!(
             transform.translation.z > initial_position.z,
             "Camera should move forward"

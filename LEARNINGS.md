@@ -91,3 +91,29 @@ This file documents patterns, decisions, and lessons learned while working on th
 - Even a "simple" configuration change requires 3 atomic subtasks when the codebase uses three-tier configuration
 - Analysis subtask before implementation is valuable for discovering all touchpoints and dependencies
 - Each subtask was independently verifiable with `cargo check`
+
+---
+
+## Session Date: 2026-02-10 - Timeline Minimum Range Enhancement
+
+### Gotchas Encountered:
+- The `effective_min=1.0` substitution in `time_from_slider()` created a discontinuity when slider value was 0.0
+- Setting min_time to exactly 0.0 caused the logarithmic calculation to fail (log10(0) is undefined)
+- The slider range `0.0..1.0` combined with a minimum threshold creates a dual-state representation that must be handled consistently
+
+### Patterns That Work in This Codebase:
+- Using a very small constant (`MIN_YEARS=1e-40`) enables true 0.0 min_time handling while avoiding mathematical errors
+- Roundtrip tests (slider→time→slider) verify mathematical consistency between bidirectional conversion functions
+- Time scale constants (`YEARS_PER_SECOND`, `YEARS_PER_MINUTE`) provide clean conversions for human-readable time scales
+- Negative slider values are a valid pattern for representing pre-threshold values without losing precision
+
+### Decisions Made and Why:
+- Replaced `effective_min=1.0` fallback with `effective_min=MIN_YEARS` (1e-40) to maintain continuity while avoiding log10(0)
+- Added roundtrip test cases to ensure `time_to_slider()` and `time_from_slider()` are mathematically consistent
+- Documented the threshold behavior: slider values below `slider_threshold` represent times from `MIN_YEARS` to `TIMELINE_MIN_YEARS`
+
+### Key Timeline/Time Handling Patterns:
+- Logarithmic slider mapping: `slider = log10(time / effective_min) / log10(effective_max / effective_min)`
+- Pre-threshold representation: Slider values from `-0.5` to `slider_threshold` handle the sub-picosecond time range
+- Minimum time handling: `MIN_YEARS=1e-40` (~3.15e-33 seconds) is effectively zero for simulation purposes
+- Roundtrip verification: Essential when implementing bidirectional conversion functions to detect edge cases

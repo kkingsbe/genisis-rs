@@ -94,27 +94,27 @@ The application registers the following plugins and resources:
   - Exports: GenesisUiPlugin, TimelinePlugin, CosmicTime, PlaybackState, OverlayState
 
 ### 2. Bevy ECS Pattern
-- **Components**: `Particle` (rendering component with position: Vec3, velocity: Vec3, color: Color, size: f32)
+- **Components**: `Particle` (rendering component with position: Vec3, velocity: Vec3, initial_position: Vec3, initial_velocity: Vec3, color: Color, size: f32)
   - Particles are spawned with Mesh3d, PointSpriteMaterialHandle, Transform, and Particle components
   - Camera components: `CameraController` (free-flight), `OrbitController` (orbit)
 - **Resources**: Global state organized by crate:
-   - genesis-core: TimeAccumulator, DisplayConfig
-   - genesis-render: CameraState, InputState, PointMesh
+   - genesis-core: TimeAccumulator, DisplayConfig, ScrubbingEvent (Event)
+   - genesis-render: CameraState, InputState, PointMesh, ScrubbingState
    - genesis-ui: CosmicTime, OverlayState, PlaybackState
 - **Systems**:
-   - Core: (none - epoch infrastructure does NOT exist)
-   - Particle: init_point_mesh (Startup), spawn_particles (Startup), update_particles (basic outward expansion animation), update_particle_energy_colors (thermal gradient coloring), sync_particle_position (Update), extract_particle_instances (ExtractSchedule), prepare_particle_instance_buffers (Render)
-   - Camera: update_free_flight_camera (Update), update_orbit_camera (Update), toggle_camera_mode (Update), handle_orbit_zoom (Update), handle_orbit_pan (Update), handle_free_flight_zoom (Update)
+   - Core: initialize_time_accumulator (Startup), update_cosmic_time (Update)
+   - Particle: init_point_mesh (Startup), spawn_particles (Startup), update_particles (basic outward expansion animation), update_particle_energy_colors (thermal gradient coloring), sync_particle_position (Update), update_scrubbing_state (Update), update_particles_for_scrubbing (Update), extract_particle_instances (ExtractSchedule), prepare_particle_instance_buffers (Render)
+   - Camera: update_free_flight_camera (Update), update_orbit_camera (Update), toggle_camera_mode (Update), interpolate_camera (Update), handle_orbit_zoom (Update), handle_free_flight_zoom (Update)
    - Input: handle_keyboard_input (PreUpdate), handle_mouse_input (PreUpdate)
-   - Time: initialize_time_accumulator (Startup), update_cosmic_time (Update)
    - UI: update_overlay_ui (Update), timeline_panel_ui (PostUpdate), sync_time_resources (Update)
 - **Plugins**:
    - TimeIntegrationPlugin (implemented): Cosmic time accumulation with Bevy integration
    - InputPlugin (implemented): Keyboard and mouse input processing (including scroll wheel input)
-   - CameraPlugin (implemented): Camera control systems for free-flight and orbit modes (rotation, zoom, pan, and mode switching with smooth interpolation)
+   - CameraPlugin (implemented): Camera control systems for free-flight and orbit modes (rotation, zoom, and mode switching with smooth interpolation)
      - Camera interpolation: Implemented via interpolate_camera() system with cubic ease-in-out easing
-     - Orbit zoom: Implemented (handle_orbit_zoom system uses scroll wheel input)
-     - Orbit pan: Implemented (handle_orbit_pan system uses middle mouse button drag)
+     - Orbit zoom: Implemented (handle_orbit_zoom system uses scroll wheel input, clamps distance [1.0, 200.0])
+     - Free-flight zoom: Implemented (handle_free_flight_zoom system uses scroll wheel input, clamps distance [1.0, 200.0])
+     - Orbit pan: **NOT implemented** (handle_orbit_pan system does NOT exist)
    - ParticlePlugin (implemented): Particle spawning and rendering systems with custom point sprite shader
    - TimelinePlugin (implemented within GenesisUiPlugin): Timeline UI with play/pause, logarithmic slider, and speed control
    - GenesisUiPlugin (implemented): UI system with EguiPlugin integration, overlay, and timeline controls
@@ -279,7 +279,7 @@ Per-Instance Rendering
   - Camera movement controls: Implemented for both free-flight (update_free_flight_camera) and orbit (update_orbit_camera) modes
   - Camera mode switching: Implemented via toggle_camera_mode system (press 'O' key to toggle between FreeFlight and Orbit)
   - Orbit camera zoom: **Implemented** (handle_orbit_zoom system exists at camera/mod.rs:408-430) - scroll wheel zooms in/out with clamped distance [1.0, 200.0]
-  - Orbit camera pan: **Implemented** (handle_orbit_pan system exists at camera/mod.rs:508-549) - middle mouse drag moves orbit target with pan_speed 0.05
+   - Orbit camera pan: **NOT implemented** (not required for Phase 1 PRD deliverables)
   - Camera interpolation: **Implemented** (interpolate_camera system exists at camera/mod.rs:642-686) - smooth cubic ease-in-out transitions during mode switches
 
 ### 6. Input System Architecture
@@ -347,7 +347,7 @@ A running Bevy application with a 3D particle system, camera controls, and a tim
 - Camera system with free-flight and orbit modes - CameraPlugin, CameraController, OrbitController, update_free_flight_camera, update_orbit_camera
 - Camera mode switching via toggle_camera_mode (press 'O' key)
 - Orbit camera zoom: **Implemented** (handle_orbit_zoom system uses scroll wheel input, clamps distance [1.0, 200.0])
-- Orbit camera pan: **Implemented** (handle_orbit_pan system uses middle mouse drag to move orbit target)
+   - Orbit camera pan: **NOT implemented** (not required for Phase 1 PRD deliverables)
 - Overlay UI with FPS and particle count panels - update_overlay_ui system
 - Timeline UI with play/pause, logarithmic slider, and speed control - TimelinePlugin, CosmicTime resource with logarithmic mapping, timeline_panel_ui system (runs in PostUpdate)
 - Time synchronization (sync_time_resources) between PlaybackState and TimeAccumulator including speed-to-acceleration mapping
