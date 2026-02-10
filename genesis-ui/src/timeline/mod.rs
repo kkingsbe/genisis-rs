@@ -31,7 +31,7 @@ use genesis_core::time::TimeAccumulator;
 #[derive(Resource)]
 pub struct PlaybackState {
     pub playing: bool,
-    pub speed: f32, // 1.0 to 1e12 for logarithmic playback speed control
+    pub speed: f32, // 1.0 to 1e12 for direct pass-through playback speed control (no logarithmic scaling)
 }
 
 impl Default for PlaybackState {
@@ -214,7 +214,7 @@ pub fn timeline_panel_ui(
 /// - When playing is false and TimeAccumulator is not paused, pause TimeAccumulator
 ///
 /// Also maps PlaybackState.speed (1.0-1e12) to TimeAccumulator.acceleration (1.0-1e12)
-/// using logarithmic scaling: acceleration = 10^((log10(speed) + 1.0) * 6.0)
+/// via direct pass-through (no logarithmic scaling)
 pub fn sync_time_resources(
     mut time_accumulator: ResMut<TimeAccumulator>,
     playback_state: Res<PlaybackState>,

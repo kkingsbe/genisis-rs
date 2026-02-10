@@ -361,12 +361,12 @@ pub fn update_particles(
 ///
 /// This creates a thermal gradient visualization where the singularity core
 /// appears white-hot and the outer regions appear red.
-pub fn update_particle_energy_colors(mut query: Query<&mut Particle>) {
+pub fn update_particle_energy_colors(mut query: Query<(&Transform, &mut Particle)>) {
     const MAX_DISTANCE: f32 = 50.0;
 
-    for mut particle in query.iter_mut() {
+    for (transform, mut particle) in query.iter_mut() {
         // Calculate distance from origin
-        let distance = particle.position.length();
+        let distance = transform.translation.length();
 
         // Normalize distance to energy value (0.0 to 1.0)
         // Energy decreases as distance increases

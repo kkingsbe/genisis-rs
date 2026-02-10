@@ -2,6 +2,19 @@
 
 ## [2026-02-10]
 
+### Critical Bug Fixes (Blockers)
+- [x] fix: Compilation error in genesis-render/src/particle/instance_buffer.rs - missing `use bytemuck::Zeroable;` import at line 31 causes `ParticleInstanceData::zeroed()` to fail at line 315 in test_particle_instance_data_zeroable
+- [x] fix: Failing test in genesis-render/tests/resource_binding_tests.rs - test_particle_component_structure at line 867 missing `velocity` field in Particle struct initialization (error: E0063)
+- [x] fix: Sync Particle.position with Transform.translation (CRITICAL - Breaks energy-based coloring per PRD Phase 1)
+  - [x] Add sync_particle_position() system that copies Transform.translation to Particle.position each frame
+  - [x] Query (Entity, &Transform, &mut Particle) and update particle.position from transform.translation
+  - [x] Register sync_particle_position() system in Update schedule before update_particle_energy_colors
+
+### Particle Velocity System
+- [x] fix: Add velocity field to Particle component (CRITICAL - Blocks proper particle expansion per PRD Phase 1)
+
+## [2026-02-10]
+
 ### Compilation Warnings Cleanup
 - [x] fix: Remove unused import bytemuck::Zeroable from genesis-render/src/particle/instance_buffer.rs:31
 - [x] fix: Remove unused import EguiSet from genesis-ui/src/overlay/mod.rs:7

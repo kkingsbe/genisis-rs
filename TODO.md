@@ -9,14 +9,10 @@
 ### Critical Bug Fixes (Blockers for Demo Moment)
 
 #### Test Compilation Errors
-- [x] fix: Failing test in genesis-render/tests/resource_binding_tests.rs - test_particle_component_structure at line 867 missing `velocity` field in Particle struct initialization (error: E0063)
+(No pending items)
 
 #### Particle Position Synchronization
-- [x] fix: Sync Particle.position with Transform.translation (CRITICAL - Breaks energy-based coloring per PRD Phase 1)
-  - [x] Add sync_particle_position() system that copies Transform.translation to Particle.position each frame
-  - [x] Query (Entity, &Transform, &mut Particle) and update particle.position from transform.translation
-  - [x] Register sync_particle_position() system in Update schedule before update_particle_energy_colors
-  - [ ] This ensures update_particle_energy_colors() calculates energy from actual particle positions
+- [x] This ensures update_particle_energy_colors() calculates energy from actual particle positions
 
 ### Configuration Alignment
 - [ ] clarify: Resolve genesis.toml initial_count discrepancy (GAP ANALYSIS 2026-02-10)

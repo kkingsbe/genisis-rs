@@ -229,12 +229,12 @@ Per-Instance Rendering
   - **CosmicTime.cosmic_time** (genesis-ui): Stores timeline position used by the slider UI, updated by timeline scrubbing
   - **Synchronization**: The sync_time_resources system synchronizes:
     - TimeAccumulator's paused state with PlaybackState.playing
-    - PlaybackState.speed to TimeAccumulator.acceleration (logarithmic mapping)
+    - PlaybackState.speed to TimeAccumulator.acceleration (direct pass-through)
   - **Timeline Scrubbing**: Timeline scrubbing updates CosmicTime.cosmic_time and syncs to TimeAccumulator.years via timeline_panel_ui system (line 180: `time_accumulator.years = cosmic_time.cosmic_time;`).
 - **Acceleration**:
   - TimeAccumulator.acceleration handles the actual 1x-10¹²x scaling
   - TimeAccumulator provides pause() and resume() methods for playback control
-  - PlaybackState.speed (f32, 0.1-10.0) controls time acceleration via speed control slider (logarithmic scale)
+  - PlaybackState.speed (f32, 1.0-1e12) controls time acceleration via speed control slider
 - **UI Integration**:
   - CosmicTime resource provides logarithmic slider mapping via from_slider() and to_slider() methods
   - Timeline UI panel (timeline_panel_ui) renders play/pause button, timeline slider, and speed control (runs in PostUpdate schedule)
@@ -244,7 +244,7 @@ Per-Instance Rendering
   - TimeIntegrationPlugin integrates with Bevy's time system
   - Timeline UI controls fully implemented with logarithmic slider mapping
   - Time synchronization between UI playback controls and accumulator fully implemented
-  - Speed-to-acceleration mapping: **Implemented** - PlaybackState.speed (0.1-10.0) maps to TimeAccumulator.acceleration (1.0-1e12) using logarithmic scaling
+  - Speed-to-acceleration mapping: **Implemented** - PlaybackState.speed (1.0-1e12) maps to TimeAccumulator.acceleration (1.0-1e12) via direct pass-through (no logarithmic scaling)
   - Timeline scrubbing to TimeAccumulator synchronization: **Implemented** - slider changes update both CosmicTime resource and TimeAccumulator.years via timeline_panel_ui
 - **Constants**:
   - `SECONDS_PER_YEAR`: Number of seconds in a cosmic year (365.25 days)

@@ -1,16 +1,16 @@
 {
-  "lastRun": "2026-02-10T01:58:38.240Z",
-  "lastSuccess": "2026-02-10T01:45:57.418Z",
-  "lastFailure": "2026-02-10T01:38:38.297Z",
-  "errorCount": 88,
+  "lastRun": "2026-02-10T02:48:15.408Z",
+  "lastSuccess": "2026-02-10T02:44:26.206Z",
+  "lastFailure": "2026-02-10T02:28:38.167Z",
+  "errorCount": 97,
   "consecutiveFailures": 0,
   "status": "running",
   "lastTerminationReason": "mistake_limit_reached",
   "earlyTerminationCount": 2,
-  "totalExecutionTimeMs": 17664117,
-  "averageExecutionTimeMs": 5888039,
+  "totalExecutionTimeMs": 18612048,
+  "averageExecutionTimeMs": 6204016,
   "successfulTerminations": 0,
   "failedTerminations": 2,
-  "error": "Failed to acquire lock for task 'janitor' after 3 attempts: Failed to acquire lock for task 'janitor': timeout after 5000ms",
-  "lastOutputFile": "/workspace/.janitor-output-1770687957419.md"
+  "error": "CLI execution failed with exit code null",
+  "lastOutputFile": "/workspace/.janitor-output-1770691466207.md"
 }
