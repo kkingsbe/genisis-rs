@@ -42,12 +42,14 @@
 
 use bevy::asset::Asset;
 use bevy::prelude::*;
-use bevy::pbr::Material;
+use bevy::pbr::{Material, MeshMaterial3d};
 use bevy::render::alpha::AlphaMode;
 use bevy::render::mesh::{MeshVertexAttribute, PrimitiveTopology};
 use bevy::render::render_asset::RenderAssetUsages;
 use bevy::render::render_resource::{AsBindGroup, ShaderRef};
+use bevy::render::Render;
 use bevy::render::RenderApp;
+use bevy::render::RenderSet;
 use genesis_core::config::ParticleConfig;
 use genesis_core::{events::ScrubbingEvent, time::TimeAccumulator};
 
@@ -113,13 +115,6 @@ impl Material for PointSpriteMaterial {
         AlphaMode::Add
     }
 }
-
-/// Component for holding a PointSpriteMaterial handle
-///
-/// This component is used to attach a point sprite material to particle entities
-/// without requiring the Material trait. Point sprites use a custom rendering approach.
-#[derive(Component, Clone)]
-pub struct PointSpriteMaterialHandle(pub Handle<PointSpriteMaterial>);
 
 /// Resource tracking whether timeline scrubbing is active
 ///
@@ -332,7 +327,7 @@ pub fn spawn_particles(
         // Bevy 0.15 automatically batches entities with same mesh/material for GPU instancing
         commands.spawn((
             Mesh3d(point_mesh.0.clone()), // Shared point mesh from resource
-            PointSpriteMaterialHandle(material_handle.clone()), // Shared point sprite material
+            MeshMaterial3d(material_handle.clone()), // Shared point sprite material
             Transform::from_translation(position), // Per-instance transform (all at origin)
             Particle {
                 position,
@@ -502,7 +497,9 @@ impl Plugin for ParticlePlugin {
         // Initialize bind group layout for instance data storage buffer in render app
         // RenderDevice only exists in the render app's world
         app.sub_app_mut(RenderApp)
-            .add_systems(Startup, init_particle_instance_bind_group_layout);
+            .add_systems(Startup, init_particle_instance_bind_group_layout)
+            .add_systems(ExtractSchedule, extract_particle_instances)
+            .add_systems(Render, prepare_particle_instance_buffers.in_set(RenderSet::Prepare));
     }
 }
 
