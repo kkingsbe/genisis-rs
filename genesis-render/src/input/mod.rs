@@ -6,12 +6,12 @@
 //!
 //! # Input Systems
 //!
-//! - `handle_keyboard_input` (PreUpdate): Maps WASD and Q/E keys to directional vector
+//! - `handle_keyboard_input` (PreUpdate): Maps WASD keys to directional vector
 //! - `handle_mouse_input` (PreUpdate): Tracks mouse motion delta, button states, and scroll wheel
 //!
 //! # Input Limitations
 //!
-//! - **Keyboard**: WASD and Q/E keys are mapped (W, A, S, D, Q, E)
+//! - **Keyboard**: WASD keys are mapped (W, A, S, D)
 //! - **Mouse**: Only left mouse button state is tracked (used for orbit rotation)
 //! - **Middle/right mouse**: NOT tracked (orbit pan not implemented)
 
@@ -35,7 +35,7 @@ pub struct InputState {
 
 /// System to handle keyboard input and update InputState
 ///
-/// This system runs in the PreUpdate schedule and maps WASD and Q/E key presses
+/// This system runs in the PreUpdate schedule and maps WASD key presses
 /// to a directional vector stored in InputState.keyboard_direction.
 ///
 /// # Key Mappings
@@ -44,8 +44,6 @@ pub struct InputState {
 /// - **S**: Backward (positive Z direction)
 /// - **A**: Left (negative X direction)
 /// - **D**: Right (positive X direction)
-/// - **Q**: Down (negative Y direction)
-/// - **E**: Up (positive Y direction)
 ///
 /// The resulting direction vector is normalized to ensure consistent
 /// movement speed regardless of diagonal movement.
@@ -68,13 +66,6 @@ pub fn handle_keyboard_input(
     }
     if keyboard.pressed(KeyCode::KeyD) {
         input_state.keyboard_direction += Vec3::new(1.0, 0.0, 0.0);
-    }
-    // Handle Q/E vertical movement
-    if keyboard.pressed(KeyCode::KeyQ) {
-        input_state.keyboard_direction += Vec3::new(0.0, -1.0, 0.0);
-    }
-    if keyboard.pressed(KeyCode::KeyE) {
-        input_state.keyboard_direction += Vec3::new(0.0, 1.0, 0.0);
     }
 
     // Normalize direction if not zero

@@ -9,7 +9,7 @@
 ### Unrequested Features (Refactor Candidates)
 *Features implemented in src/ but NOT specified in PRD.md Phase 1*
 
-- [ ] refactor: Remove Q/E vertical camera movement (genesis-render/src/input/mod.rs:73-78)
+- [x] refactor: Remove Q/E vertical camera movement (genesis-render/src/input/mod.rs:73-78)
   - PRD Phase 1 doesn't specify vertical movement controls
   - Only WASD horizontal movement mentioned in Phase 1 Deliverables
 
@@ -82,7 +82,3 @@
 - [ ] SPRINT QA: Run full build and test suite. Fix ALL errors. If green, create/update '.sprint_complete' with the current date.
 
 ### Test Health - Failing Tests
-- [x] fix: Failing compilation in genesis-render/src/camera/mod.rs from recent commit - Rust borrow checker errors at lines 595, 597, 657, 719, 781, 825, 875, 938 (completed 2026-02-10 - fixed by extracting controller values before mutable Transform borrow)
-  - Error: cannot borrow `world` as mutable because it is also borrowed as immutable
-  - Issue: world.get::<CameraController>() and world.get_mut::<Transform>() cannot be held simultaneously
-  - Impact: Blocks test suite from running (cargo test fails with 8 compilation errors)
