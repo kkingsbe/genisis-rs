@@ -57,6 +57,24 @@ The "Timeline Reverse/Replay Scope" blocker has been removed. The system now pro
 
 **Resolution:** Removed incorrect `Material` trait implementation from `PointSpriteMaterial` and updated dependent code to use custom rendering approach. Full workspace build now succeeds.
 
+### [2026-02-10] - Missing Asset Resource Registration - RESOLVED
+
+**Status:** Resolved
+
+**Original Issue:**
+The spawn_particles system cannot access ResMut<Assets<PointSpriteMaterial>> because the resource was not registered. This caused a panic during application startup.
+
+**Root Cause:**
+ParticlePlugin::build() in genesis-render/src/particle/mod.rs was missing the asset registration call for PointSpriteMaterial.
+
+**Fix Applied:**
+Added `app.init_asset::<PointSpriteMaterial>();` at line 488 in genesis-render/src/particle/mod.rs within the ParticlePlugin::build() method.
+
+**Verification:**
+cargo run compiled successfully and reached window creation stage without asset-related panics. The application now progresses past asset initialization.
+
+**Resolved By:** Orchestrator session 2026-02-10
+
 ## Format for New Blockers
 
 When reporting a blocker, use the following format:

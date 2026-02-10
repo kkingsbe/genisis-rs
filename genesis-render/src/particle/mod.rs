@@ -485,6 +485,7 @@ pub struct ParticlePlugin;
 
 impl Plugin for ParticlePlugin {
     fn build(&self, app: &mut App) {
+        app.init_asset::<PointSpriteMaterial>();
         // Startup systems
         app.add_systems(Startup, init_point_mesh)
             .add_systems(Startup, spawn_particles.after(init_point_mesh))

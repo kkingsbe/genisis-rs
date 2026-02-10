@@ -4,6 +4,42 @@
 
 ---
 
+## ⚠️ BLOCKER - Missing Asset Resource Registration
+
+**Date:** 2026-02-10
+
+**Severity:** High
+
+**Error:**
+```
+thread 'main' panicked at C:\Users\Kyle\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\bevy_ecs-0.15.4\src\system\function_system.rs:216:28:
+genesis_render::particle::spawn_particles could not access system parameter ResMut<Assets<PointSpriteMaterial>>
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace    
+Encountered a panic in system `bevy_app::main_schedule::Main::run_main`!
+error: process didn't exit successfully: `target\debug\genesis.exe` (exit code: 101)
+```
+
+**Root Cause Analysis:**
+The `spawn_particles` system in `genesis-render/src/particle/mod.rs` is attempting to access `ResMut<Assets<PointSpriteMaterial>>`, but the `Assets<PointSpriteMaterial>` resource has not been registered with the Bevy app. This is a missing resource registration issue.
+
+**Impact:**
+- Application fails to start with runtime panic
+- All particle spawning functionality is blocked
+- Sprint 2 Phase 2 development cannot proceed until resolved
+
+**Suggested Fix:**
+The `Assets<PointSpriteMaterial>` resource needs to be registered in the app. This typically requires one of:
+1. Adding the `PointSpriteMaterial` plugin (if one exists)
+2. Initializing the asset resource manually in `genesis-render/src/lib.rs` within the `GenesisRenderPlugin::build()` method
+3. Registering the asset type with Bevy's asset server using `app.register_asset_type::<PointSpriteMaterial>()`
+
+**Next Steps:**
+- All completed - resolution documented in BLOCKERS.md
+
+**Status:** Resolved
+
+---
+
 ## Sprint 2 - Phase 2: Inflation & Quantum Seeds
 
 ### Infrastructure - genesis-physics Crate
