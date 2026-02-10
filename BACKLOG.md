@@ -10,19 +10,49 @@ This document contains tasks for future sprints. Items here are not yet schedule
 ### Core Visualization
 - [ ] ~~Implement procedural singularity visualization: spawn particles at origin with radial outward velocity vectors~~ (COMPLETED: See genesis-render/src/particle/mod.rs spawn_particles())
 - [ ] ~~Replace random particle spawning in spawn_particles() with procedural singularity generation~~ (COMPLETED: Already implemented with deterministic pseudo-random distribution)
+- [ ] **fix: Add velocity field to Particle component** (CRITICAL - Blocks proper particle expansion per PRD Phase 1)
+  - [ ] Add `velocity: Vec3` field to Particle struct in genesis-render/src/particle/mod.rs
+  - [ ] Store calculated velocity in spawn_particles() instead of discarding it (line 302-304)
+  - [ ] Update Particle component with stored velocity: Particle { position, color, size, velocity }
+  - [ ] Modify update_particles() to use stored Particle.velocity instead of hardcoded speed value
+- [ ] **fix: Sync Particle.position with Transform.translation** (CRITICAL - Breaks energy-based coloring per PRD Phase 1)
+  - [ ] Add sync_particle_position() system that copies Transform.translation to Particle.position each frame
+  - [ ] Query (Entity, &Transform, &mut Particle) and update particle.position from transform.translation
+  - [ ] Register sync_particle_position() system in Update schedule before update_particle_energy_colors
+  - [ ] This ensures update_particle_energy_colors() calculates energy from actual particle positions, not spawn positions
 - [ ] Scale particle system from 1000 to 100K-1M particles
   - [ ] Implement adaptive particle spawning system that scales based on config.particle.initial_count
   - [ ] Add performance monitoring to ensure target FPS with increasing particle counts
   - [ ] Optimize spawn_particles() to handle 100K+ entities efficiently (use batch spawning)
   - [ ] Implement particle LOD (Level of Detail) system to reduce rendering load for distant particles
   - [ ] Add GPU memory management for large particle systems (buffer reuse, streaming)
+- [ ] **feature: Implement energy cooling model for singularity visualization (PRD Phase 1 requirement)**
+  - [ ] Create Temperature resource struct tracking universe temperature in Kelvin (genesis-core/src/temperature.rs)
+  - [ ] Implement adiabatic cooling model: T(t) = T₀ / a(t) where T₀ = 10²⁷ K (Planck boundary)
+  - [ ] For Phase 1 singularity: implement simplified cooling T ∝ 1/r based on particle distance from origin
+  - [ ] Update particle colors in real-time based on temperature using cooling color ramp (white-hot → yellow → red)
+  - [ ] Register temperature update system in Update schedule before particle color update system
+  - [ ] Ensure energy-based coloring reflects actual particle expansion state, not just initial spawn position
 - [ ] Add Energy component to Particle entities to track individual particle energy values (create separate genesis_core::physics::Energy component)
 - [ ] Create energy update system that decreases particle energy as they expand outward (E = E₀ * exp(-d/λ) where λ is decay constant)
 - [ ] ~~Calculate particle energy based on distance from origin~~ (COMPLETED: See update_particle_energy_colors())
 - [ ] ~~Implement energy-based color mapping for singularity visualization~~ (COMPLETED: See energy_to_color() function)
 - [ ] Create cooling model tied to particle distance from origin or elapsed time (T ∝ 1/r for adiabatic expansion, track Temperature resource)
+- [ ] **clarify: Resolve genesis.toml initial_count discrepancy with code default (GAP ANALYSIS 2026-02-10)**
+  - [ ] Make decision on default particle count based on PRD Phase 1 requirement: "100K–1M point sprites" capability
+  - [ ] Update genesis.toml initial_count to 100000 to match PRD minimum and code default (RECOMMENDED)
+  - [ ] Update ParticleConfig::default() to 100000 to maintain consistency across code and config
+  - [ ] Verify configuration loading: ensure genesis.toml values properly override code defaults
+  - [ ] Test with 100K particles: confirm performance target ≥60 FPS on GTX 1660 class hardware
+  - [ ] Add config validation: log warning if initial_count < 1000 or > 10000000 (1M max target)
+  - [ ] Document particle count range and performance characteristics in USER_GUIDE.md
 
 ### Camera Controls
+- [ ] **feature: Implement scroll wheel zoom controls for free-flight camera (PRD Phase 1 requirement)**
+  - [ ] Add scroll wheel event handling to free-flight camera system (genesis-render/src/camera/mod.rs update_free_flight_camera)
+  - [ ] Implement zoom speed parameter in CameraController (zoom_speed: f32)
+  - [ ] Apply scroll delta to move camera along forward vector (translation += forward * scroll_delta * zoom_speed)
+  - [ ] Clamp zoom movement to prevent camera passing through origin or flying too far
 - [ ] Implement scroll wheel zoom controls for free-flight camera (move along forward vector with adjustable zoom speed)
   - [ ] Add scroll wheel event handling to free-flight camera system (genesis-render/src/camera/mod.rs update_free_flight_camera)
   - [ ] Implement zoom speed parameter in CameraController (zoom_speed: f32)
@@ -319,14 +349,41 @@ The following items were previously marked as completed but are NOT implemented:
   - [ ] Add decade tick marks to timeline (10⁻³²s, 10⁻²⁰s, 1s, 1yr, 1Myr, 1Gyr, 13.8Gyr)
 
 #### Timeline Reverse/Replay Capability
-- [ ] Implement timeline reverse playback when scrubbing backward
-  - [ ] Add reverse playback mode flag to PlaybackState
-  - [ ] When slider moves to previous position, pause simulation and restore particle state
+- [ ] **feature: Implement timeline reverse playback when scrubbing backward (PRD Phase 1 requirement)**
+  - [ ] Add reverse_playback: bool field to PlaybackState struct (default: false)
+  - [ ] Implement reverse playback detection in timeline UI: detect when slider value decreases compared to previous frame
+  - [ ] On backward scrub detection: set PlaybackState.playing = false to pause simulation
+  - [ ] Trigger TimelineScrubEvent with target_time = new_slider_value
+  - [ ] Call restore_particle_state(target_time) to restore nearest snapshot
+  - [ ] Update slider position visually to match restored state
   - [ ] Implement simulation snapshot system to save particle states at key intervals
+    - [ ] Define snapshot_interval: f64 = 1.0 seconds of cosmic time between snapshots
+    - [ ] Track last_snapshot_time: f64 to avoid redundant captures
+    - [ ] In capture_particle_state() system, check if current_time - last_snapshot_time >= snapshot_interval
+    - [ ] Capture Transform.translation, Particle.velocity, Particle.energy for all entities
+    - [ ] Store snapshot with cosmic_time and particle_count in SnapshotHistory
   - [ ] Create snapshot history buffer (store last N snapshots)
+    - [ ] Define SnapshotHistory struct with capacity: usize = 50 (stores 50 snapshots)
+    - [ ] Use VecDeque<SimulationSnapshot> for efficient push/pop operations
+    - [ ] Implement evict_oldest() method removing oldest snapshot when capacity exceeded
+    - [ ] Implement get_snapshot_at_time(target_time: f64) -> Option<SimulationSnapshot>
+    - [ ] Use binary search on sorted cosmic_time values for O(log N) lookup
   - [ ] Implement state restoration from nearest snapshot when scrubbing backward
+    - [ ] In restore_particle_state() system, find nearest snapshot via SnapshotHistory.get_snapshot_at_time()
+    - [ ] If snapshot found and particle counts match, apply Transform.translation, Particle.velocity, Particle.energy
+    - [ ] Handle mismatched particle counts: truncate excess entities or spawn defaults for missing entities
+    - [ ] Set CosmicTime resource to snapshot.cosmic_time for UI synchronization
   - [ ] Handle edge cases: scrubbing beyond snapshot history, scrubbing to unvisited regions
+    - [ ] Clamp target_time to [oldest_snapshot.time, newest_snapshot.time] range
+    - [ ] If target_time < oldest_snapshot.time: use oldest snapshot with extrapolation warning in UI
+    - [ ] If target_time > newest_snapshot.time: resume forward playback from newest snapshot
+    - [ ] Add UI indicator: "Outside snapshot history - extrapolating" when at edge of history
   - [ ] Sync reverse playback with timeline UI (reverse indicator, slider position)
+    - [ ] Add reverse_playback UI indicator (e.g., "◀ REVERSE" badge in red)
+    - [ ] Show reverse indicator when PlaybackState.reverse_playback = true
+    - [ ] Hide reverse indicator when normal playback or paused
+    - [ ] Ensure slider value always reflects actual CosmicTime resource value (not just user input)
+  - [ ] Test reverse scrubbing with 10K particles: verify smooth state restoration and correct particle positions
 
 #### Timeline Speed Integration
 - [ ] Map PlaybackState.speed slider value to TimeAccumulator.acceleration

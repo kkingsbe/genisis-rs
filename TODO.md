@@ -11,6 +11,9 @@
 #### Particle Instance Buffer
 - [x] fix: Compilation error in genesis-render/src/particle/instance_buffer.rs - missing `use bytemuck::Zeroable;` import at line 31 causes `ParticleInstanceData::zeroed()` to fail at line 315 in test_particle_instance_data_zeroable
 
+#### Test Compilation Errors
+- [ ] fix: Failing test in genesis-render/tests/resource_binding_tests.rs - test_particle_component_structure at line 867 missing `velocity` field in Particle struct initialization (error: E0063)
+
 #### Particle Velocity System
 - [x] fix: Add velocity field to Particle component (CRITICAL - Blocks proper particle expansion per PRD Phase 1)
   - [ ] Add `velocity: Vec3` field to Particle struct in genesis-render/src/particle/mod.rs
@@ -106,3 +109,7 @@
 - [ ] fix: Align particle movement with PRD "explosion" requirement (color cooling effect is non-functional)
 - [ ] fix: Align timeline reverse replay with PRD requirement (no reverse replay on timeline scrubbing)
 - [ ] fix: Align input with Q/E up/down movement requirement (Q/E not implemented but documented)
+
+---
+
+[ ] SPRINT QA: Run full build and test suite. Fix ALL errors. If green, create/update '.sprint_complete' with the current date.
