@@ -9,6 +9,8 @@ use std::f64::consts::PI;
 use rand::Rng;
 use rand::SeedableRng;
 
+pub mod fft;
+
 /// Generates a pair of independent standard normal (Gaussian) random numbers
 /// using the Box-Muller transform.
 ///

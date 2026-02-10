@@ -17,8 +17,7 @@
 ### Physics Integration
 
 ### Density Perturbations
-- [x] Create 3D Gaussian random field generator on regular grid (apply Box-Muller transform to each grid point)
-- [ ] Implement Fourier transform (FFT) to convert real-space density field to k-space
+- [x] Implement Fourier transform (FFT) to convert real-space density field to k-space
 - [ ] Create power spectrum generator P(k) ∝ k^(n_s – 1) with configurable n_s parameter (default 0.96)
 - [ ] Apply power spectrum to k-space field (multiply by sqrt(P(k)) and random phase)
 - [ ] Implement inverse FFT to convert k-space back to real-space density perturbations
