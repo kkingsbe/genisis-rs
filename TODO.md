@@ -17,7 +17,6 @@
 ### Physics Integration
 
 ### Density Perturbations
-- [x] Implement Fourier transform (FFT) to convert real-space density field to k-space
 - [ ] Create power spectrum generator P(k) ∝ k^(n_s – 1) with configurable n_s parameter (default 0.96)
 - [ ] Apply power spectrum to k-space field (multiply by sqrt(P(k)) and random phase)
 - [ ] Implement inverse FFT to convert k-space back to real-space density perturbations
@@ -95,7 +94,7 @@
 ## Drift Remediation
 
 ### Documentation Updates
-- [ ] docs: Update COMPLETED.md to accurately reflect Phase 2 status - Clarify that only Phase 1 is complete, Phase 2 has infrastructure (crate, module stubs) but no physics implementation
+- [x] docs: Update COMPLETED.md to accurately reflect Phase 2 status - Clarify that only Phase 1 is complete, Phase 2 has infrastructure (crate, module stubs) but no physics implementation
 - [ ] docs: Update TODO.md title - Either implement Phase 2 features or update title to reflect actual current work
 - [ ] docs: Mark Phase 2 features as blocked - If Phase 2 cannot proceed, document blockers and dependencies
 
