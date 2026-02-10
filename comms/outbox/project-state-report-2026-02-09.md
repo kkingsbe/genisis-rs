@@ -1,49 +1,14 @@
-# TODO - Current Sprint (Phase 1: The Singularity)
+# Project State Report - 2026-02-09
 
-**Sprint Goal:** A running Bevy application with a 3D particle system, camera controls, and a time slider.
-
----
-
-## Failing Tests & Warnings (Latest Test Run)
-
-**Failing Tests (9 tests - AssetServer not initialized):**
-- [ ] fix: Failing test in genesis-render/tests/resource_binding_tests.rs - test_materials_initialized_before_rendering (AssetServer not initialized)
-- [ ] fix: Failing test in genesis-render/tests/resource_binding_tests.rs - test_pipeline_cache_no_index_out_of_bounds (AssetServer not initialized)
-- [ ] fix: Failing test in genesis-render/tests/resource_binding_tests.rs - test_resources_created_at_startup (AssetServer not initialized)
-- [ ] fix: Failing test in genesis-render/tests/resource_binding_tests.rs - test_complete_particle_rendering_setup (AssetServer not initialized)
-- [ ] fix: Failing test in genesis-render/tests/resource_binding_tests.rs - test_system_ordering_point_mesh_before_spawn (AssetServer not initialized)
-- [ ] fix: Failing test in genesis-render/tests/resource_binding_tests.rs - test_extract_system_transfers_data (AssetServer not initialized)
-- [ ] fix: Failing test in genesis-render/tests/resource_binding_tests.rs - test_particle_instance_bind_group_layout (AssetServer not initialized)
-- [ ] fix: Failing test in genesis-render/tests/resource_binding_tests.rs - test_camera_initialized_before_rendering (AssetServer not initialized)
-- [ ] fix: Failing test in genesis-render/tests/resource_binding_tests.rs - test_resources_accessible_during_update (AssetServer not initialized)
-
-**Compilation Warnings:**
-- [ ] fix: Remove unused import bytemuck::Zeroable from genesis-render/src/particle/instance_buffer.rs:31
-- [ ] fix: Remove unused import EguiSet from genesis-ui/src/overlay/mod.rs:7
-- [ ] fix: Remove unused manifest key workspace.dev-dependencies from Cargo.toml
-
-**GPU Infrastructure Issue:**
-- [ ] fix: Failing test in genesis-render/tests/resource_binding_tests.rs - test_resource_reference_counting (GPU not available in CI/testing environment)
+## Project Phase
+**IMPLEMENTATION** - Phase 1 (The Singularity) is in progress with failing integration tests and multiple uncompleted features. Sprint 1 has not been completed (no `.sprint_complete` file exists).
 
 ---
 
-## Drift TODO Items (From Drift Analysis)
+## TODO.md - Unchecked Items
 
-### Refactor Items
-- [ ] refactor: Remove unrequested storage buffer infrastructure for Phase 1 - The GPU storage buffer system in genesis-render/src/particle/instance_buffer.rs is over-engineering for Phase 1 requirements
-
-### Fix Items
-- [ ] fix: Implement orbit camera zoom and pan - Orbit camera is missing zoom (scroll) and pan (middle/right mouse) controls specified in Phase 1
-- [ ] fix: Implement smooth camera interpolation - Camera mode switching is instant, not smooth as specified in Phase 1
-- [ ] fix: Implement epoch transition system - No EpochManager or EpochPlugin trait exists; epoch transitions are not implemented
-- [ ] fix: Integrate timeline with epoch transitions - Timeline scrubbing doesn't trigger epoch transitions
-- [ ] fix: Add epoch time range enforcement - Epoch time boundaries exist but are not enforced or integrated with the timeline
-
----
-
-## Sprint 1 - Phase 1: The Singularity
-
-#### Failing Integration Tests (2026-02-09)
+### Failing Integration Tests (2026-02-09)
+- [ ] fix: Failing test in genesis-render/tests/resource_binding_tests.rs - test_point_mesh_initialized_before_particles_spawn - AssetServer resource does not exist in World
 - [ ] fix: Failing test in genesis-render/tests/resource_binding_tests.rs - test_materials_initialized_before_rendering - AssetServer resource does not exist in World
 - [ ] fix: Failing test in genesis-render/tests/resource_binding_tests.rs - test_camera_initialized_before_rendering - AssetServer resource does not exist in World
 - [ ] fix: Failing test in genesis-render/tests/resource_binding_tests.rs - test_extract_system_transfers_data - AssetServer resource does not exist in World
@@ -55,9 +20,7 @@
 - [ ] fix: Failing test in genesis-render/tests/resource_binding_tests.rs - test_complete_particle_rendering_setup - AssetServer resource does not exist in World
 - [ ] fix: Failing test in genesis-render/tests/resource_binding_tests.rs - test_resource_reference_counting - Unable to find GPU (GPU required for rendering tests)
 
-### Phase 1 Completeness Items
-
-### Code Cleanup
+### Code Cleanup - Phase 1 Completeness Items
 
 #### Remove Phase-Inappropriate Features
 - [ ] refactor: Remove unrequested TimeConfig fields from genesis-core/src/config.rs
@@ -129,10 +92,6 @@
 
 ### Repository Cleanup
 
-#### Temporary Output Files
-
-#### Leftover/Unused Files
-
 #### Code Review Candidates
 - [ ] review: genesis-core/src/physics/Particle struct is not used anywhere in codebase - consider if needed for future physics implementation or remove
 
@@ -160,14 +119,134 @@
 
 ---
 
-## Sprint Status
+## PRD.md Summary
 
-**Current Sprint:** Sprint 1 - Phase 1: The Singularity
-**Status:** In Progress (no .sprint_complete file exists)
-**Next Sprint:** Sprint 2 - Phase 2: Inflation & Quantum Seeds (locked until current sprint completes)
+### Project Purpose
+Genesis is a real-time Big Bang & Cosmological Evolution Simulator built in Rust that simulates the birth and evolution of the universe from the initial singularity through cosmic inflation, nucleosynthesis, recombination, and large-scale structure formation. It combines N-body gravitational dynamics, thermodynamic modeling, and particle physics approximations to produce a visually compelling, physically grounded real-time experience.
+
+### Key Features/Phases
+
+**Phase 1: The Singularity** (Current Sprint)
+- Goal: Running Bevy application with 3D particle system, camera controls, and time slider
+- Deliverables: 100K–1M point sprites, free-flight and orbit cameras with smooth interpolation, cosmic time system (1x to 10¹²x acceleration), logarithmic timeline scrubber, singularity visualization (particles with outward velocity, energy-based color mapping)
+
+**Phase 2: Inflation & Quantum Seeds**
+- Friedmann equation integrator for scale factor a(t)
+- Exponential expansion during inflation with density perturbations
+- 3D Gaussian random field generator with power spectrum
+- Quark-gluon plasma visualization
+
+**Phase 3: Nucleosynthesis**
+- 12-species nuclear reaction network with ODE solver
+- Live composition chart overlay showing element abundances
+- Particle color transitions by dominant composition
+
+**Phase 4: Recombination & CMB**
+- Saha equation solver for ionization fraction
+- Volumetric fog renderer (opaque to transparent transition)
+- CMB surface projection with temperature anisotropies
+
+**Phase 5: Dark Ages & First Structures**
+- N-body gravity (direct-sum and Barnes-Hut)
+- Dark matter halo formation with Friends-of-Friends algorithm
+- Cosmic web visualization
+- HDF5 snapshot export
+
+**Phase 6: Cosmic Dawn & Galaxy Formation**
+- SPH for baryonic gas dynamics
+- Star formation and Pop III stars
+- Reionization visualization with ionization bubbles
+- Galaxy billboard sprites and procedural audio
+
+**Phase 7: Polish & Cinematic Mode**
+- Performance optimization pass
+- Pre-authored camera paths with narration
+- Full cosmological parameter panel
+- Cross-platform release builds
+
+### Design Principles
+- Always Runnable: Every phase produces a runnable application
+- Vertical Slices: Each phase touches full stack (input, physics, rendering, UI)
+- Progressive Enhancement: Algorithms improve in fidelity while maintaining visual output
+- Demo-Ready at Every Merge: Each phase has defined "Demo Moment"
 
 ---
 
-## Sprint Finalization
+## ARCHITECTURE.md Summary
 
-- [ ] SPRINT QA: Run full build and test suite. Fix ALL errors. If green, create/update '.sprint_complete' with the current date.
+### Key Architectural Decisions
+
+1. **Modular Crate Architecture**
+   - `genesis-core`: Core simulation logic (epoch, physics, time)
+   - `genesis-render`: Rendering systems using Bevy ECS (camera, particle components)
+   - `genesis-ui`: UI state resources using Bevy ECS (timeline, overlay)
+
+2. **Bevy ECS Pattern**
+   - Components: `Particle` (rendering), `CameraController`, `OrbitController`
+   - Resources: TimeAccumulator, CameraState, InputState, CosmicTime, PlaybackState, OverlayState
+   - Systems: Particle spawning/update, camera control, input handling, time integration, UI updates
+   - Plugins: TimeIntegrationPlugin, InputPlugin, CameraPlugin, ParticlePlugin, TimelinePlugin, GenesisUiPlugin
+
+3. **Instanced Particle Rendering**
+   - GPU instancing with custom PointSpriteMaterial using WGSL shaders
+   - Capacity: 100K - 1M particles (planned)
+   - Attributes: Position, Velocity, Color, Size
+   - Point sprite rendering with custom shader: Implemented
+   - Storage buffer synchronization infrastructure exists but shader integration pending
+
+4. **Cosmic Time System**
+   - Dual time system: TimeAccumulator.years (physics) and CosmicTime.cosmic_time (UI)
+   - Synchronization system links playback controls with accumulator
+   - Logarithmic slider mapping for 13.8 billion year timeline
+   - Speed-to-acceleration mapping implemented
+
+5. **Camera System**
+   - Modes: FreeFlight and Orbit (default)
+   - Dual-controller architecture (both components always present)
+   - Orbit camera zoom and pan NOT implemented
+   - Camera interpolation NOT implemented
+
+6. **Configuration Management**
+   - TOML format (genesis.toml)
+   - Config structs: WindowConfig, ParticleConfig, CameraConfig, TimeConfig, DisplayConfig
+   - Config::load() implemented with file path search logic
+
+7. **Epoch Plugin Architecture (Planned for Future Phases)**
+   - EpochPlugin trait, EpochManager, EpochManagerPlugin NOT implemented
+   - SingularityEpoch marker struct exists but does not implement EpochPlugin
+
+### Current Implementation Status
+
+**Implemented (Phase 1):**
+- Bevy 0.15+ application scaffold with window
+- Basic input handling (keyboard, mouse)
+- Time integration system with f64 accumulator
+- Particle rendering system with custom point sprite shader
+- Particle spawning and basic outward expansion
+- Energy-based particle color system (thermal gradient)
+- Camera system with free-flight and orbit modes
+- Camera mode switching via 'O' key
+- Overlay UI with FPS and particle count
+- Timeline UI with play/pause, logarithmic slider, speed control
+- Time synchronization between playback controls and accumulator
+
+**Partially Implemented:**
+- SingularityEpoch defined but does NOT implement EpochPlugin trait
+- Per-instance particle attributes (storage buffer systems exist, shader integration pending)
+
+**NOT Implemented (deferred to Phase 2+):**
+- Orbit camera zoom and pan
+- Camera smooth interpolation
+- Epoch management system
+- Physics-based particle simulation (beyond basic expansion)
+- Timeline reverse/replay with snapshot history
+- All Phase 2-7 features
+
+### Two-Level Particle Architecture
+- **Simulation-Level Particle** (genesis-core::physics::Particle): Rust arrays for physics calculations - defined but not used
+- **Rendering-Level Particle** (genesis-render::particle::Particle): Bevy ECS component for rendering - fully implemented
+
+---
+
+## Inbox Status
+No new items - comms/inbox/ directory is empty.

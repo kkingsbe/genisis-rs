@@ -1,9 +1,35 @@
 # Completed Work
 
+## [2026-02-10]
+
+### Failing Integration Tests
+- [x] fix: Failing test in genesis-render/tests/resource_binding_tests.rs - test_point_mesh_initialized_before_particles_spawn - AssetServer resource does not exist in World
+
+
 ## [2026-02-09]
 
 ### Critical Fixes (Blockers)
 - [x] fix: Update genesis.toml time.initial_time_acceleration to match PRD Phase 1 starting range
+
+
+## [2026-02-09]
+
+### Failing Integration Tests (from commit 8578141)
+- [x] fix: Failing test in genesis-render/tests/resource_binding_tests.rs - test_comprehensive_binding_validation - Updated to validate storage buffer architecture instead of vertex attributes
+- [x] fix: Failing test in genesis-render/tests/resource_binding_tests.rs - test_system_cannot_access_invalid_resources - requires_non_existent could not access system parameter Res<'_, NonExistentResource>
+- [x] fix: Failing test in genesis-render/tests/resource_binding_tests.rs - test_materials_initialized_before_rendering - Added RenderPlugin to initialize Assets<PointSpriteMaterial>
+- [x] fix: Failing test in genesis-render/tests/resource_binding_tests.rs - test_resource_reference_counting - Added RenderPlugin to initialize Assets<Mesh>
+- [x] fix: Failing test in genesis-render/tests/resource_binding_tests.rs - test_resources_created_at_startup - Added RenderPlugin to initialize Assets<Mesh>
+- [x] fix: Failing test in genesis-render/tests/resource_binding_tests.rs - test_extract_system_transfers_data - Added RenderPlugin to initialize Assets<Mesh>
+- [x] fix: Failing test in genesis-render/tests/resource_binding_tests.rs - test_pipeline_cache_no_index_out_of_bounds - Added RenderPlugin to initialize Assets<Mesh>
+- [x] fix: Failing test in genesis-render/tests/resource_binding_tests.rs - test_point_mesh_initialized_before_particles_spawn - Added RenderPlugin to initialize Assets<Mesh>
+- [x] fix: Failing test in genesis-render/tests/resource_binding_tests.rs - test_system_ordering_point_mesh_before_spawn - Added RenderPlugin to initialize Assets<Mesh>
+- [x] fix: Failing test in genesis-render/tests/resource_binding_tests.rs - test_complete_particle_rendering_setup - Added RenderPlugin to initialize Assets<Mesh>
+- [x] fix: Failing test in genesis-render/tests/resource_binding_tests.rs - test_resources_accessible_during_update - Added RenderPlugin to initialize Assets<Mesh>
+- [x] fix: Failing test in genesis-render/tests/resource_binding_tests.rs - test_particle_instance_bind_group_layout - Added RenderPlugin to initialize AssetServer
+- [x] fix: Failing test in genesis-render/tests/shader_tests.rs - test_vertex_attribute_locations_match - Updated to expect only @location(0) position (storage buffer architecture)
+- [x] fix: Failing test in genesis-render/tests/shader_tests.rs - test_print_all_bindings - Updated to expect 4 bindings (0, 1, 2, 3 for storage buffer)
+- [x] fix: Failing test in genesis-render/tests/shader_tests.rs - test_comprehensive_shader_validation_summary - Updated to validate storage buffer architecture instead of vertex attributes
 
 
 ## [2026-02-09]
@@ -288,3 +314,20 @@
 ### Critical Fixes (Blockers)
 - [x] fix: Align speed slider range with PRD - PRD specifies 1x-10¹²x but code has 0.1-10.0
 - [x] fix: Implement particle spawning at configured count - genesis.toml has 100K but only 1000 spawning
+
+### Critical Fixes (Blockers)
+- [x] fix: Failing test in genesis-render/src/particle/instance_buffer.rs - test_particle_instance_data_alignment failed (expected alignment 16, got 4)
+
+### Code Cleanup
+- [x] refactor: Remove unrequested time conversion functions from genesis-core/src/time/mod.rs
+  - Remove seconds_to_years(), minutes_to_years() (not required for Phase 1)
+- [x] refactor: Remove unrequested time constants from genesis-core/src/time/mod.rs
+  - Remove SECONDS_PER_MINUTE, SECONDS_PER_HOUR, SECONDS_PER_DAY (not in PRD Phase 1)
+
+### Repository Cleanup
+- [x] chore: Remove .architect-output-1770673436052.md - temporary architect mode output file
+- [x] chore: Remove .architect-output-1770673991273.md - temporary architect mode output file
+- [x] chore: Remove .janitor-output-1770672479399.md - temporary janitor mode output file
+- [x] chore: Remove .janitor-output-1770673025376.md - temporary janitor mode output file
+- [x] chore: Remove bin/run.bat - contains hardcoded paths to another user's directory (c:\Users\Kyle\Documents\code\agent-coding-container\automation-parallel), not part of this Rust project
+- [x] chore: Remove commit-msg.md - saved commit message from past commit, not a template file

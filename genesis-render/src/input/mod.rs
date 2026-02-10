@@ -3,6 +3,18 @@
 //! Defines resource for tracking input device state (keyboard and mouse).
 //! Input handling systems (handle_keyboard_input, handle_mouse_input) are implemented
 //! and run in the PreUpdate schedule to ensure input is available before other systems.
+//!
+//! # Input Systems
+//!
+//! - `handle_keyboard_input` (PreUpdate): Maps WASD keys to directional vector
+//! - `handle_mouse_input` (PreUpdate): Tracks mouse motion delta and button states
+//!
+//! # Input Limitations
+//!
+//! - **Keyboard**: Only WASD keys are mapped (W, A, S, D)
+//! - **Mouse**: Only left mouse button state is tracked (used for orbit rotation)
+//! - **Scroll wheel**: NOT tracked (orbit zoom not implemented)
+//! - **Middle/right mouse**: NOT tracked (orbit pan not implemented)
 
 use bevy::input::mouse::MouseMotion;
 use bevy::input::ButtonInput;

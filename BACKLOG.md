@@ -215,6 +215,26 @@ The following items were previously marked as completed but are NOT implemented:
 - [ ] Implement EpochManager resource (NOT YET IMPLEMENTED)
 - [ ] Register epoch plugins in main.rs (NOT YET IMPLEMENTED - requires EpochManager and EpochPlugin trait)
 
+### SingularityEpoch Plugin (Phase 1 Implementation)
+- [ ] Define EpochPlugin trait in genesis-core/src/epoch/mod.rs
+  - [ ] Define trait with required methods: name(), start_year(), end_year(), build(app: &mut App), camera_config()
+  - [ ] Add derive(Debug) bounds for debugging
+  - [ ] Add 'static lifetime bound for Bevy plugin registration
+- [ ] Implement SingularityEpoch plugin in genesis-core/src/epoch/singularity.rs
+  - [ ] Convert marker struct to full plugin implementing EpochPlugin trait
+  - [ ] Implement name() returning "Singularity"
+  - [ ] Implement start_year() returning 0.0 (t=0 at Big Bang)
+  - [ ] Implement end_year() returning 1e-32 (Planck boundary, 10⁻³² years)
+  - [ ] Implement build() method registering singularity physics systems (particle spawning, energy cooling)
+  - [ ] Implement camera_config() returning optimal camera settings (position=[0,0,100], rotation=facing_origin)
+- [ ] Implement SingularityEpoch exit transition system
+  - [ ] Create singularity_exit_transition() system in genesis-core/epoch/singularity.rs
+  - [ ] Listen for cosmic_time crossing Planck boundary (t > 1e-32 years)
+  - [ ] Trigger EpochTransitionEvent from Singularity to Inflation epoch
+  - [ ] Set transition camera position to [0, 0, 100] facing origin for inflation start
+  - [ ] Configure fade duration: 0.5 seconds for quick visual transition
+  - [ ] Register transition system in CoreSchedule with .run_if(cosmic_time_exceeds_planck_boundary)
+
 **NOTE:** The following epoch plugin creation tasks (lines 220-269) span all future phases (2-7). These umbrella tasks are well-broken down into subtasks but should be distributed to their respective sprint sections for better organization. Consider moving these tasks to: Sprint 2 (InflationEpoch, QGPEpoch), Sprint 3 (NucleosynthesisEpoch), Sprint 4 (RecombinationEpoch), Sprint 5 (DarkAgesEpoch), Sprint 6 (CosmicDawnEpoch).
 
 - [ ] Implement future epoch plugins (InflationEpoch, QGPEpoch, NucleosynthesisEpoch, RecombinationEpoch, DarkAgesEpoch, CosmicDawnEpoch)
@@ -281,92 +301,6 @@ The following items were previously marked as completed but are NOT implemented:
 - [ ] Document CosmicTime resource methods (from_slider, to_slider, set_time, get_time, reset)
 - [ ] Document PointSpriteMaterial uniform parameters (color, base_size, attenuation_factor)
 - [ ] Document OrbitController spherical coordinate system (distance, yaw, pitch, target)
-
-### Build System
-**NOTE:** Cross-platform build configuration tasks (lines 285-368) are listed in Sprint 1 but per PRD.md line 251, these should be part of Sprint 7 (Phase 7: Polish, Cinematic Mode & Release). These tasks are well-broken down into subtasks and should be moved to Sprint 7 section.
-
-- [ ] Configure Cargo.toml for cross-platform builds in project root
-  - [ ] Add [target.'cfg(all(target_os = "macos", target_arch = "aarch64")'.dependencies] section for Apple Silicon specific dependencies
-  - [ ] Add [target.'cfg(target_os = "windows")'.dependencies] section for Windows-specific dependencies (e.g., winapi)
-  - [ ] Add [target.'cfg(target_os = "linux")'.dependencies] section for Linux-specific dependencies (e.g., alsa-sys)
-  - [ ] Configure wgpu backend selection via [target.'cfg(target_os = "macos")'.dependencies] forcing Metal backend: wgpu = { version = "0.20", default-features = false, features = ["metal"] }
-  - [ ] Configure wgpu for Linux with Vulkan and Wayland support: wgpu = { version = "0.20", default-features = false, features = ["vulkan", "wayland"] }
-  - [ ] Configure wgpu for Windows with DX12 and DX11 support: wgpu = { version = "0.20", default-features = false, features = ["dx12", "dx11"] }
-  - [ ] Add conditional compilation flags in genesis-core/src/lib.rs using #[cfg(target_os = "...")] for platform-specific code paths
-  - [ ] Add [package.metadata.bundle] section for macOS app bundle configuration (identifier, icon, info_plist settings)
-- [ ] Set up cross-compilation build scripts in .github/workflows/build.yml
-  - [ ] Create Linux build job with steps: actions/checkout@v3, actions-rs/toolchain@stable-x86_64-unknown-linux-gnu, cargo build --release --target x86_64-unknown-linux-gnu
-  - [ ] Create macOS Intel build job with steps: actions-rs/toolchain@stable-x86_64-apple-darwin, cargo build --release --target x86_64-apple-darwin
-  - [ ] Create macOS Apple Silicon build job with steps: actions-rs/toolchain@stable-aarch64-apple-darwin, cargo build --release --target aarch64-apple-darwin
-  - [ ] Create Windows build job with steps: actions-rs/toolchain@stable-x86_64-pc-windows-msvc, cargo build --release --target x86_64-pc-windows-msvc
-  - [ ] Add artifact upload steps for each platform using actions/upload-artifact@v3 with binary files
-  - [ ] Add cache actions for cargo registry and target directory to speed up builds: actions/cache@v3 with paths: ~/.cargo/registry, ~/.cargo/git, target
-  - [ ] Configure matrix strategy to run Linux, macOS Intel, macOS Apple Silicon, Windows builds in parallel
-  - [ ] Add conditional job for creating universal macOS binary using lipo tool to combine Intel and Apple Silicon binaries
-- [ ] Configure platform-specific packaging in Cargo.toml
-  - [ ] Add [package.metadata.deb] section for Linux Debian package: depends = ["libvulkan1", "libwayland-client0", "libxkbcommon0"], assets = [["target/release/genesis", "usr/bin/"], ["README.md", "usr/share/doc/genesis/"]]
-  - [ ] Add [package.metadata.rpm] section for Linux Red Hat package: summary = "Genesis cosmological simulation", license = "MIT"
-  - [ ] Add [package.metadata.msi] section for Windows installer: product_code = "{GUID}", upgrade_code = "{GUID}"
-  - [ ] Configure macOS app bundle via [package.metadata.bundle] with CFBundleExecutable = "genesis", CFBundleIconFile = "AppIcon.icns"
-  - [ ] Add code signing configuration for macOS (hardened runtime, notarization): bundle.macos.codesign_identity = "Developer ID Application: Your Name"
-  - [ ] Add Windows code signing via signtool.exe integration: [package.metadata.msi].sign_command = "signtool.exe sign /f cert.pfx /p password genesis.msi"
-  - [ ] Add installer icon generation using embedded resources: icon.png for Linux, icon.ico for Windows, AppIcon.icns for macOS
-- [ ] Create platform-specific build and release scripts in scripts/ directory
-  - [ ] Create scripts/build_linux.sh shell script for Linux builds:
-    - #!/bin/bash
-    - cargo build --release --features "vulkan wayland"
-    - strip target/release/genesis
-    - cp target/release/genesis dist/genesis-linux-x64
-    - tar -czf genesis-linux-x64.tar.gz -C dist genesis-linux-x64 README.md LICENSE
-  - [ ] Create scripts/build_macos_intel.sh shell script for macOS Intel builds:
-    - #!/bin/bash
-    - cargo build --release --target x86_64-apple-darwin --features "metal"
-    - strip target/x86_64-apple-darwin/release/genesis
-    - mkdir -p dist/Genesis.app/Contents/MacOS
-    - cp target/x86_64-apple-darwin/release/genesis dist/Genesis.app/Contents/MacOS/
-    - cp Info.plist dist/Genesis.app/Contents/
-    - hdiutil create -volname Genesis -srcfolder dist/Genesis.app -ov -format UDZO genesis-macos-intel.dmg
-  - [ ] Create scripts/build_macos_silicon.sh shell script for macOS Apple Silicon builds:
-    - #!/bin/bash
-    - cargo build --release --target aarch64-apple-darwin --features "metal"
-    - strip target/aarch64-apple-darwin/release/genesis
-    - mkdir -p dist/GenesisSilicon.app/Contents/MacOS
-    - cp target/aarch64-apple-darwin/release/genesis dist/GenesisSilicon.app/Contents/MacOS/
-    - cp Info.plist dist/GenesisSilicon.app/Contents/
-    - hdiutil create -volname GenesisSilicon -srcfolder dist/GenesisSilicon.app -ov -format UDZO genesis-macos-silicon.dmg
-  - [ ] Create scripts/build_windows.ps1 PowerShell script for Windows builds:
-    - cargo build --release --features "dx12 dx11"
-    - $target = "dist/genesis-windows-x64"
-    - Copy-Item target/release/genesis.exe $target
-    - Compress-Archive -Path $target, README.md, LICENSE -DestinationPath genesis-windows-x64.zip
-    - Remove-Item $target
-  - [ ] Create scripts/build_universal_macos.sh shell script combining Intel and Apple Silicon:
-    - #!/bin/bash
-    - ./build_macos_intel.sh && ./build_macos_silicon.sh
-    - lipo -create -output dist/GenesisUniversal.app/Contents/MacOS/genesis dist/Genesis.app/Contents/MacOS/genesis dist/GenesisSilicon.app/Contents/MacOS/genesis
-    - cp Info.plist dist/GenesisUniversal.app/Contents/
-    - hdiutil create -volname GenesisUniversal -srcfolder dist/GenesisUniversal.app -ov -format UDZO genesis-macos-universal.dmg
-- [ ] Add platform-specific testing and validation in CI pipeline
-  - [ ] Create scripts/test_linux.sh running Linux tests with Vulkan validation layers: VK_INSTANCE_LAYERS=VK_LAYER_KHRONOS_validation cargo test --release
-  - [ ] Create scripts/test_macos.sh running macOS tests with Metal validation: MTL_DEBUG_LAYER=1 cargo test --release
-  - [ ] Create scripts/test_windows.ps1 running Windows tests with DirectX Debug Layer: cargo test --release
-  - [ ] Add performance benchmarking per platform: scripts/benchmark.sh running 60 FPS test with 1M particles for 60 seconds
-  - [ ] Add UI rendering validation per platform: screenshot capture at specific cosmic_time points (singularity, inflation, QGP, nucleosynthesis, recombination)
-  - [ ] Add smoke test for each platform: verify app launches without crash, renders particles, responds to user input for 30 seconds
-  - [ ] Add regression testing: compare current build screenshots against reference screenshots for each epoch and platform
-  - [ ] Configure GitHub Actions to run test scripts after successful build, uploading test results as artifacts
-  - [ ] Add platform-specific known issues tracking in docs/KNOWN_ISSUES.md (e.g., "macOS: Metal renderer may have artifacts on AMD GPUs")
-- [ ] Set up release workflow and distribution in .github/workflows/release.yml
-  - [ ] Create release workflow triggered on git tag v* (e.g., v1.0.0)
-  - [ ] Configure release workflow to run all platform build jobs (Linux, macOS Intel, macOS Apple Silicon, Windows, macOS Universal)
-  - [ ] Add GitHub Release creation step using softprops/action-gh-release@v1 with generated release notes from CHANGELOG.md
-  - [ ] Upload all platform binaries as release assets: genesis-linux-x64.tar.gz, genesis-macos-intel.dmg, genesis-macos-silicon.dmg, genesis-macos-universal.dmg, genesis-windows-x64.zip
-  - [ ] Generate and attach SHA256 checksums.txt file for all binaries using sha256sum command
-  - [ ] Attach source code archive genesis-VERSION.tar.gz created via git archive
-  - [ ] Add auto-generated release notes from CHANGELOG.md entries since last release tag
-  - [ ] Configure draft release flag to enable manual review before publishing (auto-draft = true)
-  - [ ] Add Slack/Discord notification webhook on successful release deployment
-  - [ ] Update documentation website (if applicable) with new release download links
 
 ### Testing
 - [ ] SPRINT QA: Run full build and test suite. Fix ALL errors. If green, create/update '.sprint_complete' with the current date.
@@ -826,6 +760,14 @@ The following items were previously marked as completed but are NOT implemented:
 - [ ] Implement camera transition system (pull camera back smoothly from center to view CMB sphere when recombination completes)
 - [ ] Add CMB sphere material with temperature anisotropy mapping (color map from cold dark blue to hot bright red)
 - [ ] Create LastScatteringSurface resource tracking CMB sphere parameters (radius, center position)
+- [ ] Implement smooth camera pull-back animation for CMB sphere reveal
+  - [ ] Create recombination_cmb_pullback() system in genesis-render/src/camera/mod.rs
+  - [ ] Trigger pull-back when recombination completes (x_e < 0.01)
+  - [ ] Interpolate camera from center position [0, 0, 0] to viewing position [0, 0, 5e10] (50 billion light years)
+  - [ ] Apply EaseInOutCubic easing function over 2-3 seconds transition duration
+  - [ ] Orient camera to face CMB sphere center (look_at origin) for full view
+  - [ ] Synchronize fog lift effect with camera movement (fog density decreases as camera pulls back)
+  - [ ] Register pull-back system in PostUpdate schedule with .run_if(recombination_completed_and_fog_cleared) condition
 
 ### UI & Analysis
 - [ ] Update temperature readout to show 3000 K → 2.725 K range (display current temperature during recombination epoch)
@@ -1375,7 +1317,95 @@ The following items were previously marked as completed but are NOT implemented:
   - [ ] Add alerts configuration: notify team if performance regression exceeds threshold
 
 ### Release & Documentation
+
+#### Cross-Platform Build System
+- [ ] Configure Cargo.toml for cross-platform builds in project root
+  - [ ] Add [target.'cfg(all(target_os = "macos", target_arch = "aarch64")'.dependencies] section for Apple Silicon specific dependencies
+  - [ ] Add [target.'cfg(target_os = "windows")'.dependencies] section for Windows-specific dependencies (e.g., winapi)
+  - [ ] Add [target.'cfg(target_os = "linux")'.dependencies] section for Linux-specific dependencies (e.g., alsa-sys)
+  - [ ] Configure wgpu backend selection via [target.'cfg(target_os = "macos")'.dependencies] forcing Metal backend: wgpu = { version = "0.20", default-features = false, features = ["metal"] }
+  - [ ] Configure wgpu for Linux with Vulkan and Wayland support: wgpu = { version = "0.20", default-features = false, features = ["vulkan", "wayland"] }
+  - [ ] Configure wgpu for Windows with DX12 and DX11 support: wgpu = { version = "0.20", default-features = false, features = ["dx12", "dx11"] }
+  - [ ] Add conditional compilation flags in genesis-core/src/lib.rs using #[cfg(target_os = "...")] for platform-specific code paths
+  - [ ] Add [package.metadata.bundle] section for macOS app bundle configuration (identifier, icon, info_plist settings)
+- [ ] Set up cross-compilation build scripts in .github/workflows/build.yml
+  - [ ] Create Linux build job with steps: actions/checkout@v3, actions-rs/toolchain@stable-x86_64-unknown-linux-gnu, cargo build --release --target x86_64-unknown-linux-gnu
+  - [ ] Create macOS Intel build job with steps: actions-rs/toolchain@stable-x86_64-apple-darwin, cargo build --release --target x86_64-apple-darwin
+  - [ ] Create macOS Apple Silicon build job with steps: actions-rs/toolchain@stable-aarch64-apple-darwin, cargo build --release --target aarch64-apple-darwin
+  - [ ] Create Windows build job with steps: actions-rs/toolchain@stable-x86_64-pc-windows-msvc, cargo build --release --target x86_64-pc-windows-msvc
+  - [ ] Add artifact upload steps for each platform using actions/upload-artifact@v3 with binary files
+  - [ ] Add cache actions for cargo registry and target directory to speed up builds: actions/cache@v3 with paths: ~/.cargo/registry, ~/.cargo/git, target
+  - [ ] Configure matrix strategy to run Linux, macOS Intel, macOS Apple Silicon, Windows builds in parallel
+  - [ ] Add conditional job for creating universal macOS binary using lipo tool to combine Intel and Apple Silicon binaries
+- [ ] Configure platform-specific packaging in Cargo.toml
+  - [ ] Add [package.metadata.deb] section for Linux Debian package: depends = ["libvulkan1", "libwayland-client0", "libxkbcommon0"], assets = [["target/release/genesis", "usr/bin/"], ["README.md", "usr/share/doc/genesis/"]]
+  - [ ] Add [package.metadata.rpm] section for Linux Red Hat package: summary = "Genesis cosmological simulation", license = "MIT"
+  - [ ] Add [package.metadata.msi] section for Windows installer: product_code = "{GUID}", upgrade_code = "{GUID}"
+  - [ ] Configure macOS app bundle via [package.metadata.bundle] with CFBundleExecutable = "genesis", CFBundleIconFile = "AppIcon.icns"
+  - [ ] Add code signing configuration for macOS (hardened runtime, notarization): bundle.macos.codesign_identity = "Developer ID Application: Your Name"
+  - [ ] Add Windows code signing via signtool.exe integration: [package.metadata.msi].sign_command = "signtool.exe sign /f cert.pfx /p password genesis.msi"
+  - [ ] Add installer icon generation using embedded resources: icon.png for Linux, icon.ico for Windows, AppIcon.icns for macOS
+- [ ] Create platform-specific build and release scripts in scripts/ directory
+  - [ ] Create scripts/build_linux.sh shell script for Linux builds:
+    - #!/bin/bash
+    - cargo build --release --features "vulkan wayland"
+    - strip target/release/genesis
+    - cp target/release/genesis dist/genesis-linux-x64
+    - tar -czf genesis-linux-x64.tar.gz -C dist genesis-linux-x64 README.md LICENSE
+  - [ ] Create scripts/build_macos_intel.sh shell script for macOS Intel builds:
+    - #!/bin/bash
+    - cargo build --release --target x86_64-apple-darwin --features "metal"
+    - strip target/x86_64-apple-darwin/release/genesis
+    - mkdir -p dist/Genesis.app/Contents/MacOS
+    - cp target/x86_64-apple-darwin/release/genesis dist/Genesis.app/Contents/MacOS/
+    - cp Info.plist dist/Genesis.app/Contents/
+    - hdiutil create -volname Genesis -srcfolder dist/Genesis.app -ov -format UDZO genesis-macos-intel.dmg
+  - [ ] Create scripts/build_macos_silicon.sh shell script for macOS Apple Silicon builds:
+    - #!/bin/bash
+    - cargo build --release --target aarch64-apple-darwin --features "metal"
+    - strip target/aarch64-apple-darwin/release/genesis
+    - mkdir -p dist/GenesisSilicon.app/Contents/MacOS
+    - cp target/aarch64-apple-darwin/release/genesis dist/GenesisSilicon.app/Contents/MacOS/
+    - cp Info.plist dist/GenesisSilicon.app/Contents/
+    - hdiutil create -volname GenesisSilicon -srcfolder dist/GenesisSilicon.app -ov -format UDZO genesis-macos-silicon.dmg
+  - [ ] Create scripts/build_windows.ps1 PowerShell script for Windows builds:
+    - cargo build --release --features "dx12 dx11"
+    - $target = "dist/genesis-windows-x64"
+    - Copy-Item target/release/genesis.exe $target
+    - Compress-Archive -Path $target, README.md, LICENSE -DestinationPath genesis-windows-x64.zip
+    - Remove-Item $target
+  - [ ] Create scripts/build_universal_macos.sh shell script combining Intel and Apple Silicon:
+    - #!/bin/bash
+    - ./build_macos_intel.sh && ./build_macos_silicon.sh
+    - lipo -create -output dist/GenesisUniversal.app/Contents/MacOS/genesis dist/Genesis.app/Contents/MacOS/genesis dist/GenesisSilicon.app/Contents/MacOS/genesis
+    - cp Info.plist dist/GenesisUniversal.app/Contents/
+    - hdiutil create -volname GenesisUniversal -srcfolder dist/GenesisUniversal.app -ov -format UDZO genesis-macos-universal.dmg
+- [ ] Add platform-specific testing and validation in CI pipeline
+  - [ ] Create scripts/test_linux.sh running Linux tests with Vulkan validation layers: VK_INSTANCE_LAYERS=VK_LAYER_KHRONOS_validation cargo test --release
+  - [ ] Create scripts/test_macos.sh running macOS tests with Metal validation: MTL_DEBUG_LAYER=1 cargo test --release
+  - [ ] Create scripts/test_windows.ps1 running Windows tests with DirectX Debug Layer: cargo test --release
+  - [ ] Add performance benchmarking per platform: scripts/benchmark.sh running 60 FPS test with 1M particles for 60 seconds
+  - [ ] Add UI rendering validation per platform: screenshot capture at specific cosmic_time points (singularity, inflation, QGP, nucleosynthesis, recombination)
+  - [ ] Add smoke test for each platform: verify app launches without crash, renders particles, responds to user input for 30 seconds
+  - [ ] Add regression testing: compare current build screenshots against reference screenshots for each epoch and platform
+  - [ ] Configure GitHub Actions to run test scripts after successful build, uploading test results as artifacts
+  - [ ] Add platform-specific known issues tracking in docs/KNOWN_ISSUES.md (e.g., "macOS: Metal renderer may have artifacts on AMD GPUs")
+- [ ] Set up release workflow and distribution in .github/workflows/release.yml
+  - [ ] Create release workflow triggered on git tag v* (e.g., v1.0.0)
+  - [ ] Configure release workflow to run all platform build jobs (Linux, macOS Intel, macOS Apple Silicon, Windows, macOS Universal)
+  - [ ] Add GitHub Release creation step using softprops/action-gh-release@v1 with generated release notes from CHANGELOG.md
+  - [ ] Upload all platform binaries as release assets: genesis-linux-x64.tar.gz, genesis-macos-intel.dmg, genesis-macos-silicon.dmg, genesis-macos-universal.dmg, genesis-windows-x64.zip
+  - [ ] Generate and attach SHA256 checksums.txt file for all binaries using sha256sum command
+  - [ ] Attach source code archive genesis-VERSION.tar.gz created via git archive
+  - [ ] Add auto-generated release notes from CHANGELOG.md entries since last release tag
+  - [ ] Configure draft release flag to enable manual review before publishing (auto-draft = true)
+  - [ ] Add Slack/Discord notification webhook on successful release deployment
+  - [ ] Update documentation website (if applicable) with new release download links
+
+#### Cross-Platform Release Builds
 - [ ] Create cross-platform release builds (Linux, macOS including Apple Silicon, Windows)
+
+#### Documentation
 - [ ] Write comprehensive user documentation
   - [ ] Create docs/USER_GUIDE.md with complete user manual
     - [ ] Document installation procedures for all platforms (Linux, macOS, Windows)

@@ -3,6 +3,21 @@
 //! Defines camera mode enums, state tracking resources, and camera controller components.
 //! Camera movement systems are implemented for both free-flight (update_free_flight_camera)
 //! and orbit (update_orbit_camera) modes.
+//!
+//! # Camera System Implementation Status
+//!
+//! - **Free-flight mode**: Fully implemented with WASD movement and mouse look
+//! - **Orbit mode**: Rotation implemented (left mouse drag), zoom and pan NOT implemented
+//! - **Mode switching**: Implemented via 'O' key toggle between FreeFlight and Orbit
+//! - **Camera interpolation**: NOT implemented (deferred to Phase 7)
+//!
+//! # Orbit Camera Limitations
+//!
+//! The orbit camera currently only supports rotation around the current orbit target:
+//! - Left mouse drag: Rotates camera around target (spherical coordinates)
+//! - Scroll wheel zoom: NOT implemented (no handle_orbit_zoom system)
+//! - Middle/right mouse pan: NOT implemented (no handle_orbit_pan system)
+//! - Orbit target: Set by CameraState.current_orbit_target (updated on mode switch)
 
 use bevy::input::keyboard::KeyCode;
 use bevy::input::mouse::MouseButton;
