@@ -255,13 +255,7 @@ pub fn spawn_particles(
     point_mesh: Res<PointMesh>,
     config: Res<ParticleConfig>,
 ) {
-    println!("DEBUG: spawn_particles STARTED - PointMesh resource accessed successfully");
-
     let particle_count = config.initial_count as u32;
-    println!(
-        "DEBUG: Spawning {} particles (initial_count: {})",
-        particle_count, config.initial_count
-    );
 
     // Create point sprite material for all particles (single material shared by all)
     // Using white color for visibility - individual particle colors will be

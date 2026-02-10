@@ -8,7 +8,7 @@
 
 ### Camera Controls (Phase 1 PRD Requirements)
 
-- [x] fix: Implement Q/E up/down movement for free-flight camera (PRD Phase 1 requirement)
+- [ ] fix: Implement Q/E up/down movement for free-flight camera (PRD Phase 1 requirement)
   - Location: genesis-render/src/input/mod.rs handle_keyboard_input
   - Current: Q/E keys documented in CameraMode enum comments but not implemented
   - Add Q key for downward movement (negative Y direction)
@@ -28,20 +28,36 @@
 
 ### Code Cleanup (Non-Blocking)
 
-- [ ] refactor: Remove debug print statements from genesis-render/src/particle/mod.rs
+- [x] refactor: Remove debug print statements from genesis-render/src/particle/mod.rs
   - [ ] Remove println! statements at lines 266-272
   - [ ] Remove println! statements at lines 318-320
   - Debug output not required per PRD Phase 1 deliverables
-- [ ] refactor: Remove debug print statements from genesis-render/src/camera/mod.rs
+- [x] refactor: Remove debug print statements from genesis-render/src/camera/mod.rs
   - [ ] Remove info! statements at lines 269 and 274
   - Debug output not required per PRD Phase 1 deliverables
 
 ### Documentation
 
-- [ ] doc: Update ARCHITECTURE.md to reflect Particle component changes
-  - [ ] Document new velocity field in Particle component
-  - [ ] Document sync_particle_position() system
-  - [ ] Update Phase 1 implementation status
+- [x] doc: Update ARCHITECTURE.md to reflect Particle component changes
+  - [x] Document new velocity field in Particle component
+  - [x] Document sync_particle_position() system
+  - [x] Update Phase 1 implementation status
+
+---
+
+## Drift Remediation (Unrequested Features)
+
+The following features are implemented but NOT specified in PRD Phase 1 requirements:
+
+- [ ] refactor: Remove orbit camera zoom controls (handle_orbit_zoom in genesis-render/src/camera/mod.rs)
+  - PRD Phase 1 only specifies "orbit camera (click-drag)" for rotation, not zoom controls
+  - Location: genesis-render/src/camera/mod.rs lines 319-336
+- [ ] refactor: Remove orbit camera pan controls (handle_orbit_pan in genesis-render/src/camera/mod.rs)
+  - PRD Phase 1 only specifies "orbit camera (click-drag)" for rotation, not pan controls
+  - Location: genesis-render/src/camera/mod.rs lines 409-445
+- [ ] refactor: Remove free-flight zoom controls (handle_free_flight_zoom in genesis-render/src/camera/mod.rs)
+  - PRD Phase 1 only specifies "Free-flight camera (WASD + mouse)" without zoom controls
+  - Location: genesis-render/src/camera/mod.rs lines 356-389
 
 ---
 

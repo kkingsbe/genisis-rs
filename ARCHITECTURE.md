@@ -94,7 +94,7 @@ The application registers the following plugins and resources:
   - Exports: GenesisUiPlugin, TimelinePlugin, CosmicTime, PlaybackState, OverlayState
 
 ### 2. Bevy ECS Pattern
-- **Components**: `Particle` (rendering component with position: Vec3, color: Color, size: f32)
+- **Components**: `Particle` (rendering component with position: Vec3, velocity: Vec3, color: Color, size: f32)
   - Particles are spawned with Mesh3d, PointSpriteMaterialHandle, Transform, and Particle components
   - Camera components: `CameraController` (free-flight), `OrbitController` (orbit)
 - **Resources**: Global state organized by crate:
@@ -156,6 +156,7 @@ The project uses two distinct particle types at different layers:
 - Located in: `genesis-render/src/particle/mod.rs`
 - Data structure: Bevy ECS component with Bevy types
   - `position: Vec3` - World space position
+  - `velocity: Vec3` - Velocity vector
   - `color: Color` - RGBA color (Bevy type)
   - `size: f32` - Particle size in world units
 - Purpose: Rendering component attached to particle entities
