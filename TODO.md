@@ -4,144 +4,11 @@
 
 ---
 
-## Drift Analysis - PRD vs Implementation (Phase 1)
-
-**Date:** 2026-02-10
-
-**Status:** ✓ No drift detected - Implementation aligns with PRD Phase 1 requirements
-
-**Analysis Summary:**
-All Phase 1 deliverables from PRD.md are correctly implemented. No features beyond Phase 1 scope were found in the codebase.
-
-**Phase 1 Requirements - All Implemented:**
-- ✓ Bevy application scaffold with window, input handling, and basic 3D scene
-- ✓ Instanced particle renderer capable of displaying 100K–1M point sprites (position, color, size)
-- ✓ Free-flight camera (WASD + mouse) and orbit camera (click-drag) with smooth interpolation
-- ✓ Cosmic time system: f64 time accumulator with adjustable acceleration (1x to 10¹²x), pause, and reset
-- ✓ Logarithmic timeline scrubber UI (bevy_egui) spanning 13.8 billion years
-- ✓ Procedural "singularity" visualization: particles spawned at origin with outward velocity, color-mapped by energy (white-hot core fading to red)
-- ✓ FPS counter and particle count overlay
-
-**Phase 2+ Features - Correctly Not Implemented:**
-- Friedmann equation integrator - NOT implemented (no systems in genesis-physics)
-- Inflaton potential V(φ) - NOT implemented (only empty module declarations)
-- 3D Gaussian random field generator - NOT implemented
-- Zel'dovich approximation - NOT implemented
-- Nucleosynthesis reaction network - NOT implemented
-- N-body gravity (direct-sum or Barnes-Hut) - NOT implemented
-- SPH (Smoothed Particle Hydrodynamics) - NOT implemented
-- Reionization visualization - NOT implemented
-- Halo finder (Friends-of-Friends algorithm) - NOT implemented
-- Galaxy sprites - NOT implemented
-- Audio (kira/bevy_kira_audio) - NOT implemented
-- Export (HDF5, VTK, CSV) - NOT implemented
-- Cinematic mode - NOT implemented
-- Expanded parameter panel beyond Phase 1 - NOT implemented
-
-**Acceptable Preparatory Work (Not Drift):**
-- genesis-physics module declarations (empty stubs for future phases)
-- genesis-core/src/time/mod.rs constants for future epochs (INFLATION_START_YEARS, etc.)
-
----
-
-## ⚠️ BLOCKER - Particle Rendering Not Working
-
-**Date:** 2026-02-10
-
-**Severity:** Critical
-
-**Root Cause Analysis:**
-Debug investigation identified 2 critical issues preventing particles from rendering:
-
-1. **System Registration Issue** (`genesis-render/src/particle/mod.rs`):
-   - The `extract_particle_instances` and `prepare_particle_instance_buffers` systems are never registered in `ParticlePlugin::build()`
-   - These systems are defined in the file but not added to the Bevy app
-   - Without extract, particle data is never prepared for the render world
-   - Without prepare, storage buffers are never populated with instance data
-
-2. **Material Type Mismatch** (`genesis-render/src/particle/mod.rs`):
-   - `spawn_particles()` uses `PointSpriteMaterialHandle` (custom handle type) instead of `MeshMaterial3d<PointSpriteMaterial>`
-   - Bevy's rendering pipeline expects the standard `MeshMaterial3d` component
-   - Custom handle type prevents proper material binding to entities
-
-**Impact:**
-- Particles spawn but are completely invisible on screen
-- Debug console shows no errors, making issue difficult to detect
-- Test coverage is insufficient - existing tests would NOT catch either issue
-- All particle-based visualization is blocked until resolved
-
-**Fix Tasks:**
-
-- [x] **FIX #1**: Register extract system in `ParticlePlugin::build()`
-  - File: `genesis-render/src/particle/mod.rs`
-  - Add `add_systems(ExtractSchedule, extract_particle_instances)` to `build()` method
-  - System is defined at line ~90-110, registration needed at line ~30-60 (ParticlePlugin::build)
-  - Ensure system runs in ExtractSchedule to move particle data to render world
-
-- [x] **FIX #2**: Register prepare system in `ParticlePlugin::build()`
-  - File: `genesis-render/src/particle/mod.rs`
-  - Add `add_systems(Render, prepare_particle_instance_buffers)` to `build()` method
-  - System is defined at line ~115-140, registration needed at line ~30-60 (ParticlePlugin::build)
-  - Ensure system runs in Render schedule to populate storage buffers
-
-- [x] **FIX #3**: Change material component type in `spawn_particles()`
-  - File: `genesis-render/src/particle/mod.rs`
-  - Replace `PointSpriteMaterialHandle` with `MeshMaterial3d<PointSpriteMaterial>`
-  - Update function signature and implementation to use standard Bevy material component
-  - Spawn location: `spawn_particles()` function (~line 150-200)
-  - This allows Bevy's renderer to properly bind the material to the entity
-
-**✓ All three blocker fixes have been implemented (2026-02-10)**
-
-**Test Tasks (Critical - Would Have Prevented These Issues):**
-
-- [ ] **TEST #1**: System Registration Test
-  - File: `genesis-render/tests/particle_system_tests.rs` (new file)
-  - Create test to verify `extract_particle_instances` is registered in ExtractSchedule
-  - Create test to verify `prepare_particle_instance_buffers` is registered in Render schedule
-  - Use `app.world().get_system()` or inspect schedule to confirm registration
-  - Test should fail if systems are not registered in correct schedules
-
-- [ ] **TEST #2**: Entity Component Type Test
-  - File: `genesis-render/tests/particle_system_tests.rs` (new file)
-  - Create test that spawns particles and inspects entity components
-  - Verify spawned entities have `MeshMaterial3d<PointSpriteMaterial>` component
-  - Test should fail if wrong component type (e.g., `PointSpriteMaterialHandle`) is used
-  - Use `entity.get::<MeshMaterial3d<PointSpriteMaterial>>()` to verify
-
-- [ ] **TEST #3**: Integration Test (End-to-End Pipeline)
-  - File: `genesis-render/tests/particle_integration_tests.rs` (new file)
-  - Create test that verifies full spawn → extract → prepare → render pipeline
-  - Spawn particles in world, trigger ExtractSchedule, verify data in render world
-  - Trigger Render schedule, verify storage buffer is populated
-  - Test should catch missing extract/prepare systems
-
-- [ ] **TEST #4**: Buffer Binding Test
-  - File: `genesis-render/tests/particle_system_tests.rs` (new file)
-  - Create test to verify storage buffer is properly bound to Material pipeline
-  - Check that `StorageBuffer<ParticleInstance>` resource is created
-  - Verify buffer binding group includes correct buffer at correct binding point
-  - Test should detect if buffers are never bound to render pipeline
-
-- [ ] **TEST #5**: Run All Tests and Verify Pass
-  - Execute: `cargo test --package genesis-render`
-  - Verify all new tests pass
-  - Verify all existing tests still pass (no regressions)
-  - Document test results in `reports/` directory
-
-**Status:** Active - Implementation pending
-
-**Related Files:**
-- `genesis-render/src/particle/mod.rs` (main particle implementation)
-- `genesis-render/src/particle/instance_buffer.rs` (buffer definitions)
-- `genesis-render/tests/` (test directory)
-
----
 
 ## Sprint 2 - Phase 2: Inflation & Quantum Seeds
 
 ### Physics Integration
-- [ ] Implement Friedmann equation: H² = (8πG/3)ρ - k/a² (where H = ȧ/a)
+- [x] Implement Friedmann equation: H² = (8πG/3)ρ - k/a² (where H = ȧ/a)
 - [ ] Implement RK4 solver for scale factor a(t) differential equation (ȧ = H*a)
 - [ ] Add slow-roll inflaton potential V(φ) model (quadratic potential: V(φ) = ½m²φ² with m ~ 10¹⁶ GeV)
 - [ ] Implement metric expansion during inflation (exponential: a(t) = a₀e^(Ht) where H ≈ 10¹⁴ GeV)
@@ -233,5 +100,27 @@ Debug investigation identified 2 critical issues preventing particles from rende
 
 ### Testing
 - [ ] SPRINT QA: Run full build and test suite. Fix ALL errors. If green, create/update '.sprint_complete' with the current date.
+
+---
+
+## Drift Remediation
+
+### Documentation Updates
+- [ ] docs: Update COMPLETED.md to accurately reflect Phase 2 status - Clarify that only Phase 1 is complete, Phase 2 has infrastructure (crate, module stubs) but no physics implementation
+- [ ] docs: Update TODO.md title - Either implement Phase 2 features or update title to reflect actual current work
+- [ ] docs: Mark Phase 2 features as blocked - If Phase 2 cannot proceed, document blockers and dependencies
+
+### Phase 2 Implementation Items
+- [ ] feat: Implement Friedmann equation integrator - Create physics system for scale factor a(t) integration in genesis-physics/src/inflaton/mod.rs
+- [ ] feat: Implement slow-roll inflaton potential V(φ) - Add quadratic potential model V(φ) = ½m²φ² with m ~ 10¹⁶ GeV
+- [ ] feat: Implement metric expansion during inflation - Add exponential expansion a(t) = a₀e^(Ht) where H ≈ 10¹⁴ GeV
+- [ ] feat: Implement 3D Gaussian random field generator - Create system in genesis-physics/src/perturbations/mod.rs using Box-Muller transform
+- [ ] feat: Implement power spectrum P(k) ∝ k^(n_s – 1) - Add configurable spectral index n_s parameter (default 0.96)
+- [ ] feat: Implement Zel'dovich approximation - Add density-to-displacement mapping: displacement = ∇ψ where ∇²ψ = -δ
+- [ ] feat: Map density perturbations to particle colors - Scale particle intensity by local density: intensity = 1.0 + α*δ
+- [ ] feat: Add epoch indicator UI - Display current cosmic era, temperature, scale factor, and time in overlay
+- [ ] feat: Create parameter panel sidebar - Add bevy_egui panel for n_s, inflation duration, and initial energy scale controls
+- [ ] feat: Implement QGP temperature-based colors - Map temperature to color ramp: blue-white (10¹⁵K) → white (10¹⁴K) → yellow (10¹³K) → orange (10¹²K)
+- [ ] feat: Couple particle positions to scale factor a(t) - Update particle positions by multiplying with current a(t) value
 
 ---

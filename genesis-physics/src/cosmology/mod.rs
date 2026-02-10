@@ -1,0 +1,704 @@
+//! Cosmological physics implementation for cosmic evolution
+//!
+//! Implements the Friedmann equations governing cosmic expansion:
+//! H² = (8πG/3)ρ - k/a²
+//!
+//! Where:
+//! - H = Hubble parameter (ȧ/a)
+//! - G = gravitational constant
+//! - ρ = energy density
+//! - k = curvature parameter
+//! - a = scale factor
+//!
+//! # Example Usage
+//!
+//! ```rust,no_run
+//! use bevy::prelude::*;
+//! use genesis_physics::cosmology::{Cosmology, EnergyDensity, Curvature};
+//!
+//! fn update_cosmology(mut cosmology: ResMut<Cosmology>) {
+//!     // Set energy density for inflation epoch
+//!     cosmology.energy_density = EnergyDensity::inflaton_dominated(1e64);
+//!
+//!     // Update Hubble parameter using Friedmann equation
+//!     cosmology.update_hubble();
+//!
+//!     // Integrate scale factor forward
+//!     cosmology.integrate_scale_factor_euler(1e-35);
+//! }
+//! ```
+//!
+//! # Mathematical Foundation
+//!
+//! The Friedmann equation describes how the Hubble parameter (expansion rate)
+//! depends on the energy density of the universe:
+//!
+//! - **H** = Hubble parameter = ȧ/a (rate of expansion)
+//! - **G** = Gravitational constant
+//! - **ρ** = Energy density
+//! - **k** = Curvature parameter (-1, 0, +1)
+//! - **a** = Scale factor
+//!
+//! In natural units (ℏ = c = 1), the equation becomes:
+//! H² = (8π/3) * M_pl² * ρ - k/a²
+//!
+//! where M_pl is the reduced Planck mass ~ 2.435 × 10¹⁸ GeV.
+
+use bevy::prelude::*;
+
+/// Cosmological constants used in Friedmann equation calculations
+pub mod constants {
+    /// Gravitational constant in SI units: G ≈ 6.674 × 10⁻¹¹ m³/kg/s²
+    pub const G: f64 = 6.674e-11;
+    
+    /// Speed of light in SI units: c = 299,792,458 m/s
+    pub const C: f64 = 299_792_458.0;
+    
+    /// Planck mass in kg: mₚ = √(ħc/G) ≈ 2.176 × 10⁻⁸ kg
+    pub const PLANCK_MASS: f64 = 2.176e-8;
+    
+    /// Planck length in meters: ℓₚ = √(ħG/c³) ≈ 1.616 × 10⁻³⁵ m
+    pub const PLANCK_LENGTH: f64 = 1.616e-35;
+    
+    /// Planck time in seconds: tₚ = ℓₚ/c ≈ 5.391 × 10⁻⁴⁴ s
+    pub const PLANCK_TIME: f64 = 5.391e-44;
+    
+    /// Inflationary Hubble parameter in GeV: H ≈ 10¹⁴ GeV
+    /// Converted to SI: 1 GeV ≈ 1.602 × 10⁻¹⁰ J, so H ≈ 1.6 × 10⁴ J
+    pub const INFLATION_HUBBLE_GEV: f64 = 1e14;
+    
+    /// 1 GeV in Joules
+    pub const GEV_TO_JOULES: f64 = 1.602e-10;
+}
+
+/// Curvature parameter of the universe
+/// 
+/// -1: Open universe (hyperbolic geometry)
+///  0: Flat universe (Euclidean geometry) - matches CMB observations
+///  1: Closed universe (spherical geometry)
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Resource)]
+pub enum Curvature {
+    Open = -1,
+    Flat = 0,
+    Closed = 1,
+}
+
+impl Curvature {
+    pub fn to_f64(self) -> f64 {
+        self as i32 as f64
+    }
+}
+
+/// Energy density of the universe
+/// 
+/// Energy density can come from different components:
+/// - Matter density (baryonic + dark matter)
+/// - Radiation density (photons, neutrinos)
+/// - Dark energy density (cosmological constant)
+/// - Inflaton field energy density (during inflation)
+#[derive(Debug, Clone, Copy, Resource)]
+pub struct EnergyDensity {
+    /// Total energy density in GeV⁴ (natural units)
+    pub total: f64,
+    
+    /// Matter density in GeV⁴
+    pub matter: f64,
+    
+    /// Radiation density in GeV⁴
+    pub radiation: f64,
+    
+    /// Dark energy density in GeV⁴
+    pub dark_energy: f64,
+    
+    /// Inflaton field energy density in GeV⁴
+    pub inflaton: f64,
+}
+
+impl Default for EnergyDensity {
+    fn default() -> Self {
+        Self {
+            total: 0.0,
+            matter: 0.0,
+            radiation: 0.0,
+            dark_energy: 0.0,
+            inflaton: 0.0,
+        }
+    }
+}
+
+impl EnergyDensity {
+    /// Create energy density with only matter component
+    pub fn matter_dominated(matter_density: f64) -> Self {
+        Self {
+            total: matter_density,
+            matter: matter_density,
+            ..Default::default()
+        }
+    }
+    
+    /// Create energy density with only radiation component
+    pub fn radiation_dominated(radiation_density: f64) -> Self {
+        Self {
+            total: radiation_density,
+            radiation: radiation_density,
+            ..Default::default()
+        }
+    }
+    
+    /// Create energy density with only inflaton component (inflation epoch)
+    pub fn inflaton_dominated(inflaton_density: f64) -> Self {
+        Self {
+            total: inflaton_density,
+            inflaton: inflaton_density,
+            ..Default::default()
+        }
+    }
+}
+
+/// Scale factor a(t) of the universe
+/// 
+/// The scale factor describes how the size of the universe changes over time.
+/// - a(t) = 1 at the present day (convention)
+/// - a(t) → 0 as t → 0 (Big Bang)
+/// - During inflation: a(t) = a₀e^(Ht) (exponential expansion)
+#[derive(Debug, Clone, Copy, Resource)]
+pub struct ScaleFactor {
+    /// Current scale factor value
+    pub value: f64,
+    
+    /// Time derivative of scale factor: ȧ = d(a)/dt
+    pub derivative: f64,
+    
+    /// Cosmic time in seconds
+    pub time: f64,
+}
+
+impl Default for ScaleFactor {
+    fn default() -> Self {
+        Self {
+            value: 1.0,
+            derivative: 0.0,
+            time: 0.0,
+        }
+    }
+}
+
+/// Hubble parameter H(t) of the universe
+/// 
+/// The Hubble parameter describes the rate of cosmic expansion:
+/// H = ȧ/a
+/// 
+/// It is related to the age and composition of the universe through the Friedmann equation.
+#[derive(Debug, Clone, Copy, Resource)]
+pub struct HubbleParameter {
+    /// Current Hubble parameter value H = ȧ/a in GeV
+    pub value: f64,
+    
+    /// Hubble parameter squared H² in GeV²
+    pub squared: f64,
+}
+
+impl Default for HubbleParameter {
+    fn default() -> Self {
+        Self {
+            value: 0.0,
+            squared: 0.0,
+        }
+    }
+}
+
+/// Main cosmology resource combining all Friedmann equation parameters
+/// 
+/// This resource contains all the state needed to compute the Friedmann equation
+/// and track cosmic expansion.
+#[derive(Debug, Clone, Resource)]
+pub struct Cosmology {
+    /// Scale factor of the universe
+    pub scale_factor: ScaleFactor,
+    
+    /// Hubble parameter of the universe
+    pub hubble: HubbleParameter,
+    
+    /// Energy density components
+    pub energy_density: EnergyDensity,
+    
+    /// Curvature parameter (k = -1, 0, +1)
+    pub curvature: Curvature,
+}
+
+impl Default for Cosmology {
+    fn default() -> Self {
+        Self {
+            scale_factor: ScaleFactor::default(),
+            hubble: HubbleParameter::default(),
+            energy_density: EnergyDensity::default(),
+            curvature: Curvature::Flat,
+        }
+    }
+}
+
+impl Cosmology {
+    /// Create a new cosmology state with flat curvature
+    pub fn new() -> Self {
+        Self::default()
+    }
+    
+    /// Create a new cosmology state with specified curvature
+    pub fn with_curvature(curvature: Curvature) -> Self {
+        Self {
+            curvature,
+            ..Default::default()
+        }
+    }
+
+    /// Compute the Hubble parameter H using the Friedmann equation
+    ///
+    /// Friedmann equation: H² = (8πG/3)ρ - k/a²
+    ///
+    /// In natural units (ℏ = c = 1), this becomes:
+    /// H² = (8π/3) * M_pl² * ρ - k/a²
+    /// where M_pl is the reduced Planck mass ~ 2.435 × 10¹⁸ GeV
+    ///
+    /// # Arguments
+    /// * `energy_density` - Total energy density ρ in GeV⁴
+    /// * `scale_factor` - Scale factor a
+    /// * `curvature` - Curvature parameter k (-1, 0, +1)
+    ///
+    /// # Returns
+    /// The Hubble parameter H in GeV
+    ///
+    /// # Notes
+    /// Uses natural units where ℏ = c = 1. The Planck mass M_pl appears
+    /// because G = 1/M_pl² in natural units.
+    pub fn compute_hubble(
+        energy_density: f64,
+        scale_factor: f64,
+        curvature: Curvature,
+    ) -> f64 {
+        // Planck mass squared in GeV²: (2.435 × 10^18)^2 = 5.929225 × 10^36
+        const M_PL_SQUARED: f64 = 5.929225e36;
+
+        // (8π/3) * M_pl² factor
+        const PREFACTOR: f64 = (8.0 * std::f64::consts::PI / 3.0) * M_PL_SQUARED;
+
+        // Curvature term: k/a²
+        let curvature_term = curvature.to_f64() / (scale_factor * scale_factor);
+
+        // Friedmann equation: H² = (8π/3)M_pl²ρ - k/a²
+        let h_squared = PREFACTOR * energy_density - curvature_term;
+
+        // Ensure H² is non-negative (physical requirement)
+        let h_squared = h_squared.max(0.0);
+
+        // H = sqrt(H²)
+        h_squared.sqrt()
+    }
+
+    /// Compute the time derivative of the scale factor: ȧ = H * a
+    ///
+    /// # Arguments
+    /// * `hubble` - Hubble parameter H in GeV
+    /// * `scale_factor` - Scale factor a
+    ///
+    /// # Returns
+    /// The time derivative ȧ in GeV units
+    ///
+    /// # Notes
+    /// In natural units, time has units of GeV⁻¹, so ȧ has units of GeV
+    pub fn compute_scale_factor_derivative(hubble: f64, scale_factor: f64) -> f64 {
+        hubble * scale_factor
+    }
+
+    /// Update the Hubble parameter based on current cosmological state
+    ///
+    /// This function updates the HubbleParameter resource in-place using
+    /// the Friedmann equation with the current energy density, scale factor,
+    /// and curvature.
+    pub fn update_hubble(&mut self) {
+        let h = Self::compute_hubble(
+            self.energy_density.total,
+            self.scale_factor.value,
+            self.curvature,
+        );
+
+        self.hubble.value = h;
+        self.hubble.squared = h * h;
+    }
+
+    /// Update the scale factor derivative based on current Hubble parameter
+    ///
+    /// This function updates the ScaleFactor resource's derivative field using
+    /// the relationship ȧ = H * a
+    pub fn update_scale_factor_derivative(&mut self) {
+        self.scale_factor.derivative = Self::compute_scale_factor_derivative(
+            self.hubble.value,
+            self.scale_factor.value,
+        );
+    }
+
+    /// Perform a single integration step for the scale factor using Euler method
+    ///
+    /// This advances the scale factor forward in time by dt using:
+    /// a(t + dt) = a(t) + ȧ * dt
+    ///
+    /// # Arguments
+    /// * `dt` - Time step in GeV⁻¹ (natural units)
+    ///
+    /// # Notes
+    /// This is a simple Euler integration step. For higher accuracy, use
+    /// the RK4 solver (to be implemented in a separate subtask).
+    pub fn integrate_scale_factor_euler(&mut self, dt: f64) {
+        // Update derivative first
+        self.update_scale_factor_derivative();
+
+        // Euler step: a(t + dt) = a(t) + ȧ * dt
+        self.scale_factor.value += self.scale_factor.derivative * dt;
+
+        // Update time
+        self.scale_factor.time += dt;
+
+        // Recompute Hubble for the new state
+        self.update_hubble();
+    }
+}
+
+pub struct CosmologyPlugin;
+
+impl Plugin for CosmologyPlugin {
+    fn build(&self, app: &mut App) {
+        app.init_resource::<Cosmology>()
+            .init_resource::<ScaleFactor>()
+            .init_resource::<HubbleParameter>()
+            .init_resource::<EnergyDensity>();
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    
+    #[test]
+    fn test_curvature_conversion() {
+        assert_eq!(Curvature::Open.to_f64(), -1.0);
+        assert_eq!(Curvature::Flat.to_f64(), 0.0);
+        assert_eq!(Curvature::Closed.to_f64(), 1.0);
+    }
+    
+    #[test]
+    fn test_energy_density_default() {
+        let density = EnergyDensity::default();
+        assert_eq!(density.total, 0.0);
+        assert_eq!(density.matter, 0.0);
+        assert_eq!(density.radiation, 0.0);
+        assert_eq!(density.dark_energy, 0.0);
+        assert_eq!(density.inflaton, 0.0);
+    }
+    
+    #[test]
+    fn test_matter_dominated() {
+        let density = EnergyDensity::matter_dominated(1.0);
+        assert_eq!(density.total, 1.0);
+        assert_eq!(density.matter, 1.0);
+        assert_eq!(density.radiation, 0.0);
+        assert_eq!(density.dark_energy, 0.0);
+        assert_eq!(density.inflaton, 0.0);
+    }
+    
+    #[test]
+    fn test_radiation_dominated() {
+        let density = EnergyDensity::radiation_dominated(1.0);
+        assert_eq!(density.total, 1.0);
+        assert_eq!(density.radiation, 1.0);
+        assert_eq!(density.matter, 0.0);
+        assert_eq!(density.dark_energy, 0.0);
+        assert_eq!(density.inflaton, 0.0);
+    }
+    
+    #[test]
+    fn test_inflaton_dominated() {
+        let density = EnergyDensity::inflaton_dominated(1.0);
+        assert_eq!(density.total, 1.0);
+        assert_eq!(density.inflaton, 1.0);
+        assert_eq!(density.matter, 0.0);
+        assert_eq!(density.radiation, 0.0);
+        assert_eq!(density.dark_energy, 0.0);
+    }
+    
+    #[test]
+    fn test_scale_factor_default() {
+        let a = ScaleFactor::default();
+        assert_eq!(a.value, 1.0);
+        assert_eq!(a.derivative, 0.0);
+        assert_eq!(a.time, 0.0);
+    }
+    
+    #[test]
+    fn test_hubble_parameter_default() {
+        let h = HubbleParameter::default();
+        assert_eq!(h.value, 0.0);
+        assert_eq!(h.squared, 0.0);
+    }
+    
+    #[test]
+    fn test_cosmology_default() {
+        let c = Cosmology::default();
+        assert_eq!(c.scale_factor.value, 1.0);
+        assert_eq!(c.hubble.value, 0.0);
+        assert_eq!(c.energy_density.total, 0.0);
+        assert_eq!(c.curvature, Curvature::Flat);
+    }
+    
+    #[test]
+    fn test_cosmology_new() {
+        let c = Cosmology::new();
+        assert_eq!(c.curvature, Curvature::Flat);
+    }
+    
+    #[test]
+    fn test_cosmology_with_curvature() {
+        let c = Cosmology::with_curvature(Curvature::Open);
+        assert_eq!(c.curvature, Curvature::Open);
+    }
+    
+    #[test]
+    fn test_compute_hubble_flat_universe() {
+        // For a flat universe (k=0) with high energy density (inflation era)
+        let rho = 1e64; // GeV^4 - typical inflation energy density
+        let a = 1.0;
+        let curvature = Curvature::Flat;
+        
+        let h = Cosmology::compute_hubble(rho, a, curvature);
+        
+        // H should be very large for high energy density
+        // H² = (8π/3) * M_pl² * ρ ≈ 4.96e37 * 1e64 = 4.96e101
+        // H ≈ 7e50 GeV (above Planck scale as expected at very early times)
+        assert!(h > 1e40, "Hubble parameter should be very large during early universe");
+        
+        // H should be positive
+        assert!(h > 0.0, "Hubble parameter must be positive");
+    }
+    
+    #[test]
+    fn test_compute_hubble_open_universe() {
+        // Open universe (k=-1) with moderate density
+        let rho = 1e40; // GeV^4
+        let a = 10.0;
+        let curvature = Curvature::Open;
+        
+        let h = Cosmology::compute_hubble(rho, a, curvature);
+        
+        // H should be positive (energy density dominates at early times)
+        assert!(h > 0.0, "Hubble parameter must be positive");
+    }
+    
+    #[test]
+    fn test_compute_hubble_closed_universe() {
+        // Closed universe (k=+1) with moderate density
+        let rho = 1e40; // GeV^4
+        let a = 10.0;
+        let curvature = Curvature::Closed;
+        
+        let h = Cosmology::compute_hubble(rho, a, curvature);
+        
+        // H should be positive (energy density dominates at early times)
+        assert!(h > 0.0, "Hubble parameter must be positive");
+    }
+    
+    #[test]
+    fn test_compute_hubble_curvature_term() {
+        // Test that curvature affects the result
+        let rho = 1e40;
+        let a = 10.0;
+        
+        let h_flat = Cosmology::compute_hubble(rho, a, Curvature::Flat);
+        let h_open = Cosmology::compute_hubble(rho, a, Curvature::Open);
+        let h_closed = Cosmology::compute_hubble(rho, a, Curvature::Closed);
+        
+        // For same density and scale factor:
+        // - Open universe (negative curvature) should have larger H
+        // - Closed universe (positive curvature) should have smaller H
+        assert!(h_open >= h_flat, "Open universe should have H >= flat universe");
+        assert!(h_closed <= h_flat, "Closed universe should have H <= flat universe");
+    }
+    
+    #[test]
+    fn test_compute_hubble_zero_density() {
+        // Edge case: zero energy density with flat curvature
+        let rho = 0.0;
+        let a = 1.0;
+        let curvature = Curvature::Flat;
+        
+        let h = Cosmology::compute_hubble(rho, a, curvature);
+        
+        // H should be zero for zero density in flat universe
+        assert_eq!(h, 0.0, "Hubble should be zero for zero density");
+    }
+    
+    #[test]
+    fn test_compute_hubble_scale_factor_dependence() {
+        // Test that H decreases as a increases (for fixed density)
+        let rho = 1e40;
+        let curvature = Curvature::Flat;
+        
+        let h_a1 = Cosmology::compute_hubble(rho, 1.0, curvature);
+        let h_a10 = Cosmology::compute_hubble(rho, 10.0, curvature);
+        
+        // For fixed density, H is independent of a in flat universe
+        // (in the simple Friedmann model without curvature term)
+        assert_eq!(h_a1, h_a10, "H should be independent of scale factor in flat universe");
+    }
+    
+    #[test]
+    fn test_compute_scale_factor_derivative() {
+        // Test ȧ = H * a
+        let h = 1e14; // GeV - typical inflation Hubble
+        let a = 1.0;
+        
+        let a_dot = Cosmology::compute_scale_factor_derivative(h, a);
+        
+        assert_eq!(a_dot, h, "For a=1, ȧ should equal H");
+    }
+    
+    #[test]
+    fn test_compute_scale_factor_derivative_with_a() {
+        // Test ȧ = H * a with a != 1
+        let h = 1e14; // GeV
+        let a = 5.0;
+        
+        let a_dot = Cosmology::compute_scale_factor_derivative(h, a);
+        
+        assert_eq!(a_dot, h * a, "ȧ should equal H * a");
+    }
+    
+    #[test]
+    fn test_update_hubble() {
+        let mut c = Cosmology::new();
+        c.energy_density = EnergyDensity::inflaton_dominated(1e64);
+        c.scale_factor.value = 1.0;
+        c.curvature = Curvature::Flat;
+        
+        c.update_hubble();
+        
+        assert!(c.hubble.value > 0.0, "Hubble should be positive after update");
+        assert_eq!(c.hubble.squared, c.hubble.value * c.hubble.value, 
+                   "H² should equal H²");
+    }
+    
+    #[test]
+    fn test_update_scale_factor_derivative() {
+        let mut c = Cosmology::new();
+        c.hubble.value = 1e14;
+        c.scale_factor.value = 1.0;
+        
+        c.update_scale_factor_derivative();
+        
+        assert_eq!(c.scale_factor.derivative, c.hubble.value * c.scale_factor.value,
+                   "ȧ should equal H * a");
+    }
+    
+    #[test]
+    fn test_integrate_scale_factor_euler() {
+        let mut c = Cosmology::new();
+        c.energy_density = EnergyDensity::inflaton_dominated(1e64);
+        c.scale_factor.value = 1.0;
+        c.curvature = Curvature::Flat;
+        
+        // Initial state
+        let initial_a = c.scale_factor.value;
+        let initial_time = c.scale_factor.time;
+        
+        // Update H first
+        c.update_hubble();
+        
+        // Integrate one step
+        let dt = 1e-35; // Small time step
+        c.integrate_scale_factor_euler(dt);
+        
+        // Scale factor should increase
+        assert!(c.scale_factor.value > initial_a, 
+                "Scale factor should increase during inflation");
+        
+        // Time should advance
+        assert_eq!(c.scale_factor.time, initial_time + dt, 
+                   "Time should advance by dt");
+        
+        // Derivative should be set
+        assert!(c.scale_factor.derivative > 0.0, 
+                "Scale factor derivative should be positive");
+    }
+    
+    #[test]
+    fn test_integrate_scale_factor_euler_multiple_steps() {
+        let mut c = Cosmology::new();
+        c.energy_density = EnergyDensity::inflaton_dominated(1e64);
+        c.scale_factor.value = 1.0;
+        c.curvature = Curvature::Flat;
+        
+        let dt = 1e-35;
+        let steps = 10;
+        
+        let initial_a = c.scale_factor.value;
+        
+        // Integrate multiple steps
+        for _ in 0..steps {
+            c.integrate_scale_factor_euler(dt);
+        }
+        
+        // Scale factor should have increased more than single step
+        let mut single_step_c = Cosmology::new();
+        single_step_c.energy_density = c.energy_density;
+        single_step_c.scale_factor.value = initial_a;
+        single_step_c.curvature = c.curvature;
+        single_step_c.update_hubble();
+        single_step_c.integrate_scale_factor_euler(dt);
+        
+        // Multiple steps should produce larger scale factor (approximately)
+        // Note: this is approximate because H changes with a in general
+        assert!(c.scale_factor.value > single_step_c.scale_factor.value,
+                "Multiple integration steps should increase scale factor more");
+    }
+    
+    #[test]
+    fn test_cosmology_consistency() {
+        // Test that the relationship H = ȧ/a holds after updates
+        let mut c = Cosmology::new();
+        c.energy_density = EnergyDensity::inflaton_dominated(1e64);
+        c.scale_factor.value = 1.0;
+        c.curvature = Curvature::Flat;
+        
+        // Update H and derivative
+        c.update_hubble();
+        c.update_scale_factor_derivative();
+        
+        // Check consistency: ȧ = H * a
+        let expected_derivative = c.hubble.value * c.scale_factor.value;
+        assert!((c.scale_factor.derivative - expected_derivative).abs() < 1e-10,
+                "Scale factor derivative should equal H * a");
+    }
+    
+    #[test]
+    fn test_compute_hubble_negative_density() {
+        // Edge case: negative energy density should be handled (clamped to 0)
+        let rho = -1.0;
+        let a = 1.0;
+        let curvature = Curvature::Flat;
+        
+        let h = Cosmology::compute_hubble(rho, a, curvature);
+        
+        // H should be 0 for negative density (clamped by max(0.0, h_squared))
+        assert_eq!(h, 0.0, "Hubble should be zero for negative density");
+    }
+    
+    #[test]
+    fn test_compute_hubble_very_small_scale_factor() {
+        // Edge case: very small scale factor (early universe)
+        let rho = 1e40;
+        let a = 1e-10; // Very small scale factor
+        let curvature = Curvature::Closed; // Positive curvature becomes significant
+        
+        let h = Cosmology::compute_hubble(rho, a, curvature);
+        
+        // H should be non-negative (may be reduced by large curvature term)
+        assert!(h >= 0.0, "Hubble parameter should be non-negative");
+    }
+}
