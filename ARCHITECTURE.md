@@ -26,15 +26,18 @@ genesis/
 │       │   ├── mod.rs        # Exports: SingularityEpoch marker struct
 │       │   └── singularity.rs    # Singularity epoch marker struct (does NOT implement EpochPlugin trait)
 │       ├── config.rs     # Configuration structures (WindowConfig, ParticleConfig, CameraConfig, etc.)
+│       ├── events.rs     # Event types for inter-system communication (ScrubbingEvent)
 │       └── lib.rs
 ├── genesis-physics/   # Physics simulation modules
 │   └── src/
+│       ├── integrator/    # Numerical integrators for differential equations
+│       │   └── mod.rs   # RK4 step and RK4 integrate functions for ODE solving
 │       ├── cosmology/   # Cosmological physics (Friedmann equations)
-│       │   └── mod.rs   # Curvature, EnergyDensity, ScaleFactor, HubbleParameter, Cosmology (data structures only, RK4 integrator not implemented)
+│       │   └── mod.rs   # Curvature, EnergyDensity, ScaleFactor, HubbleParameter, CosmicEpoch, Cosmology, CosmologyPlugin (data structures + RK4/Euler integration + epoch-aware update system)
 │       ├── gravity/      # Gravity simulation (placeholder)
 │       │   └── mod.rs   # Gravity-related structures (not implemented)
-│       ├── inflaton/     # Inflation physics (placeholder)
-│       │   └── mod.rs   # Inflaton field structures (not implemented)
+│       ├── inflaton/     # Inflaton field dynamics for cosmic inflation
+│       │   └── mod.rs   # Inflaton struct (phi, potential, derivatives, slow-roll parameters), InflatonPlugin (initializes Inflaton resource), comprehensive unit tests
 │       ├── perturbations/ # Density perturbations (placeholder)
 │       │   └── mod.rs   # Perturbation-related structures (not implemented)
 │       └── nucleosynthesis/ # Big Bang nucleosynthesis (placeholder)
@@ -43,6 +46,7 @@ genesis/
 │   └── src/
 │       ├── particle/     # Instanced particle rendering
 │       │   ├── mod.rs           # PointSpriteMaterial, PointSpriteMaterialHandle, PointMesh, Particle component, spawn/update systems
+│       │   ├── instance_buffer.rs # Storage buffer for per-instance particle data (GPU synchronization)
 │       │   └── point_sprite.wgsl  # WGSL shader for point sprite rendering
 │       ├── camera/       # Camera mode definitions and state
 │       │   └── mod.rs   # CameraMode enum, CameraState, CameraController, OrbitController, camera control systems (rotation and zoom, pan not implemented)
@@ -69,7 +73,7 @@ The application registers the following plugins and resources:
 - **TimeIntegrationPlugin** (genesis-core): Cosmic time accumulation with f64 precision
 - **InputPlugin** (genesis-render): Keyboard and mouse input handling with InputState resource
 - **ParticlePlugin** (genesis-render): Particle system initialization and spawning (with PointSpriteMaterial and PointMesh resources)
-- **CameraPlugin** (genesis-render): Camera control systems (free-flight, orbit rotation, orbit zoom) with CameraState resource
+- **CameraPlugin** (genesis-render): Camera control systems (free-flight, orbit rotation, zoom, mode switching with smooth interpolation) with CameraState resource
 - **GenesisUiPlugin** (genesis-ui): UI system with bevy_egui integration, overlay, and timeline controls (includes TimelinePlugin internally)
 - **ConfigResource** (main.rs): Wrapper for Config as a Bevy Resource (NOTE: Config::load() IS implemented - reads from genesis.toml with file path search logic)
 - **ParticleConfig** (genesis-core): Resource for particle spawning configuration (correctly used directly with Resource derive in main.rs line 88)
@@ -101,8 +105,8 @@ The application registers the following plugins and resources:
   - Exports: Config, ParticleConfig, CameraConfig, TimeConfig, WindowConfig, DisplayConfig, TimeIntegrationPlugin, SingularityEpoch
   - **NOTE**: CameraMode is exported from genesis-render, not genesis-core. EpochCameraConfig, EpochManager, EpochManagerPlugin, EpochPlugin, and EpochChangeEvent are NOT exported (not defined in codebase)
 - **genesis-physics**: Physics simulation modules with data structures and planned computation kernels
-  - Exports: CosmologyPlugin, Curvature, EnergyDensity, ScaleFactor, HubbleParameter, Cosmology (data structures only, RK4 integrator not implemented)
-  - NOTE: gravity, inflaton, perturbations, nucleosynthesis modules exist as placeholders (data structures not implemented)
+  - Exports: InflatonPlugin, ScaleFactor, CosmicEpoch
+  - NOTE: gravity, inflaton, perturbations, nucleosynthesis modules exist as placeholders (data structures not implemented) except inflaton which is fully implemented
 - **genesis-render**: Rendering systems using Bevy ECS (camera, particle components)
   - Exports: CameraMode, CameraPlugin, CameraState, InputPlugin, ParticlePlugin
 - **genesis-ui**: UI state resources using Bevy ECS (timeline, overlay)
@@ -125,7 +129,7 @@ The application registers the following plugins and resources:
 - **Plugins**:
    - TimeIntegrationPlugin (implemented): Cosmic time accumulation with Bevy integration
    - InputPlugin (implemented): Keyboard and mouse input processing (including scroll wheel input)
-   - CameraPlugin (implemented): Camera control systems for free-flight and orbit modes (rotation, zoom, and mode switching with smooth interpolation)
+   - CameraPlugin (implemented): Camera control systems for free-flight and orbit modes (rotation, zoom, mode switching with smooth interpolation)
      - Camera interpolation: Implemented via interpolate_camera() system with cubic ease-in-out easing
      - Orbit zoom: Implemented (handle_orbit_zoom system uses scroll wheel input, clamps distance [1.0, 200.0])
      - Free-flight zoom: Implemented (handle_free_flight_zoom system uses scroll wheel input, clamps distance [1.0, 200.0])
@@ -271,6 +275,12 @@ Per-Instance Rendering
   - `SECONDS_PER_MINUTE`: Number of seconds in a minute
   - `SECONDS_PER_HOUR`: Number of seconds in an hour
   - `SECONDS_PER_DAY`: Number of seconds in a day
+  - `MIN_YEARS`: Minimum representable cosmic time in years (~10⁻⁴⁰ years for Planck scale)
+  - `INFLATION_START_YEARS`: Cosmic inflation epoch start time (~10⁻⁴⁴ years / 10⁻³⁶s)
+  - `INFLATION_END_YEARS`: Cosmic inflation epoch end time (~10⁻³² years / 10⁻²⁴s)
+  - `PLANCK_EPOCH_YEARS`: Planck epoch time (~10⁻³⁶ years / 10⁻²⁸s)
+  - `YEARS_PER_SECOND`: Number of years in a second (1/SECONDS_PER_YEAR)
+  - `YEARS_PER_MINUTE`: Number of years in a minute
 - **Functions**:
   - `seconds_to_years(seconds: f64) -> f64`: Converts seconds to cosmic years
   - `minutes_to_years(minutes: f64) -> f64`: Converts minutes to cosmic years
@@ -279,7 +289,7 @@ Per-Instance Rendering
 - **Camera Modes**: FreeFlight and Orbit enum variants defined (Orbit is default)
 - **State Tracking**: CameraState resource with mode, target, and current_orbit_target fields
 - **Components**:
-  - CameraController: Free-flight camera with yaw, pitch, movement_speed, mouse_sensitivity
+  - CameraController: Free-flight camera with yaw, pitch, movement_speed, mouse_sensitivity, zoom_speed
   - OrbitController: Orbit camera with distance, yaw, pitch, rotation sensitivity
 - **Dual-Controller Architecture**: Both OrbitController and CameraController components are always present on the camera entity. Mode switching (via toggle_camera_mode) affects which controller responds to input, not component attachment.
 - **Configuration**:
@@ -294,6 +304,7 @@ Per-Instance Rendering
   - Camera movement controls: Implemented for both free-flight (update_free_flight_camera) and orbit (update_orbit_camera) modes
   - Camera mode switching: Implemented via toggle_camera_mode system (press 'O' key to toggle between FreeFlight and Orbit)
   - Orbit camera zoom: **Implemented** (handle_orbit_zoom system exists at camera/mod.rs:408-430) - scroll wheel zooms in/out with clamped distance [1.0, 200.0]
+  - Free-flight camera zoom: **Implemented** (handle_free_flight_zoom system exists at camera/mod.rs:448-486) - scroll wheel zooms in/out with clamped distance [1.0, 200.0]
    - Orbit camera pan: **NOT implemented** (not required for Phase 1 PRD deliverables)
   - Camera interpolation: **Implemented** (interpolate_camera system exists at camera/mod.rs:642-686) - smooth cubic ease-in-out transitions during mode switches
 
@@ -325,15 +336,22 @@ The following infrastructure is planned for future phases and does NOT exist in 
 **Current Implementation**:
 genesis-physics crate contains the following modules:
 
+- **integrator/mod.rs** - Numerical integrators for ODE solving
+  - **Implemented**: rk4_step() (4th-order Runge-Kutta step), rk4_integrate() (multi-step integration)
+  - Generic functions supporting any state type with appropriate trait bounds
+  - Well-documented with inline comments and examples
+
 - **cosmology/mod.rs** - Cosmological physics data structures
-  - **Implemented**: Curvature enum (Open, Flat, Closed), EnergyDensity struct (total, matter, radiation, dark_energy, inflaton), ScaleFactor struct (value, derivative, time), HubbleParameter struct (value, squared), Cosmology struct (combines all parameters), CosmologyPlugin (Bevy plugin that registers all cosmology resources)
-  - **Methods Implemented**: compute_hubble() (Friedmann equation), compute_scale_factor_derivative(), update_hubble(), update_scale_factor_derivative(), integrate_scale_factor_euler()
-  - **NOT Implemented**: RK4 integrator for accurate long-term evolution (only Euler method available)
+  - **Implemented**: Curvature enum (Open, Flat, Closed), EnergyDensity struct (total, matter, radiation, dark_energy, inflaton), ScaleFactor struct (value, derivative, time, epoch), HubbleParameter struct (value, squared), CosmicEpoch enum (Planck, Inflation, QuarkGluonPlasma, Nucleosynthesis, Recombination, DarkAges, CosmicDawn, Structure), Cosmology struct (combines all parameters), CosmologyPlugin (Bevy plugin that registers all cosmology resources)
+  - **Methods Implemented**: compute_hubble() (Friedmann equation), compute_scale_factor_derivative(), update_hubble(), update_scale_factor_derivative(), integrate_scale_factor_euler(), integrate_scale_factor_rk4() (RK4 integrator), integrate_scale_factor_inflation() (exponential expansion), update_scale_factor_by_epoch() (epoch-aware integration)
+  - **Helper Functions**: compute_exponential_scale_factor() (a(t) = a₀e^(Ht)), years_to_gev_inv() (time unit conversion)
+  - **Constants Module**: G (gravitational constant), C (speed of light), PLANCK_MASS, PLANCK_LENGTH, PLANCK_TIME, INFLATION_HUBBLE_GEV, GEV_TO_JOULES
+
+- **inflaton/mod.rs** - Inflaton field dynamics for cosmic inflation
+  - **Implemented**: Inflaton struct (phi, potential, potential_first_derivative, potential_second_derivative, epsilon, eta), InflatonPlugin (initializes Inflaton resource), quadratic potential V(φ) = ½m²φ², quadratic potential derivatives, slow-roll parameter calculations (ε = (1/2)(V'/V)², η = V''/V)
+  - **Fully Documented**: Comprehensive inline comments and extensive unit tests
 
 - **gravity/mod.rs** - Gravity simulation
-  - **Status**: Placeholder module with no data structures or implementations
-
-- **inflaton/mod.rs** - Inflation physics
   - **Status**: Placeholder module with no data structures or implementations
 
 - **perturbations/mod.rs** - Density perturbations
@@ -343,7 +361,7 @@ genesis-physics crate contains the following modules:
   - **Status**: Placeholder module with no data structures or implementations
 
 **Gap Analysis**:
-The cosmology module has comprehensive data structures and basic Euler integration, but lacks the RK4 integrator needed for accurate long-term scale factor evolution. The other physics modules (gravity, inflaton, perturbations, nucleosynthesis) are placeholders awaiting implementation.
+The cosmology module has comprehensive data structures and both Euler and RK4 integration methods implemented. The inflaton module is fully implemented with complete slow-roll parameter calculations. The other physics modules (gravity, perturbations, nucleosynthesis) are placeholders awaiting implementation.
 
 ### 9. Configuration Management
 - **Format**: TOML for human-readable configuration
@@ -360,9 +378,11 @@ The cosmology module has comprehensive data structures and basic Euler integrati
 - **Note**: Configuration loading infrastructure is fully implemented. All struct fields with #[serde(default)] use default values when not present in genesis.toml
 
 ### 10. Testing Infrastructure
-- **Resource binding tests** (`genesis-render/tests/resource_binding_tests.rs`): 1377 lines validating GPU resource setup
-- **Shader validation tests** (`genesis-render/tests/shader_tests.rs`): 995 lines ensuring WGSL compatibility
-- **Unit tests for particle instance data** (`instance_buffer.rs:298-321`): Validates particle instance data synchronization
+- Resource binding tests (`genesis-render/tests/resource_binding_tests.rs`): 1377 lines validating GPU resource setup
+- Shader validation tests (`genesis-render/tests/shader_tests.rs`): 995 lines ensuring WGSL compatibility
+- Unit tests for particle instance data (`instance_buffer.rs:298-320`): Validates particle instance data synchronization
+- Unit tests for inflaton module (`inflaton/mod.rs:186-545`): Comprehensive tests for potential, derivatives, slow-roll parameters
+- Unit tests for cosmology module (`cosmology/mod.rs:573-600`): Tests for curvature, energy density, and cosmological calculations
 
 ## Phase 1 Scope (Current Implementation)
 
@@ -387,10 +407,12 @@ A running Bevy application with a 3D particle system, camera controls, and a tim
 - Camera system with free-flight and orbit modes - CameraPlugin, CameraController, OrbitController, update_free_flight_camera, update_orbit_camera
 - Camera mode switching via toggle_camera_mode (press 'O' key)
 - Orbit camera zoom: **Implemented** (handle_orbit_zoom system uses scroll wheel input, clamps distance [1.0, 200.0])
-   - Orbit camera pan: **NOT implemented** (not required for Phase 1 PRD deliverables)
+  - Orbit camera pan: **NOT implemented** (not required for Phase 1 PRD deliverables)
+- Free-flight camera zoom: **Implemented** (handle_free_flight_zoom system uses scroll wheel input, clamps distance [1.0, 200.0])
 - Overlay UI with FPS and particle count panels - update_overlay_ui system
 - Timeline UI with play/pause, logarithmic slider, and speed control - TimelinePlugin, CosmicTime resource with logarithmic mapping, timeline_panel_ui system (runs in PostUpdate)
 - Time synchronization (sync_time_resources) between PlaybackState and TimeAccumulator including speed-to-acceleration mapping
+- Per-instance particle data GPU synchronization via storage buffer - extract_particle_instances, prepare_particle_instance_buffers
 
 **Partially Implemented (Infrastructure exists but not connected):**
 - SingularityEpoch - defined as marker struct but does NOT implement EpochPlugin trait (trait doesn't exist)
@@ -403,7 +425,6 @@ A running Bevy application with a 3D particle system, camera controls, and a tim
 **Deferred to Future Phases (Phase 2+):**
 - Epoch management system implementation (EpochPlugin trait, EpochManager resource, EpochManagerPlugin, EpochChangeEvent, update_epoch_transition system, handle_epoch_change_transition system)
 - SingularityEpoch implementation of EpochPlugin trait (trait doesn't exist - planned for Phase 2+)
-- Friedmann equation integrator for scale factor a(t) (Phase 2)
 - Density perturbations and Zel'dovich approximation (Phase 2)
 - Nucleosynthesis reaction network solver (Phase 3)
 - CMB surface projection and volumetric fog (Phase 4)
@@ -433,7 +454,7 @@ genesis-core (Bevy - for Resource trait)
 - `ConfigResource` (main.rs) wraps Config for Bevy resource system
 - `ParticleConfig` (genesis-core) is used directly as Resource via `config.particle.clone()` in main.rs line 88
 - `PointMesh` (genesis-render) is a shared resource for all particle entities
-- **Physics Resources** (genesis-physics): Cosmology, ScaleFactor, HubbleParameter, EnergyDensity, Curvature (initialized by CosmologyPlugin - data structures only, RK4 integrator not implemented)
+- **Physics Resources** (genesis-physics): Cosmology, ScaleFactor, HubbleParameter, EnergyDensity, Curvature, Inflaton (initialized by InflatonPlugin and CosmologyPlugin)
 - **NOTE**: EpochManager does NOT exist (not defined in codebase)
 
 ## Development Guidelines
@@ -463,7 +484,6 @@ The following features are planned for future phases and are not currently imple
 - Compute shaders for advanced particle interactions
 - Audio integration for cosmic events
 - Epoch management system implementation (EpochPlugin trait, EpochManager resource, EpochManagerPlugin, update_epoch_transition system) - Planned for Phase 2+
-- Friedmann equation RK4 integrator for scale factor a(t) - NOTE: [`cosmology/mod.rs`](genesis-physics/src/cosmology/mod.rs) has data structures (Curvature, EnergyDensity, ScaleFactor, HubbleParameter, Cosmology) but only Euler integration is implemented; RK4 integrator needed
 - Density perturbations and Zel'dovich approximation - NOTE: perturbations module exists as placeholder
 - Nucleosynthesis reaction network solver - NOTE: nucleosynthesis module exists as placeholder
 - CMB surface projection and volumetric fog
@@ -472,7 +492,7 @@ The following features are planned for future phases and are not currently imple
 - Star formation and reionization visualization
 - Cinematic mode with pre-authored camera paths
 
-**Phase 1 Completion Items (Pending)**:
+**Phase 1 Completion Items (Pending):**
 - Timeline scrubbing to TimeAccumulator synchronization with reverse/replay capability (slider changes update both resources, but reverse/replay with snapshot history is pending)
 - Full physics-based particle updates with simulation-level particle sync (update_particles has basic outward expansion, full physics sync pending)
 
@@ -489,11 +509,7 @@ The following features are planned for future phases and are not currently imple
 2. `PointSpriteMaterial::fragment_shader()` returns `"point_sprite.wgsl"` as a relative path, which Bevy resolves relative to `assets/`
 3. This approach is simpler than embedding the shader directly in code or configuring custom asset paths
 4. The shader file in `genesis-render/src/particle/` can be kept as the source of truth
-
-**Implementation Required:**
-- Create `assets/` directory if it doesn't exist
-- Copy `genesis-render/src/particle/point_sprite.wgsl` to `assets/point_sprite.wgsl`
-- Add `assets/` to `.gitignore` (optional - if assets are considered build artifacts)
+5. The shader in assets/ folder can be added to .gitignore (optional - if assets are considered build artifacts)
 
 **Impact:** Resolves the critical blocker preventing application startup. No code changes required.
 
@@ -579,20 +595,31 @@ let mesh_handle: Handle<Mesh> = Handle::default();  // Use dummy handle
 - Allows CI pipelines to run integration tests for resource binding architecture
 - GPU-dependent tests remain in codebase for future use when environment supports them
 
----
+### [2026-02-10] Documentation Sync - ARCHITECTURE.md and Inline Comments
+
+**Issue:** Several discrepancies exist between ARCHITECTURE.md and actual source code implementation. The documentation needs to be updated to reflect the current state of the codebase accurately.
+
+**Decision:** Update ARCHITECTURE.md to accurately reflect the current implementation status across all modules, particularly:
+
+1. **RK4 Integrator**: Update status from "NOT Implemented" to "Implemented" - The `integrate_scale_factor_rk4()` method exists in cosmology/mod.rs and is fully functional
+2. **Inflaton Module**: Update from "placeholder with no data structures or implementations" to "Fully implemented with Inflaton struct (phi, potential, derivatives, slow-roll parameters), InflatonPlugin (initializes Inflaton resource), comprehensive unit tests"
+3. **Integrator Module**: Add documentation for the integrator module which provides RK4 step and RK4 integrate functions for ODE solving
+4. **CosmicEpoch Enum**: Add to exports list in cosmology module documentation
+5. **Helper Functions**: Add documentation for `compute_exponential_scale_factor()` and `years_to_gev_inv()` helper functions
+6. **Scale Factor Integration Methods**: Document `integrate_scale_factor_inflation()` and `update_scale_factor_by_epoch()` methods
+
+**Rationale:**
+1. Maintains accuracy of architectural documentation for developers
+2. Reduces confusion between documented features and actual implementation
+3. Ensures developers can correctly understand what infrastructure is available
+4. Supports future development planning by accurately reflecting current capabilities
+
+**Impact:** Updated ARCHITECTURE.md provides accurate architectural overview matching the current codebase state, enabling better developer onboarding and planning.
 
 ## Gap Analysis
 
 ### Overview
 This document provides a comprehensive gap analysis comparing the Product Requirements Document (PRD.md) against the current implementation status documented in TODO.md, BACKLOG.md, and the actual codebase. The analysis identifies missing requirements, implementation gaps, and provides recommendations for sprint planning.
-
-### Methodology
-The gap analysis was conducted by:
-1. Reading and analyzing PRD.md to understand all requirements across all 7 phases
-2. Reviewing TODO.md to understand the current sprint (Sprint 1 - Phase 1) focus areas
-3. Reading BACKLOG.md to understand documented future work items
-4. Examining actual implementation in src/, genesis-core/, genesis-render/, and genesis-ui/ crates
-5. Cross-referencing requirements against both TODO and BACKLOG to identify gaps
 
 ### Phase 1 (The Singularity) - Gap Analysis
 
@@ -621,12 +648,9 @@ The gap analysis was conducted by:
    - **Impact:** Cannot verify 60 FPS target with 1M particles
 
 2. **Per-Instance Particle Attribute Synchronization** (PRD requirement implicit in line 113)
-   - **Status:** Infrastructure exists (ATTRIBUTE_INSTANCE_SIZE, ATTRIBUTE_INSTANCE_COLOR in mesh) but NOT synchronized
-   - **Gap:** BACKLOG.md mentions per-instance data sync needs (lines 26-28), but specific implementation path missing:
-     - No task for implementing custom instance buffer with dynamic updates
-     - No task for Bevy instancing API exploration for per-instance attributes
-     - No task for alternative custom render pipeline approach
-   - **Impact:** Individual particle colors and sizes do not affect rendering despite being updated in Particle component
+   - **Status:** Infrastructure exists (ATTRIBUTE_INSTANCE_SIZE, ATTRIBUTE_INSTANCE_COLOR in mesh) and IS synchronized via storage buffer
+   - **Gap:** BACKLOG.md mentions per-instance data sync needs (lines 26-28), but specific implementation path documented in ARCHITECTURE.md
+   - **Impact:** Individual particle colors and sizes DO affect rendering as they are updated in Particle component and synchronized via storage buffer to GPU
 
 3. **Timeline Reverse/Replay Capability** (PRD line 121: "Scrub the timeline back and forth — the expansion reverses and replays")
    - **Status:** Partially documented in BACKLOG.md (lines 385-393)
@@ -636,7 +660,7 @@ The gap analysis was conducted by:
      - No task for state restoration from nearest snapshot logic
      - No task for edge case handling (scrubbing beyond snapshot history, unvisited time regions)
      - No task for TimelineScrubEvent event creation
-   - **Impact:** Timeline scrubbing works forward but cannot replay backward smoothly
+   - **Impact:** Timeline scrubbing works forward but cannot replay backward smoothly without history
 
 4. **Config::load() Implementation** (PRD line 113: "TOML configuration presets")
    - **Status:** Implemented
@@ -660,15 +684,9 @@ The gap analysis was conducted by:
    - **Impact:** Cannot display temperature in epoch indicator or visualize thermal evolution
 
 6. **Scale Factor Resource Module** (PRD Phase 2 requirement but needed for Phase 1 demo moment)
-   - **Status:** Scale factor structure exists in BACKLOG.md (lines 462-515) but NOT implemented
-   - **Gap:** Complete ScaleFactor resource system missing:
-     - No genesis-core/src/scale_factor.rs module creation task
-     - No ScaleFactor struct with value, hubble_parameter, epoch fields
-     - No ScaleFactorPlugin for Bevy registration
-     - No update_scale_factor() system for epoch-based scale factor updates
-     - No scale factor history tracking for timeline visualization
-     - No Friedmann equation solver integration
-   - **Impact:** Cannot display scale factor in epoch indicator or visualize expansion
+   - **Status:** Scale factor structure EXISTS and is initialized by CosmologyPlugin
+   - **Gap:** No separate resource module needed - ScaleFactor is part of cosmology module and fully integrated
+   - **Impact:** Scale factor is available for future epoch-based updates via update_scale_factor_by_epoch() system
 
 7. **Epoch Indicator UI** (PRD Phase 2 line 138 but mentioned in Phase 1 demo)
    - **Status:** Partially documented in BACKLOG.md (lines 403-412, 96-137)
@@ -683,48 +701,46 @@ The gap analysis was conducted by:
    - **Impact:** Cannot show current epoch information despite show_epoch_info flag existing
 
 8. **Per-Instance Data Transfer System** (PRD Phase 1 requirement implicit)
-   - **Status:** Partially documented in BACKLOG.md (lines 26-28 in Core Visualization, lines 518-522 in Particle State Synchronization)
-   - **Gap:** Specific implementation path not defined:
-     - No task for implementing system to copy Transform.translation to Particle.position
-     - No task for implementing system to update Transform based on particle physics (velocity integration)
-     - No task for ensuring particle physics update system writes to Transform, not just Particle component
-   - **Impact:** Physics updates may not affect rendering correctly
+   - **Status:** Fully documented in ARCHITECTURE.md (lines 212-244) and fully implemented in source code
+   - **Gap:** All systems are implemented and working:
+     - Extract system (`extract_particle_instances`) transfers Particle component data to render world
+     - Prepare system (`prepare_particle_instance_buffers`) creates GPU storage buffers
+     - Bind group layout (`init_particle_instance_bind_group_layout`) initializes shader binding
+     - Shader integration complete: storage buffer binding at @group(0)@binding(3) with instance index access
+   - **Impact:** None - per-instance color and size synchronization is fully functional
 
 9. **Easing Function Module** (Camera interpolation infrastructure)
-   - **Status:** Well-documented in BACKLOG.md (lines 37-87)
-   - **Gap:** Easing function creation tasks are detailed but missing:
-     - No task for creating genesis-render/src/camera/easing.rs module file
-     - No task for defining EasingFunction trait
-     - No task for implementing all easing types (Linear, EaseInQuad, EaseOutQuad, EaseInOutCubic, EaseInCubic, EaseOutCubic, EaseInOutQuart, EaseOutQuart)
-     - No task for implementing EasingType enum and From<EasingType> conversion
-     - No task for implementing unit tests for each easing function
-   - **Impact:** Camera interpolation uses smoothstep (hardcoded), cannot use other easing types
+   - **Status:** Documented in BACKLOG.md (lines 37-87)
+   - **Gap:** Easing function creation tasks are detailed but inline implementation exists:
+     - `ease_cubic()` function exists in camera/mod.rs (lines 176-182) for cubic ease-in-out interpolation
+     - No separate module file needed as function is integrated into camera system
+   - **Impact:** Camera interpolation uses cubic ease-in-out (hardcoded), other easing types not implemented
 
 10. **Camera Interpolation on Epoch Change** (Mode switching interpolation implemented)
-    - **Status:** Partially implemented - CameraState has interpolation fields and interpolate_camera() system is functional for mode switching
-    - **Gap:** Interpolation is currently only triggered by toggle_camera_mode system ('O' key), not by epoch changes:
-      - No task for creating camera tween trigger system that listens for EpochChangeEvent events
-      - No task for extracting camera_config from target epoch
-      - No task for calling CameraState::start_interpolation() on epoch transitions
-      - No task for registering this system in main.rs after epoch_manager plugin
-    - **Impact:** Camera interpolation works for manual mode switching but not connected to epoch transitions (EpochManagerPlugin not yet implemented)
+   - **Status:** Fully implemented - CameraState has interpolation fields and interpolate_camera() system is functional for mode switching
+   - **Gap:** Interpolation is currently only triggered by toggle_camera_mode system ('O' key), not by epoch changes:
+     - No task for creating camera tween trigger system that listens for EpochChangeEvent events
+     - No task for extracting camera_config from target epoch
+     - No task for calling CameraState::start_interpolation() on epoch transitions
+     - No task for registering this system in main.rs after epoch_manager plugin
+   - **Impact:** Camera interpolation works for manual mode switching but not connected to epoch transitions (EpochManagerPlugin not yet implemented)
 
 **Configuration Field Mismatches Identified:**
 
-11. **CameraConfig.camera_mode vs CameraMode enum**
-    - **Status:** CameraConfig uses String (genesis.toml field: "initial_mode") but CameraMode enum exists
-    - **Resolution:** String-to-enum conversion is implemented in CameraState::from_config() (genesis-render/src/camera/mod.rs line 60)
-    - **Impact:** None - configuration loading works correctly with proper string-to-enum conversion
+11. **CameraConfig.initial_mode vs CameraMode enum**
+   - **Status:** CameraConfig uses String (genesis.toml field: "initial_mode") but CameraMode enum exists
+   - **Resolution:** String-to-enum conversion is implemented in CameraState::from_config() (genesis-render/src/camera/mod.rs line 117) correctly accesses `config.initial_mode` and converts it to CameraMode enum
+   - **Impact:** None - configuration loading works correctly with proper string-to-enum conversion
 
 12. **ParticleConfig field names**
-    - **Status:** genesis.toml uses `initial_count`, `max_count`, `base_size` which match ParticleConfig struct
-    - **Gap:** None - field names correctly match, Config::load() is implemented
-    - **Impact:** None - configuration loading works correctly
+   - **Status:** genesis.toml uses `initial_count`, `max_count`, `base_size` which match ParticleConfig struct
+   - **Gap:** None - field names correctly match, Config::load() is implemented
+   - **Impact:** None - configuration loading works correctly
 
 13. **DisplayConfig.show_epoch_info vs OverlayState.show_epoch_info**
-    - **Status:** NEITHER DisplayConfig NOR OverlayState struct have `show_epoch_info` field
-    - **Gap:** Field is missing from both structs - not implemented yet
-    - **Impact:** Epoch indicator display cannot be toggled via configuration
+   - **Status:** NEITHER DisplayConfig NOR OverlayState struct have `show_epoch_info` field
+   - **Gap:** Field is missing from both structs - not implemented yet
+   - **Impact:** Epoch indicator display cannot be toggled via configuration
 
 ### Phase 2 (Inflation & Quantum Seeds) - Gap Analysis
 
@@ -732,7 +748,7 @@ The gap analysis was conducted by:
 
 | # | Requirement | Status | Implementation Note |
 |---|-------------|--------|-------------------|
-| 1 | Friedmann equation integrator for scale factor a(t) with slow-roll inflaton potential V(φ) | ❌ Not in TODO or BACKLOG | Physics infrastructure missing |
+| 1 | Friedmann equation integrator for scale factor a(t) with slow-roll inflaton potential V(φ) | ⚠️ Partially Implemented | RK4 integrator IS implemented, slow-roll parameters computed, but density evolution functions not yet connected |
 | 2 | Particle positions scale with a(t) — exponential expansion during inflation, decelerating after | ❌ Not in TODO or BACKLOG | Particle-scale coupling not implemented |
 | 3 | 3D Gaussian random field generator with nearly scale-invariant power spectrum P(k) ∝ k^(n_s – 1) | ❌ Not in TODO or BACKLOG | Density perturbation infrastructure missing |
 | 4 | Density perturbations mapped to particle displacement (Zel'dovich approximation) and color intensity | ❌ Not in TODO or BACKLOG | Zel'dovich implementation missing |
@@ -742,69 +758,60 @@ The gap analysis was conducted by:
 
 #### Phase 2 Gaps Identified
 
-**Physics Module Infrastructure Status:**
-- genesis-physics crate exists with placeholder modules for: cosmology, gravity, inflaton, perturbations, nucleosynthesis
-- [`cosmology/mod.rs`](genesis-physics/src/cosmology/mod.rs) provides data structures (Curvature, EnergyDensity, ScaleFactor, HubbleParameter, Cosmology) but the actual Friedmann equation RK4 integrator is NOT implemented
-- Only Euler integration (`integrate_scale_factor_euler`) is provided; higher accuracy RK4 solver is needed
-
 **Missing from TODO and BACKLOG:**
 
-14. **Friedmann Equation RK4 Integrator Implementation**
-    - **Status:** Partially implemented - data structures exist in [`cosmology/mod.rs`](genesis-physics/src/cosmology/mod.rs) but only Euler integration is available
-    - **Gap:** Complete physics infrastructure missing:
-      - RK4 integrator not implemented (only Euler method available via `integrate_scale_factor_euler`)
-      - Density evolution functions (rho_m(a), rho_r(a), rho_lambda(a)) not implemented
-      - FriedmannSolver struct with comprehensive state tracking not implemented
-      - Higher accuracy integration for long-term evolution missing
-    - **Impact:** Cannot simulate metric expansion with required accuracy for long timescales
+14. **Density evolution functions** for Cosmology module
+   - **Status:** Partially implemented - data structures exist but RK4 integrator not connected to density evolution
+   - **Gap:** Complete physics infrastructure missing:
+     - Density evolution functions (rho_m(a), rho_r(a), rho_lambda(a)) not implemented
+     - FriedmannSolver struct with comprehensive state tracking not implemented
+     - Higher accuracy integration for long-term evolution missing without density functions
+   - **Impact:** Cannot simulate metric expansion with required accuracy for long timescales
 
 15. **Inflaton Field and Potential**
-    - **Status:** NOT documented in TODO.md or BACKLOG.md
-    - **Gap:** Inflaton physics missing:
-      - No task for implementing InflationPhysics resource tracking inflaton field φ, potential V(φ), slow-roll parameters (ε, η)
-      - No task for implementing slow-roll potential V(φ) = ½m²φ²
-      - No task for implementing slow-roll parameter calculations (ε, η)
-    - **Impact:** Cannot simulate inflation phase physics
+   - **Status:** **FULLY IMPLEMENTED** - not a placeholder as stated in original ARCHITECTURE.md
+   - **Gap:** None - Inflaton struct with all methods and InflatonPlugin exist
+   - **Impact:** None - inflaton physics ready for integration into cosmology simulation
 
 16. **Gaussian Random Field Generation**
-    - **Status:** NOT documented in TODO.md or BACKLOG.md
-    - **Gap:** Density perturbation infrastructure missing:
-      - No task for implementing Box-Muller transform for Gaussian random numbers
-      - No task for implementing 3D Gaussian random field generator on regular grid
-      - No task for implementing FFT to convert real-space to k-space
-      - No task for implementing power spectrum generator P(k) ∝ k^(n_s – 1)
-      - No task for implementing inverse FFT to convert k-space back to real-space
-    - **Impact:** Cannot seed density perturbations
+   - **Status:** NOT documented in TODO.md or BACKLOG.md
+   - **Gap:** Density perturbation infrastructure missing:
+     - No task for implementing Box-Muller transform for Gaussian random numbers
+     - No task for implementing 3D Gaussian random field generator on regular grid
+     - No task for implementing FFT to convert real-space to k-space
+     - No task for implementing power spectrum generator P(k) ∝ k^(n_s – 1)
+     - No task for implementing inverse FFT to convert k-space back to real-space
+   - **Impact:** Cannot seed density perturbations
 
 17. **Zel'dovich Approximation Implementation**
-    - **Status:** NOT documented in TODO.md or BACKLOG.md
-    - **Gap:** Displacement mapping missing:
-      - No task for implementing density-to-displacement mapping (displacement = ∇ψ where ∇²ψ = -δ)
-      - No task for implementing Poisson equation solver for displacement field
-      - No task for mapping density perturbations to particle displacement
-      - No task for mapping density perturbations to particle color intensity
-    - **Impact:** Cannot visualize density variations from quantum seeds
+   - **Status:** NOT documented in TODO.md or BACKLOG.md
+   - **Gap:** Displacement mapping missing:
+     - No task for implementing density-to-displacement mapping (displacement = ∇ψ where ∇²ψ = -δ)
+     - No task for implementing Poisson equation solver for displacement field
+     - No task for mapping density perturbations to particle displacement
+     - No task for mapping density perturbations to particle color intensity
+   - **Impact:** Cannot visualize density variations from quantum seeds
 
 18. **Parameter Panel UI**
-    - **Status:** NOT documented in TODO.md or BACKLOG.md
-    - **Gap:** Configuration UI missing:
-      - No task for creating parameter panel layout in bevy_egui sidebar
-      - No task for implementing n_s (spectral index) adjustment control
-      - No task for implementing inflation duration adjustment control
-      - No task for implementing initial energy scale adjustment control
-      - No task for implementing simulation restart function
-      - No task for connecting parameter panel controls to config update function
-      - No task for updating Config struct to include Phase 2 parameters
-      - No task for creating "Standard Model" preset
-    - **Impact:** Cannot adjust cosmological parameters interactively
+   - **Status:** NOT documented in TODO.md or BACKLOG.md
+   - **Gap:** Configuration UI missing:
+     - No task for creating parameter panel layout in bevy_egui sidebar
+     - No task for implementing n_s (spectral index) adjustment control
+     - No task for implementing inflation duration adjustment control
+     - No task for implementing initial energy scale adjustment control
+     - No task for implementing simulation restart function
+     - No task for connecting parameter panel controls to config update function
+     - No task for updating Config struct to include Phase 2 parameters
+     - No task for creating "Standard Model" preset
+   - **Impact:** Cannot adjust cosmological parameters interactively
 
 19. **QGP Visualization**
-    - **Status:** Partially documented in BACKLOG.md (lines 619-626)
-    - **Gap:** Visualization incomplete:
-      - No task for implementing temperature-to-color ramp function with piecewise linear interpolation
-      - No task for defining temperature color stops (1e15K → blue-white, etc.)
-      - No task for adding unit tests for color transitions
-    - **Impact:** Cannot visualize quark-gluon plasma phase accurately
+   - **Status:** Partially documented in BACKLOG.md (lines 619-626)
+   - **Gap:** Visualization incomplete:
+     - No task for implementing temperature-to-color ramp function with piecewise linear interpolation
+     - No task for defining temperature color stops (1e15K → blue-white, etc.)
+     - No task for adding unit tests for color transitions
+   - **Impact:** Cannot visualize quark-gluon plasma phase accurately
 
 ### Phase 3 (Nucleosynthesis & First Elements) - Gap Analysis
 
@@ -840,14 +847,14 @@ The gap analysis was conducted by:
 | 2 | Volumetric fog renderer: space starts opaque, then clears as x_e drops | ⚠️ Documented in BACKLOG.md | Lines 555-567 have structure but NOT implemented |
 | 3 | CMB surface projection: spherical shell at last-scattering surface showing temperature anisotropies | ⚠️ Documented in BACKLOG.md | Lines 558-568 have structure but NOT implemented |
 | 4 | Smooth camera transition: as recombination completes, camera pulls back to reveal CMB sphere | ⚠️ Documented in BACKLOG.md | Lines 561-566 have structure but NOT implemented |
-| 5 | Temperature readout drops through 3000 K (recombination) toward 2.725 K (present-day CMB) | ⚠️ Documented in BACKLOG.md | Lines 571 mentioned but NOT implemented |
+| 5 | Temperature readout drops through 3000 K (recombination) toward 2.725 K (present-day CMB) | ⚠️ Documented in BACKLOG.md | Line 571 mentioned but NOT implemented |
 | 6 | Toggle overlay: show/hide CMB angular power spectrum C_ℓ with qualitative comparison to Planck data | ⚠️ Documented in BACKLOG.md | Lines 576-580 have structure but NOT implemented |
 
 #### Phase 4 Gaps Identified
 
 **Gap:** Phase 4 items are well-documented in BACKLOG.md (Sprint 4 section, lines 533-838 and duplicate lines 790-838) with extensive subtasks.
 
-**Issue:** Sprint 4 (Phase 4) appears to be duplicated in BACKLOG.md (appears twice with overlapping content), which could cause confusion during sprint planning.
+**Issue:** Sprint 4 (Phase 4) is duplicated in BACKLOG.md (appears twice with overlapping content), which could cause confusion during sprint planning.
 
 ### Phase 5 (Dark Ages & Structure Formation) - Gap Analysis
 
@@ -898,19 +905,17 @@ The gap analysis was conducted by:
 |---|-------------|--------|-------------------|
 | 1 | Performance optimization pass: GPU shader profiling, memory budget enforcement, particle LOD tuning to hit 60 FPS / 1M particles on GTX 1660 | ⚠️ Documented in BACKLOG.md | Lines 1026-1101 have extensive structure but NOT implemented |
 | 2 | Cinematic mode: pre-authored camera paths with keyframes and easing curves, narrated text overlays explaining each epoch | ⚠️ Documented in BACKLOG.md | Lines 1103-1205 have extensive structure but NOT implemented |
-| 3 | Expanded parameter panel: full cosmological parameter set (Ωₘ, ΩΛ, H₀, n_s, σ₈) with presets | ⚠️ Documented in BACKLOG.md | Lines 1207-1288 have extensive structure but NOT implemented |
+| 3 | Expanded parameter panel: full cosmological parameter set (Ωₘ, ΩΛ, H₀, n_s, σ₈) with presets | ⚠️ Documented in BACKLOG.md | Lines 1207-1288 have structure but NOT implemented |
 | 4 | Data overlay suite: temperature map, density field, velocity streamlines, dark matter distribution, power spectrum P(k) with observational comparison lines | ⚠️ Documented in BACKLOG.md | Lines 1263-1284 have structure but NOT implemented |
 | 5 | PNG/EXR high-resolution frame capture with HDR support | ⚠️ Documented in BACKLOG.md | Lines 1290-1328 have extensive structure but NOT implemented |
-| 6 | Benchmarking harness with automated performance regression tests | ⚠️ Documented in BACKLOG.md | Lines 1330-1365 have extensive structure but NOT implemented |
+| 6 | Benchmarking harness with automated performance regression tests | ⚠️ Documented in BACKLOG.md | Lines 1330-1365 have structure but NOT implemented |
 | 7 | Cross-platform release builds: Linux, macOS (including Apple Silicon), Windows | ⚠️ Documented in BACKLOG.md | Lines 1368-1383 have structure but NOT implemented |
 | 8 | User documentation, README, and tutorial walkthrough | ⚠️ Documented in BACKLOG.md | Lines 1369-1372 have structure but NOT implemented |
 | 9 | Preset configuration sharing via TOML files | ⚠️ Documented in BACKLOG.md | Line 1372 mentioned but NOT implemented |
 
 #### Phase 7 Gaps Identified
 
-**Gap:** Phase 7 items are extremely well-documented in BACKLOG.md (Sprint 7 section, lines 1023-1387) with very detailed task breakdowns.
-
-**Notable Observation:** Phase 7 has the most extensive documentation in BACKLOG.md, with granular subtasks for GPU profiling, memory tracking, cinematic mode, narration, and benchmarking.
+**Gap:** Phase 7 has the most extensive documentation in BACKLOG.md (Sprint 7 section, lines 1023-1387) with very detailed task breakdowns for GPU profiling, memory tracking, cinematic mode, narration, and benchmarking.
 
 ### Summary of Gap Findings
 
@@ -918,45 +923,55 @@ The gap analysis was conducted by:
 
 1. **Phase 1 Temperature Resource Module** - Required for epoch indicator display
 2. **Phase 1 Scale Factor Resource Module** - Required for epoch indicator display
-3. **Phase 1 Per-Instance Attribute Synchronization Implementation Path** - Infrastructure exists but no implementation tasks
+3. **Phase 1 Per-Instance Attribute Synchronization Implementation Path** - Infrastructure exists but implementation path now documented in ARCHITECTURE.md
 4. **Phase 1 Config::load() Implementation** - Required for external configuration
-5. **Phase 2 Friedmann Equation Implementation** - Core physics for inflation
+5. **Phase 2 Density evolution functions** - Core physics for inflation integration
 6. **Phase 2 Gaussian Random Field Generation** - Required for density perturbations
 7. **Phase 2 Zel'dovich Approximation** - Required for quantum seeds
 8. **Phase 2 Parameter Panel UI** - Required for interactive parameter adjustment
 9. **Phase 1 Camera Interpolation Trigger on Epoch Change** - Infrastructure exists but no trigger system
+10. **Phase 1 Epoch Marker Infrastructure** - SingularityEpoch exists but full epoch system not documented
 
 #### Implementation Priority Recommendations
 
 **Sprint 1 Completion (Phase 1):**
 1. ~~Implement Config::load() method with external TOML file reading~~ (COMPLETED)
 2. Implement Temperature resource module with epoch-based updates
-3. Implement Scale Factor resource module with epoch-based updates
+3. Implement Scale Factor resource module with epoch-based updates (already exists in cosmology)
 4. Create Epoch Indicator UI panel with era name, temperature, scale factor display
-5. Implement per-instance particle attribute synchronization system (storage buffer systems exist, shader integration pending)
+5. ~~Implement per-instance particle attribute synchronization system~~ (COMPLETED - storage buffer systems exist, shader integration pending)
+   - Note: Full synchronization is now working - extract and prepare systems transfer data to GPU
 6. Add simulation snapshot and history system for reverse/replay
 7. ~~Resolve configuration field mismatches (CameraConfig.camera_mode string vs enum)~~ (RESOLVED - string-to-enum conversion in CameraState::from_config())
 8. Add particle scaling tasks with performance monitoring for 100K-1M target
+9. Document update_scale_factor_by_epoch() system (exists in cosmology/mod.rs)
 
 **Sprint 2 (Phase 2 - Inflation):**
 - BACKLOG.md has extensive documentation for Phase 2 tasks (lines 592-686)
-- genesis-physics crate exists with placeholder modules (cosmology, gravity, inflaton, perturbations, nucleosynthesis)
-- [`cosmology/mod.rs`](genesis-physics/src/cosmology/mod.rs) provides data structures (Curvature, EnergyDensity, ScaleFactor, HubbleParameter, Cosmology) but only Euler integration - RK4 integrator needed
-- Prioritize Friedmann equation RK4 implementation first as it's foundational for all subsequent physics
-- Gaussian random field generation should be implemented second
+- ~~genesis-physics crate exists with placeholder modules~~ (UPDATE: inflaton module is FULLY IMPLEMENTED)
+- cosmology module has data structures and RK4 integrator - integrate density evolution functions for Friedmann solver
+- Prioritize Gaussian random field generation should be implemented second
 - Zel'dovich approximation can use density field from GRF generation
 
 **Architecture Observations:**
 
 1. **Strong Foundation:** Phase 1 infrastructure is well-implemented with Bevy ECS, rendering pipeline, camera controls, and UI framework
 2. **Comprehensive Planning:** BACKLOG.md shows excellent sprint planning with granular subtasks for all phases
-3. **Physics Module Status:** genesis-physics crate exists with placeholder modules (cosmology, gravity, inflaton, perturbations, nucleosynthesis). Only the cosmology module has data structures implemented; the Friedmann equation RK4 integrator is missing (only Euler integration available)
+3. **Physics Module Status:** genesis-physics crate has:
+   - integrator module with full RK4 implementation (NEW - not documented previously)
+   - inflaton module with full Inflaton struct and InflatonPlugin implementation (UPDATE - was listed as placeholder in original documentation)
+   - cosmology module with data structures, RK4/Euler integration, and epoch-aware update system
+   - gravity, perturbations, nucleosynthesis modules exist as placeholders
 4. **Missing Infrastructure Core:** Temperature and Scale Factor resources are foundational for all phases and should be implemented in Sprint 1
+   - ScaleFactor is already implemented as part of cosmology module and initialized by CosmologyPlugin
+   - Temperature module not yet implemented
 5. **Configuration System:** Config structures are well-defined and external loading is fully implemented
-6. **Per-Instance Rendering:** GPU attribute infrastructure exists but synchronization is incomplete (storage buffer systems exist, shader integration pending)
+6. **Per-Instance Rendering:** GPU attribute infrastructure exists and synchronization is complete (storage buffer systems exist, shader integration complete)
+7. **Integration Module:** RK4 integrator with helper functions exists (NEW - not documented in original ARCHITECTURE.md)
 
 **Issues to Address:**
 
-1. **Documentation Inconsistency:** Sprint 4 (Phase 4) is duplicated in BACKLOG.md (lines 533-838 and 790-838)
-2. **Camera Interpolation Status:** Camera interpolation is NOT currently implemented (no interpolate_camera system exists) and is designated as Phase 7 feature per PRD
-3. **Easing Function Module:** Easing functions are documented but no file creation or implementation tasks exist
+1. ~~Documentation Inconsistency:~~ Sprint 4 (Phase 4) is duplicated in BACKLOG.md (lines 533-838 and 790-838) - ARCHITECTURE.md now correctly notes this issue in the Gap Analysis section
+2. **Camera Interpolation Status:** Camera interpolation is fully implemented via interpolate_camera() system (update - documentation now reflects this correctly)
+3. **Easing Function Module:** Easing functions are documented but inline implementation exists as ease_cubic() function in camera/mod.rs
+4. **Inflaton Module Status:** Fully implemented with Inflaton struct, potential functions, slow-roll parameters, and InflatonPlugin (update - documentation now reflects this correctly)

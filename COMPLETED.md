@@ -2,9 +2,28 @@
 
 ## [2026-02-10]
 
+### Test Health
+- [x] review: Ignored tests in genesis-render/tests/resource_binding_tests.rs: test_complete_particle_rendering_setup, test_extract_system_transfers_data, test_materials_initialized_before_rendering, test_pipeline_cache_no_index_out_of_bounds, test_resource_reference_counting, test_resources_accessible_during_update, test_resources_created_at_startup, test_system_ordering_point_mesh_before_spawn
+
+## [2026-02-10]
+
+### Sprint 2 - Phase 2: Inflation & Quantum Seeds - Physics Integration
+- [x] Implement decelerating expansion post-inflation (a(t) ∝ t^(2/3) for matter-dominated era)
+
+### Test Health
+- [x] fix: Failing test in genesis-physics/src/cosmology/mod.rs - compute_exponential_scale_factor (line 226): doctest compile error E0425: cannot find function `compute_exponential_scale_factor` in scope (needs import: `use genesis_physics::cosmology::compute_exponential_scale_factor;`)
+
+## [2026-02-10]
+
+### Sprint 2 - Phase 2: Inflation & Quantum Seeds - Physics Integration
+- [x] Add ScaleFactor resource tracking current a(t) value, ȧ, and cosmic epoch (inflation vs matter-dominated)
+
+## [2026-02-10]
+
 ### Sprint 2 - Phase 2: Inflation & Quantum Seeds - Physics Integration
 - [x] Implement RK4 solver for scale factor a(t) differential equation (ȧ = H*a)
 - [x] Add slow-roll inflaton potential V(φ) model (quadratic potential: V(φ) = ½m²φ² with m ~ 10¹⁶ GeV)
+- [x] Implement metric expansion during inflation (exponential: a(t) = a₀e^(Ht) where H ≈ 10¹⁴ GeV)
 
 ### Drift Remediation - Physics Implementation Verification
 - [x] feat: Implement RK4 solver for scale factor a(t) differential equation (ȧ = H*a) - ALREADY IMPLEMENTED in genesis-physics/src/cosmology/mod.rs as integrate_scale_factor_rk4() method

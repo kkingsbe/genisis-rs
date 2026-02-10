@@ -9,7 +9,6 @@
 ### Failing Tests
 
 ### Ignored Tests (8 in genesis-render/tests/resource_binding_tests.rs)
-- [x] review: Ignored tests in genesis-render/tests/resource_binding_tests.rs: test_complete_particle_rendering_setup, test_extract_system_transfers_data, test_materials_initialized_before_rendering, test_pipeline_cache_no_index_out_of_bounds, test_resource_reference_counting, test_resources_accessible_during_update, test_resources_created_at_startup, test_system_ordering_point_mesh_before_spawn
 
 
 ## Sprint 2 - Phase 2: Inflation & Quantum Seeds
