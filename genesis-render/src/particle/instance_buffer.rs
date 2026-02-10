@@ -296,6 +296,7 @@ pub fn prepare_particle_instance_buffers(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use bytemuck::Zeroable;
 
     #[test]
     fn test_particle_instance_data_size() {
