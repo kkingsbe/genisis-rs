@@ -8,27 +8,22 @@
 //!
 //! # Per-Instance Attribute Synchronization
 //!
-//! The PointMesh has custom vertex attributes for per-instance particle size and color:
-//! - [`ATTRIBUTE_INSTANCE_SIZE`]: Float32 at location(1) for per-instance particle size
-//! - [`ATTRIBUTE_INSTANCE_COLOR`]: Float32x4 at location(2) for per-instance particle color
+//! Per-instance particle size and color data is synchronized via a storage buffer approach:
+//! - Extract system (`extract_particle_instances`) transfers Particle component data to render world
+//! - Prepare system (`prepare_particle_instance_buffers`) creates GPU storage buffers
+//! - Shader uses storage buffer at @group(0)@binding(3) with @builtin(instance_index)
 //!
-//! These attributes are initialized in [`init_point_mesh()`] with default values but are
-//! **NOT SYNCHRONIZED** with the [`Particle`] component data. Each particle entity has a
-//! Particle component with `position`, `color`, and `size` fields, but these values are
-//! not transferred to the GPU instance attributes.
-//!
-//! **Current Implementation Status**:
-//! ✓ Storage buffer approach implemented for per-instance particle data
+//! **Implementation Status**:
+//! ✓ Storage buffer approach fully implemented for per-instance particle data
 //! - Extract system (`extract_particle_instances`) transfers Particle component data to render world
 //! - Prepare system (`prepare_particle_instance_buffers`) creates GPU storage buffers
 //! - Bind group layout (`init_particle_instance_bind_group_layout`) initializes shader binding
-//! - Shader integration pending: point_sprite.wgsl needs to use @builtin(instance_index) and storage buffer
+//! - Shader integration complete: point_sprite.wgsl uses @builtin(instance_index) and storage buffer
 //!
-//! **Solution Architecture**:
+//! **Architecture**:
 //!
-//! A Storage Buffer approach with instance index mapping is designed to properly synchronize
-//! per-instance data. See `DESIGN.md` in the particle module directory for the complete
-//! design specification including:
+//! The storage buffer approach with instance index mapping synchronizes per-instance data. See `DESIGN.md`
+//! in the particle module directory for the complete design specification including:
 //!
 //! - **Data Flow**: Particle components (CPU) → Extract system → GPU Storage Buffer → Shader (via instance_index)
 //! - **Components**: ParticleInstanceData for GPU-compatible layout (defined in instance_buffer.rs)
@@ -130,13 +125,15 @@ pub struct PointMesh(pub Handle<Mesh>);
 
 /// Component representing a particle in the simulation
 ///
-/// Contains position, color, and size attributes for rendering.
+/// Contains position, velocity, color, and size attributes for rendering.
 /// This component can be used with instanced rendering for
 /// GPU-accelerated particle systems.
 #[derive(Component, Clone)]
 pub struct Particle {
     /// World space position of the particle
     pub position: Vec3,
+    /// Velocity of the particle
+    pub velocity: Vec3,
     /// RGBA color of the particle
     pub color: Color,
     /// Particle size in world units
@@ -153,10 +150,9 @@ pub struct Particle {
 /// # Per-Instance Data Handling
 ///
 /// Storage buffer systems (extract_particle_instances, prepare_particle_instance_buffers) exist
-/// for transferring Particle component data to GPU, but shader integration is pending.
-/// The current shader (point_sprite.wgsl) uses mesh attributes instead of the
-/// storage buffer. Full per-instance color and size synchronization requires updating
-/// the shader to use @builtin(instance_index) and the ParticleInstanceBuffer.
+/// for transferring Particle component data to GPU. The shader (point_sprite.wgsl) uses
+/// the storage buffer at @group(0)@binding(3) with @builtin(instance_index) for
+/// per-instance data access. Full per-instance color and size synchronization is complete.
 pub fn init_point_mesh(mut commands: Commands, mut meshes: ResMut<Assets<Mesh>>) {
     println!("DEBUG: init_point_mesh STARTED");
     // Create a simple point mesh with PointList topology
@@ -166,10 +162,10 @@ pub fn init_point_mesh(mut commands: Commands, mut meshes: ResMut<Assets<Mesh>>)
     // Add a single vertex at the origin
     mesh.insert_attribute(Mesh::ATTRIBUTE_POSITION, vec![[0.0, 0.0, 0.0]]);
 
-    // Note: Per-instance size and color attributes were previously added to the mesh,
-    // but are now handled through storage buffer infrastructure.
-    // Storage buffer systems (extract_particle_instances, prepare_particle_instance_buffers) exist,
-    // but shader integration is pending - the current shader still uses mesh attributes.
+    // Per-instance size and color attributes are handled through storage buffer infrastructure.
+    // Storage buffer systems (extract_particle_instances, prepare_particle_instance_buffers) transfer
+    // Particle component data to GPU, and the shader reads from the storage buffer
+    // at @group(0)@binding(3) using @builtin(instance_index).
 
     let mesh_handle = meshes.add(mesh);
     commands.insert_resource(PointMesh(mesh_handle));
@@ -324,6 +320,7 @@ pub fn spawn_particles(
             Transform::from_translation(position), // Per-instance transform (all at origin)
             Particle {
                 position,
+                velocity,
                 color,
                 size,
             },
@@ -333,34 +330,24 @@ pub fn spawn_particles(
 
 /// System to update particle positions based on physics
 ///
-/// Currently implements basic outward expansion animation where particles
-/// move away from the origin at a constant speed. This is a simple demonstration
-/// of particle movement capability - full physics sync is a future TODO item.
+/// Updates particle positions using velocity-based movement and syncs
+/// Particle.position with Transform.translation for proper rendering.
+/// This ensures Particle.position stays current for energy-based coloring.
 pub fn update_particles(
-    mut query: Query<(Entity, &mut Transform), With<Particle>>,
+    mut query: Query<(&mut Particle, &mut Transform)>,
     time: Res<Time>,
 ) {
-    let speed = 0.5; // units per second
     let delta = time.delta_secs();
 
-    for (entity, mut transform) in query.iter_mut() {
-        let pos = transform.translation;
-
-        // Calculate direction: normalize position to get outward direction
-        let direction = if pos.length_squared() > f32::EPSILON {
-            // Particle is away from origin - move outward along position vector
-            pos.normalize()
-        } else {
-            // At origin - use pseudo-random direction based on entity index
-            let index = entity.index() as f32;
-            let x = ((index * 123.456).fract() - 0.5) * 2.0;
-            let y = ((index * 789.012).fract() - 0.5) * 2.0;
-            let z = ((index * 345.678).fract() - 0.5) * 2.0;
-            Vec3::new(x, y, z).normalize()
-        };
-
-        // Move particle outward along its direction
-        transform.translation += direction * speed * delta;
+    for (mut particle, mut transform) in query.iter_mut() {
+        // Store velocity to avoid borrow conflicts
+        let velocity = particle.velocity;
+        
+        // Update position based on velocity: position += velocity * delta_time
+        particle.position += velocity * delta;
+        
+        // Sync Particle.position to Transform.translation for rendering
+        transform.translation = particle.position;
     }
 }
 
