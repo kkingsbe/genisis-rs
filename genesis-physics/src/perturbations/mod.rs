@@ -6,6 +6,9 @@
 
 use std::f64::consts::PI;
 
+use rand::Rng;
+use rand::SeedableRng;
+
 /// Generates a pair of independent standard normal (Gaussian) random numbers
 /// using the Box-Muller transform.
 ///
@@ -59,6 +62,85 @@ pub fn box_muller_pair(u1: f64, u2: f64) -> (f64, f64) {
     let z2 = radius * angle.sin();
     
     (z1, z2)
+}
+
+/// A 3D Gaussian random field on a regular grid.
+///
+/// This struct represents a three-dimensional array of random values sampled
+/// from a standard normal distribution (mean=0, std=1). The grid is uniformly
+/// spaced with a configurable number of points along each dimension.
+///
+/// Used as the foundation for cosmological density perturbations, which are
+/// then transformed via the power spectrum and Zel'dovich approximation to
+/// seed structure formation in the universe.
+pub struct GaussianRandomField {
+    /// Number of grid points along each axis (N × N × N grid)
+    pub resolution: usize,
+    /// 3D array of Gaussian random values, indexed as [z][y][x]
+    pub values: Vec<Vec<Vec<f64>>>,
+    /// Grid spacing (physical units per grid cell)
+    pub spacing: f64,
+}
+
+impl GaussianRandomField {
+    /// Generates a new 3D Gaussian random field on a regular grid.
+    ///
+    /// Creates a cube-shaped grid of resolution³ points, where each point
+    /// contains a random value sampled from a standard normal distribution
+    /// using the Box-Muller transform.
+    ///
+    /// # Arguments
+    ///
+    /// * `resolution` - Number of grid points along each axis (e.g., 64 for a 64³ grid)
+    /// * `spacing` - Physical distance between adjacent grid points (e.g., 1.0 Mpc)
+    /// * `seed` - Optional random seed for reproducibility (None = random seed)
+    ///
+    /// # Returns
+    ///
+    /// A new [`GaussianRandomField`] containing the generated values.
+    ///
+    /// # Example
+    ///
+    /// ```no_run
+    /// use genesis_physics::perturbations::GaussianRandomField;
+    ///
+    /// // Generate a 32³ field with unit spacing and a fixed seed
+    /// let field = GaussianRandomField::generate(32, 1.0, Some(12345));
+    /// ```
+    ///
+    /// # Notes
+    ///
+    /// - Uses the [`box_muller_pair`](crate::perturbations::box_muller_pair) function to convert
+    ///   uniform random numbers to Gaussian distribution.
+    /// - Memory usage scales as O(N³) with resolution.
+    pub fn generate(resolution: usize, spacing: f64, seed: Option<u64>) -> Self {
+        let mut rng: rand::rngs::StdRng = match seed {
+            Some(s) => rand::SeedableRng::seed_from_u64(s),
+            None => rand::rngs::StdRng::from_entropy(),
+        };
+
+        let mut values = Vec::with_capacity(resolution);
+        for _z in 0..resolution {
+            let mut z_slice = Vec::with_capacity(resolution);
+            for _y in 0..resolution {
+                let mut y_row = Vec::with_capacity(resolution);
+                for _x in 0..resolution {
+                    let u1: f64 = rng.gen();
+                    let u2: f64 = rng.gen();
+                    let (z1, _) = box_muller_pair(u1, u2);
+                    y_row.push(z1);
+                }
+                z_slice.push(y_row);
+            }
+            values.push(z_slice);
+        }
+
+        Self {
+            resolution,
+            values,
+            spacing,
+        }
+    }
 }
 
 #[cfg(test)]
@@ -222,5 +304,86 @@ mod tests {
             let normalized = x as f64 / (u64::MAX as f64 + 1.0);
             low + normalized * (high - low)
         }
+    }
+
+    /// Test 5: GaussianRandomField generation
+    /// Verify that GaussianRandomField::generate creates a properly structured 3D field
+    #[test]
+    fn test_gaussian_random_field_generation() {
+        // Test with a small 4³ field for fast execution
+        let field = GaussianRandomField::generate(4, 1.0, Some(42));
+        
+        assert_eq!(field.resolution, 4);
+        assert_eq!(field.spacing, 1.0);
+        assert_eq!(field.values.len(), 4);
+        
+        // Verify all slices have correct dimensions
+        for z in 0..4 {
+            assert_eq!(field.values[z].len(), 4);
+            for y in 0..4 {
+                assert_eq!(field.values[z][y].len(), 4);
+            }
+        }
+        
+        // Total elements should be 4³ = 64
+        let mut count = 0;
+        for z in 0..4 {
+            for y in 0..4 {
+                for x in 0..4 {
+                    assert!(field.values[z][y][x].is_finite());
+                    count += 1;
+                }
+            }
+        }
+        assert_eq!(count, 64);
+    }
+
+    /// Test 6: GaussianRandomField reproducibility
+    /// Verify that the same seed produces identical results
+    #[test]
+    fn test_gaussian_random_field_reproducibility() {
+        // Same seed should produce identical results
+        let field1 = GaussianRandomField::generate(8, 1.0, Some(999));
+        let field2 = GaussianRandomField::generate(8, 1.0, Some(999));
+        
+        for z in 0..8 {
+            for y in 0..8 {
+                for x in 0..8 {
+                    assert_eq!(field1.values[z][y][x], field2.values[z][y][x]);
+                }
+            }
+        }
+    }
+
+    /// Test 7: GaussianRandomField statistical properties
+    /// Verify that the generated field approximates a standard normal distribution
+    #[test]
+    fn test_gaussian_random_field_statistical_properties() {
+        // Test with a reasonably sized field for statistical validation
+        let field = GaussianRandomField::generate(32, 1.0, Some(12345));
+        
+        // Collect all values
+        let mut all_values: Vec<f64> = Vec::new();
+        for z in 0..field.resolution {
+            for y in 0..field.resolution {
+                for x in 0..field.resolution {
+                    all_values.push(field.values[z][y][x]);
+                }
+            }
+        }
+        
+        // Calculate mean (should be approximately 0)
+        let sum: f64 = all_values.iter().sum();
+        let mean = sum / all_values.len() as f64;
+        
+        // Calculate standard deviation (should be approximately 1)
+        let variance: f64 = all_values.iter()
+            .map(|&v| (v - mean).powi(2))
+            .sum::<f64>() / all_values.len() as f64;
+        let std_dev = variance.sqrt();
+        
+        // Allow some tolerance due to random sampling
+        assert!(mean.abs() < 0.2, "Mean {} should be close to 0", mean);
+        assert!((std_dev - 1.0).abs() < 0.2, "Std dev {} should be close to 1", std_dev);
     }
 }

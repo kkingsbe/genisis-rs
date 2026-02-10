@@ -17,7 +17,7 @@
 ### Physics Integration
 
 ### Density Perturbations
-- [ ] Create 3D Gaussian random field generator on regular grid (apply Box-Muller transform to each grid point)
+- [x] Create 3D Gaussian random field generator on regular grid (apply Box-Muller transform to each grid point)
 - [ ] Implement Fourier transform (FFT) to convert real-space density field to k-space
 - [ ] Create power spectrum generator P(k) ∝ k^(n_s – 1) with configurable n_s parameter (default 0.96)
 - [ ] Apply power spectrum to k-space field (multiply by sqrt(P(k)) and random phase)
@@ -115,6 +115,7 @@
 - [ ] fix: Align InflatonPlugin registration with GenesisPhysicsPlugin - InflatonPlugin is exported but never registered in the application
 - [ ] fix: Clarify "smooth interpolation" implementation scope - PRD mentions simple interpolation but code implements complex cubic ease-in-out system
 - [ ] fix: Resolve Timeline speed control implementation inconsistency - Comment says direct pass-through but UI uses logarithmic scaling
+- [ ] fix: Align timeline speed control in genesis-ui/src/timeline/mod.rs with PRD requirement for logarithmic acceleration (1x to 10¹²x)
 
 ### PRD vs Implementation Drift (Janitor Analysis 2026-02-10)
 
