@@ -12,11 +12,6 @@
 ### Unrequested Features (Refactor Candidates)
 *Features implemented in src/ but NOT specified in PRD.md Phase 1*
 
-- [x] refactor: Remove middle mouse button tracking (genesis-render/src/input/mod.rs:91)
-  - Middle mouse button state tracking not specified in PRD Phase 1
-  - PRD Phase 1 only mentions "orbit camera (click-drag)" which uses left mouse button
-  - Middle mouse state is only used by unrequested orbit pan feature
-
 - [ ] refactor: Remove orbit pan functionality (genesis-render/src/camera/mod.rs:490-549)
   - PRD Phase 1 only mentions "orbit camera (click-drag)" for rotation
   - Pan via middle mouse button (handle_orbit_pan) is not specified in Phase 1
@@ -100,8 +95,6 @@
     - time.time_acceleration_max: clamp to [1.0, 1e12]
     - window.width/height: clamp to [640, 7680]
   - [ ] Add unit tests for Config::validate() covering edge cases
-
-- [x] fix: Failing test in genesis-render/tests/resource_binding_tests.rs - compilation error due to missing fields `initial_position` and `initial_velocity` in Particle struct initialization (line 867)
 
 ---
 

@@ -1,16 +1,16 @@
 {
-  "lastRun": "2026-02-10T04:56:07.522Z",
-  "lastSuccess": "2026-02-10T04:26:15.277Z",
-  "lastFailure": "2026-02-10T04:56:07.320Z",
-  "errorCount": 46,
-  "consecutiveFailures": 2,
-  "status": "running",
+  "lastRun": "2026-02-10T09:58:39.481Z",
+  "lastSuccess": "2026-02-10T09:30:28.633Z",
+  "lastFailure": "2026-02-10T10:11:38.531Z",
+  "errorCount": 61,
+  "consecutiveFailures": 4,
+  "status": "failed",
   "lastTerminationReason": "mistake_limit_reached",
   "earlyTerminationCount": 2,
-  "totalExecutionTimeMs": 19668840,
-  "averageExecutionTimeMs": 6556280,
+  "totalExecutionTimeMs": 27075039,
+  "averageExecutionTimeMs": 9025013,
   "successfulTerminations": 0,
   "failedTerminations": 2,
-  "error": "CLI terminated early: mistake_limit_reached",
-  "lastOutputFile": "/workspace/.architect-output-1770697575278.md"
+  "error": "Failed to acquire lock for task 'architect' after 3 attempts: Failed to acquire lock for task 'architect': timeout after 5000ms",
+  "lastOutputFile": "/workspace/.architect-output-1770715828633.md"
 }

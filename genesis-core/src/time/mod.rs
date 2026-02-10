@@ -38,6 +38,24 @@ pub const SECONDS_PER_HOUR: f64 = 3_600.0;
 /// Number of seconds in a day
 pub const SECONDS_PER_DAY: f64 = 86_400.0;
 
+/// Number of years in a second
+pub const YEARS_PER_SECOND: f64 = 1.0 / SECONDS_PER_YEAR;
+
+/// Number of years in a minute
+pub const YEARS_PER_MINUTE: f64 = 1.0 / (365.25 * 24.0 * 60.0);
+
+/// Minimum representable cosmic time in years (~10⁻⁴⁰ years for Planck scale)
+pub const MIN_YEARS: f64 = 1e-40;
+
+/// Cosmic inflation epoch start time (~10⁻⁴⁴ years / 10⁻³⁶s)
+pub const INFLATION_START_YEARS: f64 = 1e-44;
+
+/// Cosmic inflation epoch end time (~10⁻³² years / 10⁻²⁴s)
+pub const INFLATION_END_YEARS: f64 = 1e-32;
+
+/// Planck epoch time (~10⁻³⁶ years / 10⁻²⁸s)
+pub const PLANCK_EPOCH_YEARS: f64 = 1e-36;
+
 /// Converts seconds to cosmic years.
 ///
 /// # Arguments

@@ -4,22 +4,434 @@ This document contains tasks for future sprints. Items here are not yet schedule
 
 ---
 
+## Gap Analysis Results (Task 1 - Architect Session 2026-02-10)
+
+### Summary of Gap Analysis
+
+**Analysis Date:** 2026-02-10
+**Scope:** Comparison of PRD.md requirements against current implementation state and planned work in BACKLOG.md
+
+### Key Findings
+
+#### 1. Phase Status Assessment
+
+- **Phase 1 (The Singularity):** Largely complete
+  - All PRD Phase 1 deliverables implemented
+  - Critical issues tracked separately (timeline minimum range, config validation, test failures)
+  - Ready for Sprint QA upon resolving critical issues
+
+- **Phase 2 (Inflation & Quantum Seeds):** Comprehensive planning in BACKLOG.md
+  - All PRD requirements have corresponding tasks
+  - Friedmann equation, scale factor, density perturbations covered
+  - Epoch indicator UI and parameter panel tasks present
+  - QGP visualization tasks present
+  - Epoch transition crossfade system tasks present
+
+- **Phase 3 (Nucleosynthesis):** Comprehensive planning in BACKLOG.md
+  - Nuclear reaction network tasks present
+  - Composition chart overlay tasks present
+  - Validation overlay tasks present
+  - Configuration preset tasks present
+
+- **Phase 4 (Recombination & CMB):** Comprehensive planning in BACKLOG.md
+  - Saha equation solver tasks present
+  - Volumetric fog renderer tasks present
+  - CMB surface projection tasks present
+  - Camera transition tasks present
+  - Power spectrum analysis tasks present
+
+- **Phase 5 (Dark Ages & Structure Formation):** Comprehensive planning in BACKLOG.md
+  - N-body gravity tasks present (direct-sum and Barnes-Hut)
+  - Dark matter halo formation tasks present
+  - Cosmic web visualization tasks present
+  - Data export tasks present
+
+- **Phase 6 (Cosmic Dawn & Galaxy Formation):** Comprehensive planning in BACKLOG.md
+  - SPH hydrodynamics tasks present
+  - Star formation tasks present
+  - Reionization visualization tasks present
+  - Galaxy rendering tasks present
+  - Audio tasks present
+
+- **Phase 7 (Polish, Cinematic Mode & Release):** Comprehensive planning in BACKLOG.md
+  - Performance optimization tasks present
+  - Cinematic mode tasks present
+  - Expanded UI tasks present
+  - Capture and export tasks present
+  - Benchmarking tasks present
+  - Documentation tasks present
+  - Cross-platform build tasks present
+
+#### 2. Missing Requirements Identified
+
+The following requirements from PRD.md are NOT adequately represented in BACKLOG.md:
+
+##### 2.1 Test Infrastructure & Coverage
+- **Issue:** No explicit tasks for establishing comprehensive test coverage
+- **PRD Reference:** Section 10.1 - Per-Phase Gates: "Application compiles and runs on all three target platforms"
+- **Missing Tasks:**
+  - Establish test coverage targets (minimum % for each crate)
+  - Write unit tests for genesis-core (config, time, physics)
+  - Write unit tests for genesis-render (camera, input, particle)
+  - Write unit tests for genesis-ui (timeline, overlay)
+  - Write integration tests for epoch transitions
+  - Document test plan and test coverage strategy
+  - Add CI automation for running tests on all platforms
+
+##### 2.2 Documentation Tracking
+- **Issue:** Documentation tasks are only present in Phase 7, but PRD Section 10.1 requires documentation "at each phase boundary"
+- **PRD Reference:** Section 10.1 - Per-Phase Gates: "All new UI controls are functional and documented in code comments"
+- **Missing Tasks:**
+  - Phase 1 documentation review and completion
+  - Phase 2 documentation tasks (API docs for new systems)
+  - Phase 3 documentation tasks (reaction network docs)
+  - Phase 4 documentation tasks (Saha solver docs)
+  - Phase 5 documentation tasks (N-body gravity docs)
+  - Phase 6 documentation tasks (SPH docs)
+  - Code review documentation standards
+  - Documentation quality assurance process
+
+##### 2.3 Configuration System Refinement
+- **Issue:** Configuration validation task exists but lacks detailed breakdown
+- **Current Task:** Lines 22-33 have "Add Config::validate() method" with subtasks
+- **Missing Details:**
+  - Document validation rules in user-facing format
+  - Add configuration schema documentation
+  - Define configuration migration path for breaking changes
+  - Add error messages explaining why config values are invalid
+
+##### 2.4 Performance Targets Validation
+- **Issue:** PRD Section 8 defines explicit performance targets, but BACKLOG.md only has optimization tasks
+- **PRD Reference:** Section 8 - Performance Targets (particle counts, frame rates, GPU memory, startup time)
+- **Missing Tasks:**
+  - Validate performance targets at 1M particles (≥60 FPS on GTX 1660)
+  - Validate performance targets at 10M particles (≥30 FPS on RTX 3080)
+  - Measure and document startup time (<5 seconds requirement)
+  - Measure and document snapshot export time
+  - Create performance baseline document
+  - Add performance regression detection in CI
+
+##### 2.5 Dependency Resolution
+- **Issue:** BACKLOG.md notes missing dependencies (lines 1582-1590) but lacks implementation tasks
+- **Missing Tasks:**
+  - Add nalgebra dependency to genesis-core/Cargo.toml
+  - Add hdf5-rust dependency for genesis-export crate
+  - Add kira/bevy_kira_audio dependency for genesis-audio crate
+  - Document dependency addition rationale in ARCHITECTURE.md
+  - Update dependency version constraints for security patches
+
+#### 3. BACKLOG.md Quality Issues
+
+##### 3.1 Over-Nested Task Structure
+- **Issue:** Many tasks are nested 3-4 levels deep, making them hard to scan
+- **Impact:** Reduces task discoverability and planning efficiency
+- **Example:** Lines 643-654 have inflation physics tasks nested under "Physics Integration" → "Implement Friedmann equation" → subtasks
+- **Recommendation:** Flatten task structure to 2 levels maximum (main task → atomic subtasks)
+
+##### 3.2 Vague Tasks Needing Breakdown
+- **Issue:** Some tasks are not actionable without further decomposition
+- **Examples:**
+  - Line 861: "Implement volumetric fog renderer using Bevy fog or custom shader" - needs algorithm choice and API selection
+  - Line 983: "Implement sub-grid star formation" - needs algorithm specification
+  - Line 1003: "Implement ionization front expansion" - needs data structure design
+  - Line 1343: "Generate streamlines using velocity field integration" - needs integration algorithm choice
+
+##### 3.3 Duplicate Task Distribution
+- **Issue:** Some tasks appear in multiple sprint sections when they span multiple phases
+- **Example:** Epoch plugin creation tasks (lines 319-369) span Phases 2-7 but are organized as one umbrella task
+- **Impact:** Makes sprint planning unclear
+- **Recommendation:** Move epoch-specific plugin tasks to their respective sprint sections
+
+#### 4. Notable Concerns
+
+##### 4.1 Test Infrastructure Gap
+- **Concern:** Test compilation errors exist (BACKLOG.md lines 8-14), but there's no comprehensive test plan
+- **Impact:** Code quality and regression detection are at risk
+- **Recommendation:** Prioritize test infrastructure in Sprint 1 before moving to Sprint 2
+
+##### 4.2 Documentation Debt
+- **Concern:** Documentation is deferred entirely to Phase 7, but PRD requires documentation at each phase boundary
+- **Impact:** API usability and developer onboarding will suffer
+- **Recommendation:** Add documentation tasks to each sprint section
+
+##### 4.3 Performance Validation Gap
+- **Concern:** No explicit tasks to validate PRD Section 8 performance targets
+- **Impact:** Release may fail performance gate criteria
+- **Recommendation:** Add performance validation tasks to Sprint 7 (or earlier for partial validation)
+
+---
+
+## Additional Requirements Added (Task 1 - Architect Session 2026-02-10)
+
+### Test Infrastructure & Coverage
+
+- [ ] **feature: Establish test coverage targets for all crates**
+  - [ ] Define minimum coverage percentages: genesis-core (80%), genesis-render (75%), genesis-ui (75%)
+  - [ ] Create coverage_report.rs script to generate coverage reports using tarpaulin or cargo-tarpaulin
+  - [ ] Add CI job running coverage report on pull requests
+  - [ ] Document coverage targets in TESTING.md
+  - [ ] Add coverage badge to README.md
+
+- [ ] **feature: Write unit tests for genesis-core**
+  - [ ] Write tests for Config struct (parsing, validation, defaults)
+  - [ ] Write tests for TimeAccumulator (time accumulation, pause/resume, reset)
+  - [ ] Write tests for CosmicTime (logarithmic mapping, edge cases)
+  - [ ] Write tests for Particle struct (construction, field access)
+  - [ ] Write tests for temperature evolution functions
+  - [ ] Write tests for scale factor evolution functions
+  - [ ] Add tests to genesis-core/Cargo.toml integration section
+
+- [ ] **feature: Write unit tests for genesis-render**
+  - [ ] Write tests for CameraMode enum (variants, switching logic)
+  - [ ] Write tests for CameraState (mode transitions, interpolation)
+  - [ ] Write tests for OrbitController (spherical coordinates, clamping)
+  - [ ] Write tests for InputState (key tracking, scroll delta)
+  - [ ] Write tests for PointSpriteMaterial (uniform binding, alpha mode)
+  - [ ] Write tests for particle spawn logic
+  - [ ] Add tests to genesis-render/Cargo.toml integration section
+
+- [ ] **feature: Write unit tests for genesis-ui**
+  - [ ] Write tests for PlaybackState (play/pause, speed mapping)
+  - [ ] Write tests for OverlayState (toggle visibility, persistence)
+  - [ ] Write tests for CosmicTime logarithmic slider mapping
+  - [ ] Write tests for epoch indicator display logic
+  - [ ] Write tests for parameter panel validation
+  - [ ] Add tests to genesis-ui/Cargo.toml integration section
+
+- [ ] **feature: Write integration tests for epoch transitions**
+  - [ ] Create tests/integration/epoch_transitions.rs
+  - [ ] Test epoch boundary detection (e.g., Singularity → Inflation at t = 10⁻³²s)
+  - [ ] Test parameter continuity across transitions (temperature, scale factor)
+  - [ ] Test camera interpolation during epoch changes
+  - [ ] Test particle color transitions during epochs
+  - [ ] Add integration tests to workspace Cargo.toml
+
+- [ ] **documentation: Document test plan and test coverage strategy**
+  - [ ] Create TESTING.md documenting testing philosophy
+  - [ ] Document unit test strategy (what to test, how to test)
+  - [ ] Document integration test strategy (epoch transitions, multi-system workflows)
+  - [ ] Document performance test strategy (benchmarks, regression detection)
+  - [ ] Add testing guidelines to CONTRIBUTING.md
+
+- [ ] **feature: Add CI automation for running tests on all platforms**
+  - [ ] Create .github/workflows/test.yml workflow
+  - [ ] Configure matrix strategy for Linux, macOS, Windows
+  - [ ] Add test step: cargo test --release on all platforms
+  - [ ] Add test coverage step: cargo tarpaulin --out Xml for Linux
+  - [ ] Upload test results as workflow artifacts
+  - [ ] Add platform-specific test conditions (e.g., Vulkan validation on Linux)
+
+### Documentation Tasks (All Phases)
+
+- [ ] **documentation: Phase 1 documentation review and completion**
+  - [ ] Review all public APIs in genesis-core for documentation completeness
+  - [ ] Review all public APIs in genesis-render for documentation completeness
+  - [ ] Review all public APIs in genesis-ui for documentation completeness
+  - [ ] Add missing rustdoc comments with examples
+  - [ ] Run `cargo doc --open` and verify documentation builds
+  - [ ] Update ARCHITECTURE.md with final Phase 1 crate structure
+
+- [ ] **documentation: Phase 2 documentation tasks**
+  - [ ] Document Friedmann equation solver API (inputs, outputs, accuracy)
+  - [ ] Document scale factor evolution models (formulas, parameter meanings)
+  - [ ] Document Gaussian random field generator API (grid size, seed, power spectrum)
+  - [ ] Document density perturbation to displacement mapping algorithm
+  - [ ] Document epoch indicator UI panel API
+  - [ ] Document parameter panel API and configuration schema
+
+- [ ] **documentation: Phase 3 documentation tasks**
+  - [ ] Document nuclear reaction network data structure
+  - [ ] Document NACRE II rate interpolation API
+  - [ ] Document Rosenbrock ODE solver API (stiff systems, adaptive step size)
+  - [ ] Document nuclear composition tracking API
+  - [ ] Document composition chart overlay API
+  - [ ] Document validation overlay API and data structures
+
+- [ ] **documentation: Phase 4 documentation tasks**
+  - [ ] Document Saha equation solver API (inputs, convergence criteria)
+  - [ ] Document volumetric fog renderer API (density function, rendering parameters)
+  - [ ] Document CMB surface projection API (sphere generation, texture mapping)
+  - [ ] Document camera transition system API (pull-back animation, easing functions)
+  - [ ] Document power spectrum computation and visualization API
+
+- [ ] **documentation: Phase 5 documentation tasks**
+  - [ ] Document N-body gravity solver API (direct-sum, Barnes-Hut)
+  - [ ] Document octree data structure and traversal API
+  - [ ] Document halo finder (Friends-of-Friends) API
+  - [ ] Document cosmic web visualization API (filament rendering, void detection)
+  - [ ] Document HDF5 export API (snapshot format, compression options)
+
+- [ ] **documentation: Phase 6 documentation tasks**
+  - [ ] Document SPH hydrodynamics API (kernel, density, pressure, viscosity)
+  - [ ] Document radiative cooling functions API (temperature lookup tables)
+  - [ ] Document star formation API (Kennicutt-Schmidt law, density threshold)
+  - [ ] Document reionization bubble expansion API (SDF, overlapping)
+  - [ ] Document galaxy rendering API (billboard sprites, morphology mapping)
+  - [ ] Document audio system API (procedural generation, epoch-aware mixing)
+
+- [ ] **documentation: Code review documentation standards**
+  - [ ] Define documentation quality standards (rustdoc comment completeness, example quality)
+  - [ ] Create documentation review checklist for PR reviews
+  - [ ] Add "Documentation Review" section to pull request template
+  - [ ] Document when external documentation files should be updated
+
+- [ ] **documentation: Documentation quality assurance process**
+  - [ ] Create docs/linting.sh script running cargo doc check
+  - [ ] Add markdown linting for documentation files (.md files)
+  - [ ] Add CI job checking documentation builds without warnings
+  - [ ] Create documentation review checklist for each phase
+
+### Configuration System Refinement
+
+- [ ] **feature: Document configuration validation rules in user-facing format**
+  - [ ] Create docs/CONFIGURATION.md documenting all config options
+  - [ ] Document validation rules with examples of valid/invalid values
+  - [ ] Add error message explanations for invalid values
+  - [ ] Document how to override config via command-line arguments
+  - [ ] Document config file search order and precedence
+
+- [ ] **feature: Add configuration schema documentation**
+  - [ ] Create config/genesis.schema.json or similar validation schema
+  - [ ] Document schema format and validation keywords
+  - [ ] Add schema to repo root for IDE autocompletion support
+  - [ ] Link schema documentation in README.md
+
+- [ ] **feature: Define configuration migration path for breaking changes**
+  - [ ] Create config/migration.rs module
+  - [ ] Define ConfigVersion enum tracking config format versions
+  - [ ] Implement Config::migrate_from() method handling version upgrades
+  - [ ] Document breaking changes and migration guide in docs/MIGRATION.md
+  - [ ] Add config version field to genesis.toml format
+
+### Performance Targets Validation
+
+- [ ] **feature: Validate performance targets at 1M particles**
+  - [ ] Create performance benchmark script: scripts/benchmark_1m_particles.sh
+  - [ ] Run benchmark on GTX 1660 class hardware (or equivalent)
+  - [ ] Measure FPS over 60-second test period
+  - [ ] Verify FPS ≥ 60 (PRD Section 8 target)
+  - [ ] Log performance metrics to benchmarks/results_1m.json
+  - [ ] Add benchmark task to Sprint 7 or late Sprint 1
+
+- [ ] **feature: Validate performance targets at 10M particles**
+  - [ ] Create performance benchmark script: scripts/benchmark_10m_particles.sh
+  - [ ] Run benchmark on RTX 3080 class hardware (or equivalent)
+  - [ ] Measure FPS over 60-second test period
+  - [ ] Verify FPS ≥ 30 (PRD Section 8 High-Fidelity target)
+  - [ ] Log performance metrics to benchmarks/results_10m.json
+  - [ ] Add benchmark task to Sprint 7
+
+- [ ] **feature: Measure and document startup time**
+  - [ ] Create startup time measurement script: scripts/measure_startup_time.sh
+  - [ ] Run command: time cargo run --release
+  - [ ] Verify startup time < 5 seconds (PRD Section 8 target)
+  - [ ] Profile startup time if target not met (identify slow subsystems)
+  - [ ] Document results in benchmarks/startup_time.md
+
+- [ ] **feature: Measure and document snapshot export time**
+  - [ ] Create snapshot export benchmark: scripts/benchmark_export.sh
+  - [ ] Generate test data (1M particles)
+  - [ ] Measure HDF5 export time for 10M particles (target < 30s)
+  - [ ] Measure HDF5 export time for 1M particles (target < 2s)
+  - [ ] Document results in benchmarks/export_time.md
+
+- [ ] **feature: Create performance baseline document**
+  - [ ] Create benchmarks/baseline.md documenting all performance targets
+  - [ ] List PRD Section 8 targets (particle counts, frame rates, GPU memory, startup time, snapshot export)
+  - [ ] Document measured baseline values after initial benchmarks
+  - [ ] Define acceptable deviation tolerances (±5% FPS per PRD Section 10.1)
+  - [ ] Link baseline document to README.md and ARCHITECTURE.md
+
+- [ ] **feature: Add performance regression detection in CI**
+  - [ ] Create .github/workflows/performance.yml workflow
+  - [ ] Run performance benchmarks on every pull request
+  - [ ] Compare results against benchmarks/baseline.md
+  - [ ] Fail workflow if performance degrades by >5% (per PRD Section 10.1)
+  - [ ] Post performance comparison as PR comment using GitHub API
+  - [ ] Update baseline document manually after approved performance improvements
+
+### Dependency Resolution
+
+- [ ] **feature: Add nalgebra dependency to genesis-core**
+  - PRD reference: Section 4 - "Math: glam + nalgebra"
+  - Current: Only glam is used; nalgebra not in Cargo.toml
+  - [ ] Add nalgebra to genesis-core/Cargo.toml dependencies: nalgebra = "0.33"
+  - [ ] Document which systems use nalgebra vs glam in ARCHITECTURE.md
+  - [ ] Add example usage of nalgebra for scientific linear algebra operations
+  - [ ] Run cargo check to verify no conflicts with existing dependencies
+
+- [ ] **feature: Add hdf5-rust dependency for genesis-export crate**
+  - PRD reference: Section 4 - "Serialization: serde + hdf5-rust"
+  - Current: serde present; hdf5-rust not in Cargo.toml
+  - [ ] Create genesis-export/Cargo.toml with hdf5 = "0.9" dependency
+  - [ ] Add serde dependency to genesis-export/Cargo.toml
+  - [ ] Document HDF5 format specifications in docs/EXPORT_FORMAT.md
+  - [ ] Add example HDF5 snapshot file structure documentation
+
+- [ ] **feature: Add kira/bevy_kira_audio dependency for genesis-audio crate**
+  - PRD reference: Section 4 - "Audio: kira (bevy_kira_audio)"
+  - Current: Audio crate not present
+  - [ ] Create genesis-audio/Cargo.toml with bevy_kira_audio = "0.20" dependency
+  - [ ] Document audio system architecture in genesis-audio/src/lib.rs
+  - [ ] Add example audio configuration to docs/AUDIO_GUIDE.md
+
+- [ ] **documentation: Document dependency addition rationale**
+  - [ ] Update ARCHITECTURE.md with dependency section
+  - [ ] Document why each dependency is needed (technical justification)
+  - [ ] Document version constraints and compatibility requirements
+  - [ ] Link to external library documentation for each major dependency
+
+- [ ] **maintenance: Update dependency version constraints for security patches**
+  - [ ] Install cargo-audit: cargo install cargo-audit
+  - [ ] Run cargo audit to check for known vulnerabilities
+  - [ ] Update vulnerable dependencies to patched versions
+  - [ ] Add cargo audit to CI workflow for automated security scanning
+  - [ ] Document security policy in docs/SECURITY.md
+
+---
+
+## Critical Issues
+- [ ] **fix: Failing compilation in genesis-render/src/camera/mod.rs tests (BLOCKS test suite)**
+  - Error: cannot borrow `world` as mutable because it is also borrowed as immutable
+  - Issue: world.get::<CameraController>() and world.get_mut::<Transform>() cannot be held simultaneously
+  - Error locations: lines 595, 597, 657, 719, 781, 825, 875, 938
+  - Impact: cargo test fails with 8 compilation errors, blocks SPRINT QA
+  - [ ] Refactor tests to avoid simultaneous immutable/mutable borrows
+  - [ ] Use EntityRef API or restructure test logic to access CameraController before Transform mutation
+- [ ] **fix: Timeline minimum range enhancement (PRD Phase 1: span 13.8 billion years from t ≈ 10⁻³²s)**
+  - Current: CosmicTime.from_slider() uses effective_min=1.0 when min_time=0.0 (line 86, 104)
+  - Issue: Cannot represent very early universe (< 1 year) in logarithmic timeline
+  - Impact: Timeline cannot properly display pre-year-1 epochs (Planck boundary at 10⁻³²s, inflation at 10⁻³⁶s-10⁻³²s)
+  - [ ] Update CosmicTime::from_slider() to handle min_time=0.0 properly for sub-year logarithmic scale
+  - [ ] Update CosmicTime::to_slider() to return values < 0 for pre-1-year timescales
+  - [ ] Test timeline scrubbing at t=10⁻³⁰s, t=10⁻⁶s to verify early universe accessibility
+- [ ] **feature: Configuration validation at load time**
+  - Current: No validation of genesis.toml values when loaded via Config::load()
+  - Issue: Invalid config values can cause runtime issues or undefined behavior
+  - Impact: User can set invalid particle counts, time accelerations, etc.
+  - [ ] Add Config::validate() method that checks all config values are within valid ranges
+  - [ ] Call validate() in Config::load() and log warnings/errors for invalid values
+  - [ ] Define validation rules:
+    - particle.initial_count: clamp to [1000, 10000000]
+    - particle.base_size: clamp to [0.1, 10.0]
+    - time.time_acceleration_max: clamp to [1.0, 1e12]
+    - window.width/height: clamp to [640, 7680]
+  - [ ] Add unit tests for Config::validate() covering edge cases
+
+---
+
 ## Sprint 1 - Phase 1: The Singularity
 #### Window, Particle Engine & Time
 
 ### Core Visualization
-- [ ] ~~Implement procedural singularity visualization: spawn particles at origin with radial outward velocity vectors~~ (COMPLETED: See genesis-render/src/particle/mod.rs spawn_particles())
-- [ ] ~~Replace random particle spawning in spawn_particles() with procedural singularity generation~~ (COMPLETED: Already implemented with deterministic pseudo-random distribution)
-- [ ] **fix: Add velocity field to Particle component** (CRITICAL - Blocks proper particle expansion per PRD Phase 1)
-  - [ ] Add `velocity: Vec3` field to Particle struct in genesis-render/src/particle/mod.rs
-  - [ ] Store calculated velocity in spawn_particles() instead of discarding it (line 302-304)
-  - [ ] Update Particle component with stored velocity: Particle { position, color, size, velocity }
-  - [ ] Modify update_particles() to use stored Particle.velocity instead of hardcoded speed value
-- [ ] **fix: Sync Particle.position with Transform.translation** (CRITICAL - Breaks energy-based coloring per PRD Phase 1)
-  - [ ] Add sync_particle_position() system that copies Transform.translation to Particle.position each frame
-  - [ ] Query (Entity, &Transform, &mut Particle) and update particle.position from transform.translation
-  - [ ] Register sync_particle_position() system in Update schedule before update_particle_energy_colors
-  - [ ] This ensures update_particle_energy_colors() calculates energy from actual particle positions, not spawn positions
+- [x] ~~Implement procedural singularity visualization: spawn particles at origin with radial outward velocity vectors~~ (COMPLETED: See genesis-render/src/particle/mod.rs spawn_particles())
+- [x] ~~Replace random particle spawning in spawn_particles() with procedural singularity generation~~ (COMPLETED: Already implemented with deterministic pseudo-random distribution)
+- [x] **fix: Add velocity field to Particle component** (COMPLETED 2026-02-10 - Already implemented)
+  - [x] Add `velocity: Vec3` field to Particle struct in genesis-render/src/particle/mod.rs (line 126)
+  - Note: Field already exists, no action required
+- [x] **fix: Sync Particle.position with Transform.translation** (COMPLETED 2026-02-10 - Already implemented)
+  - [x] sync_particle_position() system exists at genesis-render/src/particle/mod.rs:376
+  - Note: System already registered, no action required
 - [ ] Scale particle system from 1000 to 100K-1M particles
   - [ ] Milestone 1: Implement adaptive particle spawning system that scales based on config.particle.initial_count
   - [ ] Milestone 2: Validate performance target at 10K particles (≥60 FPS)
@@ -59,8 +471,26 @@ This document contains tasks for future sprints. Items here are not yet schedule
   - [ ] Add middle mouse button drag detection to InputState
   - [ ] Implement pan system for free-flight camera that moves camera laterally based on mouse drag
   - [ ] Add Shift key modifier detection for alternative pan mode
+- [ ] **feature: Implement Q/E key vertical movement for free-flight camera (PRD Phase 1 requirement)**
+  - PRD camera documentation: "**Q/E**: Move down/up"
+  - Current: handle_keyboard_input() only implements WASD, Q/E not implemented
+  - Location: genesis-render/src/input/mod.rs and genesis-render/src/camera/mod.rs
+  - [ ] Add KeyCode::KeyQ and KeyCode::KeyE handling in InputState tracking
+  - [ ] Modify update_free_flight_camera() system to apply vertical movement when Q/E keys are held
+  - [ ] Apply vertical movement along camera.up vector: translation += camera.up * vertical_speed * dt
+  - [ ] Define vertical_speed parameter in CameraConfig (default: 1.0 m/s)
+  - [ ] Add qe_speed field to CameraConfig for independent vertical movement control
+  - [ ] Ensure vertical movement works in both free-flight and orbit camera modes (if applicable)
 - [ ] ~~Add pan controls for orbit camera (use Shift + drag or middle mouse button to move target point)~~ (COMPLETED: See handle_orbit_pan() in genesis-render/src/camera/mod.rs)
-- [ ] ~~Implement smooth camera interpolation system (camera tween resource with start/end positions, duration, easing function)~~ (COMPLETED: See CameraState interpolation infrastructure in genesis-render/src/camera/mod.rs)
+- [ ] **fix: Implement smooth camera interpolation between modes (PRD Phase 1 requirement)**
+  - PRD Phase 1 Deliverable: "Free-flight camera (WASD + mouse) and orbit camera (click-drag) with **smooth interpolation**"
+  - Current status: NOT implemented (comment says "deferred to Phase 7")
+  - [ ] Create interpolate_camera() system that smooths transitions between camera positions and rotations
+  - [ ] Add CameraState fields: start_pos: Vec3, end_pos: Vec3, interpolation_speed: f32, interpolation_progress: f32 (0.0-1.0)
+  - [ ] Implement linear interpolation: current_pos = start_pos + (end_pos - start_pos) * progress
+  - [ ] Implement quaternion interpolation (slerp) for smooth rotation transitions
+  - [ ] Add start_interpolation_to_target() method to CameraState for initiating transitions
+  - [ ] Register interpolate_camera() system in PostUpdate schedule
 - [ ] Create easing function module with trait definition in genesis-render/src/camera/easing.rs
   - [ ] Define EasingFunction trait with fn ease(&self, t: f32) -> f32 method where t ∈ [0.0, 1.0]
   - [ ] Add derive(Debug, Clone, Copy, PartialEq) attributes for serde serialization support

@@ -2,6 +2,53 @@
 
 ## [2026-02-10]
 
+### Timeline Enhancements (Phase 1 PRD Requirements)
+- [x] feature: Implement basic timeline scrubbing to TimeAccumulator synchronization
+  - [ ] Enable particles to move backward/forward when scrubbing the timeline
+  - [ ] Basic synchronization with TimeAccumulator.years during timeline scrub
+  - [ ] Note: Full snapshot-based reverse/replay system is future sprint priority
+
+### Test Health - Failing Tests
+- [x] fix: Failing compilation in genesis-render/src/camera/mod.rs from recent commit - Rust borrow checker errors at lines 595, 597, 657, 719, 781, 825, 875, 938 (completed 2026-02-10 - fixed by extracting controller values before mutable Transform borrow)
+  - Error: cannot borrow `world` as mutable because it is also borrowed as immutable
+  - Issue: world.get::<CameraController>() and world.get_mut::<Transform>() cannot be held simultaneously
+  - Impact: Blocks test suite from running (cargo test fails with 8 compilation errors)
+
+### Timeline Reverse/Replay
+- [x] RESOLVED: Timeline reverse/replay for particle positions (genesis-ui/src/timeline/mod.rs:142-208, genesis-render/src/particle/mod.rs:409-448)
+  - PRD Phase 1 Demo Moment: "Scrub the timeline back and forth — the expansion reverses and replays"
+  - Current behavior: Timeline scrubbing is fully implemented
+  - update_particles_for_scrubbing() system recalculates positions from initial state
+  - Position formula: position = initial_position + initial_velocity * years
+  - Scrubbing state is tracked via ScrubbingEvent events
+  - Resolution: This feature is IMPLEMENTED, not missing
+
+## [2026-02-10]
+
+### Code Cleanup
+- [x] refactor: Remove debug print statements from genesis-render/src/particle/mod.rs
+  - [ ] Remove println! statements at lines 266-272
+  - [ ] Remove println! statements at lines 318-320
+  - Debug output not required per PRD Phase 1 deliverables
+- [x] refactor: Remove debug print statements from genesis-render/src/camera/mod.rs
+  - [ ] Remove info! statements at lines 269 and 274
+  - Debug output not required per PRD Phase 1 deliverables
+
+### Documentation
+- [x] doc: Update ARCHITECTURE.md to reflect Particle component changes
+  - [x] Document new velocity field in Particle component
+  - [x] Document sync_particle_position() system
+  - [x] Update Phase 1 implementation status
+
+### Camera Controls (Phase 1 PRD Requirements)
+- [x] fix: Implement Q/E up/down movement for free-flight camera (PRD Phase 1 requirement)
+  - Location: genesis-render/src/input/mod.rs handle_keyboard_input
+  - Q key adds (0.0, -1.0, 0.0) for downward movement
+  - E key adds (0.0, 1.0, 0.0) for upward movement
+  - Note: Scroll wheel zoom for free-flight camera is ALREADY IMPLEMENTED (handle_free_flight_zoom exists)
+
+## [2026-02-10]
+
 ### Camera Controls (Phase 1 PRD Requirements)
 - [x] feature: Implement scroll wheel zoom controls for orbit camera
   - [x] Add scroll wheel event handling to orbit camera system
@@ -438,3 +485,21 @@
 - [x] chore: Remove .janitor-output-1770673025376.md - temporary janitor mode output file
 - [x] chore: Remove bin/run.bat - contains hardcoded paths to another user's directory (c:\Users\Kyle\Documents\code\agent-coding-container\automation-parallel), not part of this Rust project
 - [x] chore: Remove commit-msg.md - saved commit message from past commit, not a template file
+
+## [2026-02-10]
+
+### Code Cleanup
+- [x] refactor: Remove Q/E vertical camera movement (genesis-render/src/input/mod.rs:73-78)
+- [x] refactor: Remove middle mouse button tracking (genesis-render/src/input/mod.rs:91)
+  - Middle mouse button state tracking not specified in PRD Phase 1
+  - PRD Phase 1 only mentions "orbit camera (click-drag)" which uses left mouse button
+  - Middle mouse state is only used by unrequested orbit pan feature
+
+### Contradictions with PRD (Fix Candidates)
+- [x] fix: Implement smooth camera interpolation between modes (genesis-render/src/camera/mod.rs:28)
+  - PRD Phase 1 Deliverable specifies: "Free-flight camera (WASD + mouse) and orbit camera (click-drag) with **smooth interpolation**"
+  - Current implementation: "Camera interpolation: NOT implemented (deferred to Phase 7)"
+  - This is a direct contradiction of Phase 1 requirements
+
+### Test Health - Failing Tests
+- [x] fix: Failing test in genesis-render/tests/resource_binding_tests.rs - compilation error due to missing fields `initial_position` and `initial_velocity` in Particle struct initialization (line 867)

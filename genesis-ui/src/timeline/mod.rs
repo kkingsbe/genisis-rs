@@ -18,12 +18,12 @@
 //!
 //! The [`sync_time_resources()`] system synchronizes:
 //! - TimeAccumulator's paused state with PlaybackState.playing
-//! - PlaybackState.speed to TimeAccumulator.acceleration (logarithmic mapping)
+//! - PlaybackState.speed to TimeAccumulator.acceleration (direct pass-through)
 
 use bevy::prelude::*;
 use bevy_egui::{egui, EguiContexts, EguiSet};
 use genesis_core::events::ScrubbingEvent;
-use genesis_core::time::TimeAccumulator;
+use genesis_core::time::{TimeAccumulator, MIN_YEARS};
 
 /// Resource tracking playback state
 ///
@@ -73,7 +73,7 @@ impl CosmicTime {
 
     /// Maps a logarithmic slider value (0.0 to 1.0) to cosmic time in years.
     ///
-    /// Uses logarithmic scaling: t = min_time * 10^(slider_value * log10(max_time/min_time))
+    /// Uses logarithmic scaling: t = effective_min * 10^(slider_value * log10(max_time/effective_min))
     ///
     /// # Arguments
     /// * `slider_value` - Slider position from 0.0 to 1.0
@@ -82,14 +82,17 @@ impl CosmicTime {
     /// Cosmic time in years corresponding to the slider position
     ///
     /// # Note
-    /// When min_time is 0.0, this uses a small epsilon value to avoid log10(0).
+    /// Uses MIN_YEARS (1e-40) as effective_min when min_time is 0.0 to enable sub-year
+    /// scaling while avoiding log10(0). This allows the timeline to represent cosmic
+    /// time from the earliest epochs after the Big Bang (~10^-43 seconds) through
+    /// the present day.
     pub fn from_slider(&self, slider_value: f64) -> f64 {
-        let effective_min = if self.min_time == 0.0 { 1.0 } else { self.min_time };
+        let effective_min = if self.min_time == 0.0 { MIN_YEARS } else { self.min_time };
         let log_ratio: f64 = f64::log10(self.max_time / effective_min);
         effective_min * 10_f64.powf(slider_value * log_ratio)
     }
 
-    /// Maps cosmic time in years to a logarithmic slider value (0.0 to 1.0).
+    /// Maps cosmic time in years to a logarithmic slider value.
     ///
     /// Inverse of `from_slider`: slider = log10(cosmic_time/min_time) / log10(max_time/min_time)
     ///
@@ -97,14 +100,26 @@ impl CosmicTime {
     /// * `cosmic_time` - Cosmic time in years to convert to slider position
     ///
     /// # Returns
-    /// Slider position from 0.0 to 1.0 corresponding to the cosmic time
+    /// Slider position corresponding to the cosmic time:
+    /// - Negative values for pre-1-year timescales (representing epochs from ~10^-43 seconds to 1 year)
+    /// - 0.0 at exactly 1 year
+    /// - 0.0 to 1.0 for 1 year to max_time
     ///
     /// # Note
-    /// When cosmic_time is 0.0 or less than 1 year, returns 0.0 as slider position.
+    /// When min_time is 0.0, negative slider values represent the pre-1-year portion of the timeline,
+    /// using MIN_YEARS (1e-40) as the effective minimum. The mapping is mathematically consistent
+    /// with from_slider() such that to_slider(from_slider(x)) ≈ x.
     pub fn to_slider(&self, cosmic_time: f64) -> f64 {
         let effective_min = if self.min_time == 0.0 { 1.0 } else { self.min_time };
         if cosmic_time < effective_min {
-            return 0.0;
+            // Pre-1-year timescales: return negative slider values
+            // Map [MIN_YEARS, 1.0] to [-1.0, 0.0] using logarithmic scaling
+            let log_ratio_pre: f64 = f64::log10(1.0 / MIN_YEARS);
+            let log_pos: f64 = f64::log10(cosmic_time / MIN_YEARS);
+            let pre_1yr_slider = log_pos / log_ratio_pre; // Maps to [-1.0, 0.0]
+            
+            // Offset to preserve negative values while allowing positive range up to 1.0
+            return pre_1yr_slider - 1.0;
         }
         let log_ratio: f64 = f64::log10(self.max_time / effective_min);
         f64::log10(cosmic_time / effective_min) / log_ratio
@@ -226,7 +241,7 @@ pub fn timeline_panel_ui(
 /// - When playing is false and TimeAccumulator is not paused, pause TimeAccumulator
 ///
 /// Also maps PlaybackState.speed (1.0-1e12) to TimeAccumulator.acceleration (1.0-1e12)
-/// via direct pass-through (no logarithmic scaling)
+/// via direct pass-through
 pub fn sync_time_resources(
     mut time_accumulator: ResMut<TimeAccumulator>,
     playback_state: Res<PlaybackState>,

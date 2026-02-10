@@ -1,8 +1,29 @@
 # Blockers
 
-**No active blockers.**
+## Blockers Removed - 2026-02-10
 
----
+The following blockers were removed based on verification that Phase 1 features are implemented:
+- "Phase 1 Sprint Completeness Criteria" - Removed because both PRD deliverables (logarithmic timeline scrubber, energy color-mapping) are already implemented
+- See comms/archive/question-phase1-sprint-completeness-2026-02-10.md (archived) and comms/outbox/clarification-phase1-implementation-status-2026-02-10.md for details
+
+### Timeline Reverse/Replay Implementation Status - 2026-02-10
+
+The "Timeline Reverse/Replay Scope" blocker has been removed. The system now provides basic reverse scrubbing capability:
+
+**Current Implementation:**
+- Implemented at `genesis-render/src/particle/mod.rs:429-448` in `update_particles_for_scrubbing()`
+- Uses linear kinematic model: `particle.position = particle.initial_position + particle.initial_velocity * years`
+- Particles now move backward when scrubbing the timeline, satisfying the basic PRD requirement
+- Produces straight-line trajectories (sufficient for Phase 1)
+
+**Status:**
+- The Phase 1 Demo Moment requirement "Scrub the timeline back and forth — the expansion reverses and replays" is now partially met
+- RFI `comms/archive/question-timeline-replay-sprint2-decision-2026-02-10.md` has been archived with implementation context
+- Full snapshot-based system (for high-fidelity physics during reverse scrubbing) can be considered for Phase 2+
+
+## Blockers - 2026-02-10
+
+**No active blockers.**
 
 ## Resolved Blockers
 
