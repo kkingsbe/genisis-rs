@@ -395,6 +395,7 @@ impl Plugin for CameraPlugin {
         app.init_resource::<CameraState>()
             .add_systems(Update, toggle_camera_mode)
             .add_systems(Update, update_free_flight_camera)
-            .add_systems(Update, update_orbit_camera);
+            .add_systems(Update, update_orbit_camera)
+            .add_systems(Update, handle_orbit_zoom);
     }
 }
