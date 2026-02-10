@@ -8,15 +8,12 @@
 
 ### Camera Controls (Phase 1 PRD Requirements)
 
-- [ ] feature: Implement scroll wheel zoom controls for free-flight camera (PRD Phase 1 requirement)
-  - [ ] Add scroll wheel event handling to free-flight camera system (genesis-render/src/camera/mod.rs update_free_flight_camera)
-  - [ ] Implement zoom speed parameter in CameraController (zoom_speed: f32)
-  - [ ] Apply scroll delta to move camera along forward vector (translation += forward * scroll_delta * zoom_speed)
-  - [ ] Clamp zoom movement to prevent camera passing through origin or flying too far
-- [ ] fix: Implement Q/E up/down movement for free-flight camera (documented but not implemented)
-  - Location: genesis-render/src/camera/mod.rs handle_keyboard_input
-  - Current: Q/E keys documented in comments but not implemented
-  - PRD reference: genesis-render/src/camera/mod.rs:68-71
+- [x] fix: Implement Q/E up/down movement for free-flight camera (PRD Phase 1 requirement)
+  - Location: genesis-render/src/input/mod.rs handle_keyboard_input
+  - Current: Q/E keys documented in CameraMode enum comments but not implemented
+  - Add Q key for downward movement (negative Y direction)
+  - Add E key for upward movement (positive Y direction)
+  - Note: Scroll wheel zoom for free-flight camera is ALREADY IMPLEMENTED (handle_free_flight_zoom exists)
 
 ### Timeline Enhancements (Phase 1 PRD Requirements)
 
