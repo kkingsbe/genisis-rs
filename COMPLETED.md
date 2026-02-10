@@ -2,6 +2,31 @@
 
 ## [2026-02-10]
 
+### Camera Controls (Phase 1 PRD Requirements)
+- [x] feature: Implement scroll wheel zoom controls for orbit camera
+  - [x] Add scroll wheel event handling to orbit camera system
+  - [x] Implement zoom with distance clamping (min_distance=5.0, max_distance=200.0)
+  - [x] Add handle_orbit_zoom() system in genesis-render/src/camera/mod.rs
+- [x] feature: Implement pan controls for orbit camera (PRD Phase 1 requires complete orbit camera controls)
+  - [x] Add middle mouse button drag detection to InputState
+  - [x] Implement pan system that moves orbit target point based on mouse drag
+  - [x] Add handle_orbit_pan() system in genesis-render/src/camera/mod.rs
+
+### Test Health - Failing Tests
+- [x] fix: Failing test in genesis-render/tests/shader_tests.rs from commit d0929b9
+  - Error: `PointSpriteMaterial::vertex_shader()` function not found (lines 120, 600)
+  - Error: `PointSpriteMaterial::fragment_shader()` function not found (lines 121, 601)
+  - Error: `PointSpriteMaterial::alpha_mode()` method not found (line 577)
+  - Error: `PointSpriteMaterial` does not implement `Material` trait (line 743)
+  - Root cause: PointSpriteMaterial uses `AsBindGroup` instead of implementing the `Material` trait
+- [x] fix: Failing test in genesis-render/tests/resource_binding_tests.rs from commit d0929b9
+  - Error: `PointSpriteMaterial::vertex_shader()` function not found (lines 315, 1404)
+  - Error: `PointSpriteMaterial::fragment_shader()` function not found (lines 327, 1405)
+  - Error: `PointSpriteMaterial::alpha_mode()` method not found (line 352)
+  - Root cause: PointSpriteMaterial uses `AsBindGroup` instead of implementing the `Material` trait
+
+## [2026-02-10]
+
 ### Particle Scaling
 - [x] feature: Scale particle system to 10K-50K particles (configurable)
   - [ ] Implement adaptive particle spawning system that scales based on config.particle.initial_count

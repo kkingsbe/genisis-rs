@@ -39,11 +39,11 @@ This document contains tasks for future sprints. Items here are not yet schedule
 - [ ] ~~Calculate particle energy based on distance from origin~~ (COMPLETED: See update_particle_energy_colors())
 - [ ] ~~Implement energy-based color mapping for singularity visualization~~ (COMPLETED: See energy_to_color() function)
 - [ ] Create cooling model tied to particle distance from origin or elapsed time (T ∝ 1/r for adiabatic expansion, track Temperature resource)
-- [ ] **clarify: Resolve genesis.toml initial_count discrepancy with code default (GAP ANALYSIS 2026-02-10)**
-  - [ ] Make decision on default particle count based on PRD Phase 1 requirement: "100K–1M point sprites" capability
-  - [ ] Update genesis.toml initial_count to 100000 to match PRD minimum and code default (RECOMMENDED)
-  - [ ] Update ParticleConfig::default() to 100000 to maintain consistency across code and config
-  - [ ] Verify configuration loading: ensure genesis.toml values properly override code defaults
+- [x] **clarify: Resolve genesis.toml initial_count discrepancy with code default (RESOLVED 2026-02-10)**
+  - [x] Make decision on default particle count based on PRD Phase 1 requirement: "100K–1M point sprites" capability
+  - [x] Update genesis.toml initial_count to 100000 to match PRD minimum and code default (COMPLETED)
+  - [x] Update ParticleConfig::default() to 100000 to maintain consistency across code and config (COMPLETED)
+  - [x] Verify configuration loading: ensure genesis.toml values properly override code defaults (VERIFIED)
   - [ ] Test with 100K particles: confirm performance target ≥60 FPS on GTX 1660 class hardware
   - [ ] Add config validation: log warning if initial_count < 1000 or > 10000000 (1M max target)
   - [ ] Document particle count range and performance characteristics in USER_GUIDE.md
@@ -54,10 +54,6 @@ This document contains tasks for future sprints. Items here are not yet schedule
   - [ ] Implement zoom speed parameter in CameraController (zoom_speed: f32)
   - [ ] Apply scroll delta to move camera along forward vector (translation += forward * scroll_delta * zoom_speed)
   - [ ] Clamp zoom movement to prevent camera passing through origin or flying too far
-- [ ] Implement scroll wheel zoom controls for free-flight camera (move along forward vector with adjustable zoom speed)
-  - [ ] Add scroll wheel event handling to free-flight camera system (genesis-render/src/camera/mod.rs update_free_flight_camera)
-  - [ ] Implement zoom speed parameter in CameraController (zoom_speed: f32)
-  - [ ] Apply scroll delta to move camera along forward vector (translation += forward * scroll_delta * zoom_speed)
 - [ ] ~~Implement scroll wheel zoom controls for orbit camera (adjust distance with clamping to min/max bounds: min_distance=5.0, max_distance=200.0)~~ (COMPLETED: See handle_orbit_zoom() in genesis-render/src/camera/mod.rs)
 - [ ] Add pan controls for free-flight camera (use WASD + Shift keys or middle mouse button drag for lateral movement)
   - [ ] Add middle mouse button drag detection to InputState
@@ -1532,6 +1528,91 @@ The following items were previously marked as completed but are NOT implemented:
 
 ### Testing
 - [ ] SPRINT QA: Run full build and test suite. Fix ALL errors. If green, create/update '.sprint_complete' with the current date.
+
+---
+
+## Sprint 3+ - Future Phase Tasks
+
+### Missing Tech Stack Components
+
+- [ ] implement: Add nalgebra crate for scientific linear algebra
+  - PRD reference: Section 4 - "Math: glam + nalgebra"
+  - Current: Only glam is used; nalgebra not in Cargo.toml
+- [ ] implement: Add hdf5-rust crate for snapshot export
+  - PRD reference: Section 4 - "Serialization: serde + hdf5-rust"
+  - Current: serde present; hdf5-rust not in Cargo.toml
+- [ ] implement: Add kira (bevy_kira_audio) crate for audio
+  - PRD reference: Section 4 - "Audio: kira (bevy_kira_audio)"
+  - Current: Audio crate not present
+
+### Missing Future Phase Crates
+
+- [ ] implement: genesis-physics crate (Phase 2)
+  - PRD reference: Section 4.2 - "First Used: Phase 2"
+  - Components: Gravity, SPH, nucleosynthesis, inflation, perturbations
+- [ ] implement: genesis-export crate (Phase 5)
+  - PRD reference: Section 4.2 - "First Used: Phase 5"
+  - Components: HDF5, VTK, PNG/EXR, CSV export pipelines
+- [ ] implement: genesis-audio crate (Phase 6)
+  - PRD reference: Section 4.2 - "First Used: Phase 6"
+  - Components: Procedural soundscape, epoch-aware audio mixing
+- [ ] implement: genesis-bench crate (Phase 7)
+  - PRD reference: Section 4.2 - "First Used: Phase 7"
+  - Components: Benchmarking harness, performance regression tests
+
+### Epoch Plugin Architecture (Phase 2+)
+
+- [ ] implement: Define EpochPlugin trait in genesis-core/src/epoch/mod.rs
+  - [ ] Define trait with required methods: name(), start_year(), end_year(), build(app: &mut App), camera_config()
+  - [ ] Add derive(Debug) bounds for debugging
+  - [ ] Add 'static lifetime bound for Bevy plugin registration
+- [ ] implement: Implement EpochManager resource in genesis-core/src/epoch/mod.rs
+  - [ ] Create EpochManager struct managing active epoch and epoch transitions
+  - [ ] Implement register_epoch() method for adding epoch plugins
+  - [ ] Implement current_epoch() method returning active epoch name
+  - [ ] Implement handle_epoch_transition() system for crossfade blending and parameter interpolation
+- [ ] implement: Implement SingularityEpoch plugin in genesis-core/src/epoch/singularity.rs
+  - [ ] Convert marker struct to full plugin implementing EpochPlugin trait
+  - [ ] Implement name() returning "Singularity"
+  - [ ] Implement start_year() returning 0.0 (t=0 at Big Bang)
+  - [ ] Implement end_year() returning 1e-32 (Planck boundary, 10⁻³² years)
+  - [ ] Implement build() method registering singularity physics systems (particle spawning, energy cooling)
+  - [ ] Implement camera_config() returning optimal camera settings (position=[0,0,100], rotation=facing_origin)
+
+### Janitor: Drift from PRD.md (Future Investigation)
+
+### Unrequested Features
+- [ ] clarify: Remove unrequested custom vertex attributes (Location: genesis-render/src/particle/mod.rs)
+  - Investigation needed: Determine if vertex attributes are unrequested or serve a purpose
+- [ ] clarify: Remove unused particle update systems (Location: genesis-render/src/particle/mod.rs)
+  - Investigation needed: Identify which update systems are unused vs necessary
+- [ ] clarify: Remove unrequested GPU storage buffer infrastructure (Location: genesis-render/src/particle/instance_buffer.rs)
+  - Investigation needed: Storage buffer may be required for instanced rendering
+- [ ] clarify: Remove unrequested unit tests (Location: genesis-render/src/particle/instance_buffer.rs)
+  - Investigation needed: Tests verify implementation, removal may degrade code quality
+- [ ] clarify: Remove unrequested DisplayConfig (Location: genesis-core/src/config.rs)
+  - Investigation needed: DisplayConfig fields are used by overlay systems
+
+### Contradictions (Future Investigation)
+- [ ] clarify: Align particle count default with PRD requirement
+  - PRD reference: "100K–1M point sprites" capability
+  - Current: genesis.toml has 1000, PRD minimum is 100K
+  - Resolution: Update to 100K recommended, verify performance first
+- [ ] clarify: Align camera interpolation with PRD requirement (Phase 1 requires smooth interpolation)
+  - Investigation needed: Determine if interpolation system exists or needs implementation
+- [ ] clarify: Align particle movement with PRD "explosion" requirement (color cooling effect is non-functional)
+  - Investigation needed: Verify color cooling system functionality
+- [ ] clarify: Align timeline reverse replay with PRD requirement (no reverse replay on timeline scrubbing)
+  - Already addressed in TODO.md Sprint 2
+- [ ] clarify: Align input with Q/E up/down movement requirement (Q/E not implemented but documented)
+  - Already addressed in TODO.md Sprint 2
+
+### Energy Color Gradient Verification (Low Priority)
+- [ ] clarify: Verify energy_to_color() color gradient matches PRD requirements
+  - Location: genesis-render/src/particle/mod.rs
+  - Current: WHITE → YELLOW → ORANGE → RED → DARK_RED gradient
+  - PRD reference: Section 5, Phase 1 Demo Moment - "cooling from white to yellow to red"
+  - Note: PRD mentions "color-mapped by energy (white-hot core fading to red)" - current implementation seems aligned
 
 ---
 

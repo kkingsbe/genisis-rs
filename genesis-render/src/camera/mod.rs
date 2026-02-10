@@ -141,6 +141,8 @@ pub struct CameraController {
     pub movement_speed: f32,
     /// Mouse look sensitivity (radians per pixel)
     pub mouse_sensitivity: f32,
+    /// Scroll wheel zoom sensitivity multiplier (units per scroll tick)
+    pub zoom_speed: f32,
 }
 
 impl Default for CameraController {
@@ -150,6 +152,7 @@ impl Default for CameraController {
             pitch: 0.0,
             movement_speed: 10.0,
             mouse_sensitivity: 0.002,
+            zoom_speed: 1.0,
         }
     }
 }
@@ -332,6 +335,59 @@ pub fn handle_orbit_zoom(
     }
 }
 
+/// System to handle free-flight camera zoom via scroll wheel
+///
+/// Moves the camera along its forward direction based on scroll wheel input when in
+/// FREE_FLIGHT camera mode. The camera position is clamped between 1.0 and 200.0
+/// units from the origin to prevent zooming too close or too far.
+///
+/// # Parameters
+///
+/// * `input` - Resource containing input state including scroll_delta
+/// * `camera_state` - Resource tracking current camera mode
+/// * `cameras` - Query for mutable access to Transform and CameraController components
+///
+/// # Behavior
+///
+/// - Only operates when CameraState.mode is FREE_FLIGHT
+/// - Reads input.scroll_delta and applies movement along camera's forward vector
+/// - Uses CameraController.zoom_speed as the sensitivity multiplier
+/// - Clamps camera position distance from origin between 1.0 (min) and 200.0 (max)
+pub fn handle_free_flight_zoom(
+    input: Res<InputState>,
+    camera_state: Res<CameraState>,
+    mut cameras: Query<(&mut Transform, &CameraController)>,
+) {
+    // Only update when in FREE_FLIGHT mode
+    if camera_state.mode != CameraMode::FreeFlight {
+        return;
+    }
+
+    // Apply scroll delta to move camera along forward direction
+    let zoom_delta = input.scroll_delta;
+
+    for (mut transform, controller) in cameras.iter_mut() {
+        // Get forward direction from controller
+        let forward = controller.forward();
+
+        // Calculate movement vector along forward direction
+        let movement = forward * zoom_delta * controller.zoom_speed;
+
+        // Apply movement to camera translation
+        transform.translation += movement;
+
+        // Clamp translation distance from origin to valid range
+        let distance = transform.translation.length();
+        if distance < 1.0 {
+            // Scale translation to exactly 1.0 from origin
+            transform.translation = transform.translation.normalize() * 1.0;
+        } else if distance > 200.0 {
+            // Scale translation to exactly 200.0 from origin
+            transform.translation = transform.translation.normalize() * 200.0;
+        }
+    }
+}
+
 /// System to handle orbit camera pan via middle mouse button drag
 ///
 /// Moves the orbit target point based on mouse drag when in ORBIT camera mode.
@@ -453,6 +509,494 @@ impl Plugin for CameraPlugin {
             .add_systems(Update, update_free_flight_camera)
             .add_systems(Update, update_orbit_camera)
             .add_systems(Update, handle_orbit_zoom)
+            .add_systems(Update, handle_free_flight_zoom)
             .add_systems(Update, handle_orbit_pan);
+    }
+}
+
+// ============================================================================
+// TESTS
+// ============================================================================
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::input::InputState;
+    use bevy::ecs::system::SystemState;
+
+    /// Test 1: Verify early return when camera mode is Orbit
+    #[test]
+    fn test_handle_free_flight_zoom_early_return_orbit_mode() {
+        let mut world = World::new();
+
+        // Set camera mode to Orbit (should cause early return)
+        let mut camera_state = CameraState::default();
+        camera_state.mode = CameraMode::Orbit;
+        world.insert_resource(camera_state);
+
+        // Set scroll delta to simulate zoom input
+        let mut input_state = InputState::default();
+        input_state.scroll_delta = 5.0;
+        world.insert_resource(input_state);
+
+        // Spawn a camera entity with CameraController
+        let initial_position = Vec3::new(0.0, 0.0, 50.0);
+        world.spawn((
+            Transform::from_translation(initial_position),
+            CameraController {
+                yaw: 0.0,
+                pitch: 0.0,
+                movement_speed: 10.0,
+                mouse_sensitivity: 0.002,
+                zoom_speed: 1.0,
+            },
+        ));
+
+        // Run the system using SystemState with get_mut
+        let mut system_state: SystemState<(
+            Res<InputState>,
+            Res<CameraState>,
+            Query<(&mut Transform, &CameraController)>,
+        )> = SystemState::new(&mut world);
+        let (input, camera_state, mut cameras) = system_state.get_mut(&mut world);
+        handle_free_flight_zoom(input, camera_state, cameras);
+
+        // Verify camera position hasn't changed (early return occurred)
+        let mut query = world.query::<&Transform>();
+        let transform = query.single(&world);
+
+        assert_eq!(
+            transform.translation, initial_position,
+            "Camera position should not change when mode is Orbit (early return)"
+        );
+    }
+
+    /// Test 2: Verify camera moves forward with positive scroll_delta
+    #[test]
+    fn test_handle_free_flight_zoom_moves_forward() {
+        let mut world = World::new();
+
+        // Set camera mode to FreeFlight
+        let mut camera_state = CameraState::default();
+        camera_state.mode = CameraMode::FreeFlight;
+        world.insert_resource(camera_state);
+
+        // Set scroll delta to simulate zoom input (positive = forward)
+        let mut input_state = InputState::default();
+        input_state.scroll_delta = 10.0;
+        world.insert_resource(input_state);
+
+        // Spawn a camera entity with CameraController
+        // Camera faces positive Z direction by default (yaw=0, pitch=0)
+        let initial_position = Vec3::new(0.0, 0.0, 50.0);
+        world.spawn((
+            Transform::from_translation(initial_position),
+            CameraController {
+                yaw: 0.0,
+                pitch: 0.0,
+                movement_speed: 10.0,
+                mouse_sensitivity: 0.002,
+                zoom_speed: 1.0,
+            },
+        ));
+
+        // Run the system using SystemState with get_mut
+        let mut system_state: SystemState<(
+            Res<InputState>,
+            Res<CameraState>,
+            Query<(&mut Transform, &CameraController)>,
+        )> = SystemState::new(&mut world);
+        let (input, camera_state, mut cameras) = system_state.get_mut(&mut world);
+        handle_free_flight_zoom(input, camera_state, cameras);
+
+        // Verify camera moved forward along its forward vector
+        let mut query = world.query::<&Transform>();
+        let transform = query.single(&world);
+
+        // With yaw=0, pitch=0, forward is (0, 0, 1)
+        // scroll_delta=10.0, zoom_speed=1.0 => movement = 10.0
+        // Initial position: (0, 0, 50)
+        // Expected position: (0, 0, 60)
+        assert!(
+            transform.translation.z > initial_position.z,
+            "Camera should move forward (positive Z) with positive scroll_delta"
+        );
+
+        assert_eq!(
+            transform.translation.x, initial_position.x,
+            "Camera X position should not change when facing Z direction"
+        );
+
+        assert_eq!(
+            transform.translation.y, initial_position.y,
+            "Camera Y position should not change when facing Z direction"
+        );
+
+        assert!(
+            (transform.translation.z - (initial_position.z + 10.0)).abs() < 0.001,
+            "Camera should move exactly 10.0 units forward (scroll_delta * zoom_speed)"
+        );
+    }
+
+    /// Test 3: Verify minimum clamping at 1.0
+    #[test]
+    fn test_handle_free_flight_zoom_clamps_minimum() {
+        let mut world = World::new();
+
+        // Set camera mode to FreeFlight
+        let mut camera_state = CameraState::default();
+        camera_state.mode = CameraMode::FreeFlight;
+        world.insert_resource(camera_state);
+
+        // Set scroll delta to move closer to origin
+        let mut input_state = InputState::default();
+        input_state.scroll_delta = -100.0;
+        world.insert_resource(input_state);
+
+        // Spawn a camera entity very close to origin
+        let initial_position = Vec3::new(0.0, 0.0, 5.0);
+        world.spawn((
+            Transform::from_translation(initial_position),
+            CameraController {
+                yaw: 0.0,
+                pitch: 0.0,
+                movement_speed: 10.0,
+                mouse_sensitivity: 0.002,
+                zoom_speed: 1.0,
+            },
+        ));
+
+        // Run the system using SystemState with get_mut
+        let mut system_state: SystemState<(
+            Res<InputState>,
+            Res<CameraState>,
+            Query<(&mut Transform, &CameraController)>,
+        )> = SystemState::new(&mut world);
+        let (input, camera_state, mut cameras) = system_state.get_mut(&mut world);
+        handle_free_flight_zoom(input, camera_state, cameras);
+
+        // Verify camera distance is clamped to minimum 1.0
+        let mut query = world.query::<&Transform>();
+        let transform = query.single(&world);
+        let distance = transform.translation.length();
+        assert!(
+            distance >= 1.0,
+            "Camera distance should be clamped to minimum 1.0, got: {}",
+            distance
+        );
+
+        // For a camera at (0, 0, 5) facing positive Z, moving -100 units
+        // would put it at (0, 0, -95), distance 95.0
+        // So it should be clamped to exactly 1.0 distance from origin
+        // Position would be normalized and scaled to 1.0
+        // With position (0, 0, -95), normalized is (0, 0, -1), scaled to 1.0 is (0, 0, -1)
+        assert!(
+            (distance - 1.0).abs() < 0.001,
+            "Camera distance should be exactly 1.0 after minimum clamping, got: {}",
+            distance
+        );
+    }
+
+    /// Test 4: Verify maximum clamping at 200.0
+    #[test]
+    fn test_handle_free_flight_zoom_clamps_maximum() {
+        let mut world = World::new();
+
+        // Set camera mode to FreeFlight
+        let mut camera_state = CameraState::default();
+        camera_state.mode = CameraMode::FreeFlight;
+        world.insert_resource(camera_state);
+
+        // Set scroll delta to move far from origin
+        let mut input_state = InputState::default();
+        input_state.scroll_delta = 300.0;
+        world.insert_resource(input_state);
+
+        // Spawn a camera entity at moderate distance
+        let initial_position = Vec3::new(0.0, 0.0, 100.0);
+        world.spawn((
+            Transform::from_translation(initial_position),
+            CameraController {
+                yaw: 0.0,
+                pitch: 0.0,
+                movement_speed: 10.0,
+                mouse_sensitivity: 0.002,
+                zoom_speed: 1.0,
+            },
+        ));
+
+        // Run the system using SystemState with get_mut
+        let mut system_state: SystemState<(
+            Res<InputState>,
+            Res<CameraState>,
+            Query<(&mut Transform, &CameraController)>,
+        )> = SystemState::new(&mut world);
+        let (input, camera_state, mut cameras) = system_state.get_mut(&mut world);
+        handle_free_flight_zoom(input, camera_state, cameras);
+
+        // Verify camera distance is clamped to maximum 200.0
+        let mut query = world.query::<&Transform>();
+        let transform = query.single(&world);
+        let distance = transform.translation.length();
+        assert!(
+            distance <= 200.0,
+            "Camera distance should be clamped to maximum 200.0, got: {}",
+            distance
+        );
+
+        // For a camera at (0, 0, 100) facing positive Z, moving 300 units
+        // would put it at (0, 0, 400), distance 400.0
+        // So it should be clamped to exactly 200.0 distance from origin
+        // Position would be normalized and scaled to 200.0
+        // With position (0, 0, 400), normalized is (0, 0, 1), scaled to 200.0 is (0, 0, 200)
+        assert!(
+            (distance - 200.0).abs() < 0.001,
+            "Camera distance should be exactly 200.0 after maximum clamping, got: {}",
+            distance
+        );
+    }
+
+    /// Test 5: Verify zoom_speed affects movement
+    #[test]
+    fn test_handle_free_flight_zoom_respects_zoom_speed() {
+        let mut world = World::new();
+
+        // Set camera mode to FreeFlight
+        let mut camera_state = CameraState::default();
+        camera_state.mode = CameraMode::FreeFlight;
+        world.insert_resource(camera_state);
+
+        // Set scroll delta
+        let mut input_state = InputState::default();
+        input_state.scroll_delta = 5.0;
+        world.insert_resource(input_state);
+
+        // Spawn a camera entity with custom zoom_speed
+        let initial_position = Vec3::new(0.0, 0.0, 50.0);
+        world.spawn((
+            Transform::from_translation(initial_position),
+            CameraController {
+                yaw: 0.0,
+                pitch: 0.0,
+                movement_speed: 10.0,
+                mouse_sensitivity: 0.002,
+                zoom_speed: 2.0, // Custom zoom speed
+            },
+        ));
+
+        // Run the system using SystemState with get_mut
+        let mut system_state: SystemState<(
+            Res<InputState>,
+            Res<CameraState>,
+            Query<(&mut Transform, &CameraController)>,
+        )> = SystemState::new(&mut world);
+        let (input, camera_state, mut cameras) = system_state.get_mut(&mut world);
+        handle_free_flight_zoom(input, camera_state, cameras);
+
+        // Verify camera moved using the custom zoom_speed
+        let mut query = world.query::<&Transform>();
+        let transform = query.single(&world);
+
+        // scroll_delta=5.0, zoom_speed=2.0 => movement = 10.0
+        // Initial position: (0, 0, 50)
+        // Expected position: (0, 0, 60)
+        assert!(
+            (transform.translation.z - (initial_position.z + 10.0)).abs() < 0.001,
+            "Camera should move 10.0 units (scroll_delta * zoom_speed = 5.0 * 2.0), got: {}",
+            transform.translation.z - initial_position.z
+        );
+    }
+
+    /// Test 6: Verify negative scroll_delta moves camera backward
+    #[test]
+    fn test_handle_free_flight_zoom_moves_backward() {
+        let mut world = World::new();
+
+        // Set camera mode to FreeFlight
+        let mut camera_state = CameraState::default();
+        camera_state.mode = CameraMode::FreeFlight;
+        world.insert_resource(camera_state);
+
+        // Set negative scroll delta to zoom out
+        let mut input_state = InputState::default();
+        input_state.scroll_delta = -10.0;
+        world.insert_resource(input_state);
+
+        // Spawn a camera entity
+        let initial_position = Vec3::new(0.0, 0.0, 50.0);
+        world.spawn((
+            Transform::from_translation(initial_position),
+            CameraController {
+                yaw: 0.0,
+                pitch: 0.0,
+                movement_speed: 10.0,
+                mouse_sensitivity: 0.002,
+                zoom_speed: 1.0,
+            },
+        ));
+
+        // Run the system using SystemState with get_mut
+        let mut system_state: SystemState<(
+            Res<InputState>,
+            Res<CameraState>,
+            Query<(&mut Transform, &CameraController)>,
+        )> = SystemState::new(&mut world);
+        let (input, camera_state, mut cameras) = system_state.get_mut(&mut world);
+        handle_free_flight_zoom(input, camera_state, cameras);
+
+        // Verify camera moved backward
+        let mut query = world.query::<&Transform>();
+        let transform = query.single(&world);
+
+        assert!(
+            transform.translation.z < initial_position.z,
+            "Camera should move backward (negative Z) with negative scroll_delta"
+        );
+
+        // Should move exactly 10.0 units backward
+        assert!(
+            (transform.translation.z - (initial_position.z - 10.0)).abs() < 0.001,
+            "Camera should move exactly 10.0 units backward, got delta: {}",
+            initial_position.z - transform.translation.z
+        );
+    }
+
+    /// Test 7: Verify forward direction respects camera rotation
+    #[test]
+    fn test_handle_free_flight_zoom_respects_camera_rotation() {
+        let mut world = World::new();
+
+        // Set camera mode to FreeFlight
+        let mut camera_state = CameraState::default();
+        camera_state.mode = CameraMode::FreeFlight;
+        world.insert_resource(camera_state);
+
+        // Set scroll delta
+        let mut input_state = InputState::default();
+        input_state.scroll_delta = 10.0;
+        world.insert_resource(input_state);
+
+        // Spawn a camera entity with yaw rotated 90 degrees (facing positive X)
+        let initial_position = Vec3::new(0.0, 0.0, 0.0);
+        world.spawn((
+            Transform::from_translation(initial_position),
+            CameraController {
+                yaw: std::f32::consts::PI / 2.0, // 90 degrees
+                pitch: 0.0,
+                movement_speed: 10.0,
+                mouse_sensitivity: 0.002,
+                zoom_speed: 1.0,
+            },
+        ));
+
+        // Run the system using SystemState with get_mut
+        let mut system_state: SystemState<(
+            Res<InputState>,
+            Res<CameraState>,
+            Query<(&mut Transform, &CameraController)>,
+        )> = SystemState::new(&mut world);
+        let (input, camera_state, mut cameras) = system_state.get_mut(&mut world);
+        handle_free_flight_zoom(input, camera_state, cameras);
+
+        // Verify camera moved along its rotated forward vector
+        let mut query = world.query::<&Transform>();
+        let transform = query.single(&world);
+
+        // With yaw=90 degrees (PI/2), forward is (1, 0, 0)
+        // Camera should move along positive X axis
+        assert!(
+            transform.translation.x > initial_position.x,
+            "Camera should move along positive X when rotated 90 degrees yaw"
+        );
+
+        assert!(
+            (transform.translation.x - 10.0).abs() < 0.001,
+            "Camera should move exactly 10.0 units along X axis, got: {}",
+            transform.translation.x
+        );
+
+        assert!(
+            transform.translation.y.abs() < 0.001,
+            "Camera Y position should remain near 0, got: {}",
+            transform.translation.y
+        );
+
+        assert!(
+            transform.translation.z.abs() < 0.001,
+            "Camera Z position should remain near 0, got: {}",
+            transform.translation.z
+        );
+    }
+
+    /// Comprehensive test combining multiple scenarios
+    #[test]
+    fn test_handle_free_flight_zoom_comprehensive() {
+        let mut world = World::new();
+
+        // Set camera mode to FreeFlight
+        let mut camera_state = CameraState::default();
+        camera_state.mode = CameraMode::FreeFlight;
+        world.insert_resource(camera_state);
+
+        // Test with moderate scroll delta
+        let mut input_state = InputState::default();
+        input_state.scroll_delta = 20.0;
+        world.insert_resource(input_state);
+
+        // Spawn a camera entity
+        let initial_position = Vec3::new(10.0, 5.0, 30.0);
+        world.spawn((
+            Transform::from_translation(initial_position),
+            CameraController {
+                yaw: 0.0,
+                pitch: 0.0,
+                movement_speed: 10.0,
+                mouse_sensitivity: 0.002,
+                zoom_speed: 1.0,
+            },
+        ));
+
+        // Run the system using SystemState with get_mut
+        let mut system_state: SystemState<(
+            Res<InputState>,
+            Res<CameraState>,
+            Query<(&mut Transform, &CameraController)>,
+        )> = SystemState::new(&mut world);
+        let (input, camera_state, mut cameras) = system_state.get_mut(&mut world);
+        handle_free_flight_zoom(input, camera_state, cameras);
+
+        // Verify camera moved forward
+        let mut query = world.query::<&Transform>();
+        let transform = query.single(&world);
+
+        assert!(
+            transform.translation.z > initial_position.z,
+            "Camera should move forward"
+        );
+
+        // X and Y should remain unchanged
+        assert_eq!(
+            transform.translation.x, initial_position.x,
+            "Camera X should not change"
+        );
+
+        assert_eq!(
+            transform.translation.y, initial_position.y,
+            "Camera Y should not change"
+        );
+
+        // Z should have moved exactly 20.0 units
+        assert!(
+            (transform.translation.z - (initial_position.z + 20.0)).abs() < 0.001,
+            "Camera Z should move exactly 20.0 units"
+        );
+
+        // Distance from origin should be within valid range
+        let distance = transform.translation.length();
+        assert!(
+            distance >= 1.0 && distance <= 200.0,
+            "Camera distance {} should be within valid range [1.0, 200.0]",
+            distance
+        );
     }
 }

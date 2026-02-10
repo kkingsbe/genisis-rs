@@ -30,12 +30,12 @@ genesis/
 ├── genesis-render/   # Rendering systems and visuals
 │   └── src/
 │       ├── particle/     # Instanced particle rendering
-│       │   ├── mod.rs           # PointSpriteMaterial, PointMesh, Particle component, spawn/update systems
+│       │   ├── mod.rs           # PointSpriteMaterial, PointSpriteMaterialHandle, PointMesh, Particle component, spawn/update systems
 │       │   └── point_sprite.wgsl  # WGSL shader for point sprite rendering
 │       ├── camera/       # Camera mode definitions and state
-│       │   └── mod.rs   # CameraMode enum, CameraState, CameraController, OrbitController, camera control systems (rotation only, zoom/pan not implemented)
+│       │   └── mod.rs   # CameraMode enum, CameraState, CameraController, OrbitController, camera control systems (rotation and zoom, pan not implemented)
 │       ├── input/        # Keyboard and mouse input handling
-│       │   └── mod.rs   # InputState resource, handle_keyboard_input, handle_mouse_input
+│       │   └── mod.rs   # InputState resource (with scroll_delta), handle_keyboard_input, handle_mouse_input
 │       └── lib.rs
 └── genesis-ui/        # User interface components
     └── src/
@@ -57,7 +57,7 @@ The application registers the following plugins and resources:
 - **TimeIntegrationPlugin** (genesis-core): Cosmic time accumulation with f64 precision
 - **InputPlugin** (genesis-render): Keyboard and mouse input handling with InputState resource
 - **ParticlePlugin** (genesis-render): Particle system initialization and spawning (with PointSpriteMaterial and PointMesh resources)
-- **CameraPlugin** (genesis-render): Camera control systems (free-flight, orbit, interpolation, orbit pan/zoom) with CameraState resource
+- **CameraPlugin** (genesis-render): Camera control systems (free-flight, orbit rotation, orbit zoom) with CameraState resource
 - **GenesisUiPlugin** (genesis-ui): UI system with bevy_egui integration, overlay, and timeline controls (includes TimelinePlugin internally)
 - **ConfigResource** (main.rs): Wrapper for Config as a Bevy Resource (NOTE: Config::load() IS implemented - reads from genesis.toml with file path search logic)
 - **ParticleConfig** (genesis-core): Resource for particle spawning configuration (correctly used directly with Resource derive in main.rs line 88)
@@ -95,7 +95,7 @@ The application registers the following plugins and resources:
 
 ### 2. Bevy ECS Pattern
 - **Components**: `Particle` (rendering component with position: Vec3, color: Color, size: f32)
-  - Particles are spawned with Mesh3d, MeshMaterial3d<PointSpriteMaterial>, Transform, and Particle components
+  - Particles are spawned with Mesh3d, PointSpriteMaterialHandle, Transform, and Particle components
   - Camera components: `CameraController` (free-flight), `OrbitController` (orbit)
 - **Resources**: Global state organized by crate:
    - genesis-core: TimeAccumulator, DisplayConfig
@@ -103,18 +103,18 @@ The application registers the following plugins and resources:
    - genesis-ui: CosmicTime, OverlayState, PlaybackState
 - **Systems**:
    - Core: (none - epoch infrastructure does NOT exist)
-   - Particle: init_point_mesh (Startup), spawn_particles (Startup), update_particles (basic outward expansion animation), update_particle_energy_colors (thermal gradient coloring), extract_particle_instances (ExtractSchedule), prepare_particle_instance_buffers (Render)
-   - Camera: update_free_flight_camera (Update), update_orbit_camera (Update), toggle_camera_mode (Update)
-      - Note: handle_orbit_zoom and handle_orbit_pan systems do NOT exist (not implemented)
+   - Particle: init_point_mesh (Startup), spawn_particles (Startup), update_particles (basic outward expansion animation), update_particle_energy_colors (thermal gradient coloring), sync_particle_position (Update), extract_particle_instances (ExtractSchedule), prepare_particle_instance_buffers (Render)
+   - Camera: update_free_flight_camera (Update), update_orbit_camera (Update), toggle_camera_mode (Update), handle_orbit_zoom (Update)
+      - Note: handle_orbit_pan system does NOT exist (not implemented)
    - Input: handle_keyboard_input (PreUpdate), handle_mouse_input (PreUpdate)
    - Time: initialize_time_accumulator (Startup), update_cosmic_time (Update)
    - UI: update_overlay_ui (Update), timeline_panel_ui (PostUpdate), sync_time_resources (Update)
 - **Plugins**:
    - TimeIntegrationPlugin (implemented): Cosmic time accumulation with Bevy integration
-   - InputPlugin (implemented): Keyboard and mouse input processing
-   - CameraPlugin (implemented): Camera control systems for free-flight and orbit modes (rotation only)
+   - InputPlugin (implemented): Keyboard and mouse input processing (including scroll wheel input)
+   - CameraPlugin (implemented): Camera control systems for free-flight and orbit modes (rotation and zoom)
      - Camera interpolation: NOT implemented (deferred to Phase 7)
-     - Orbit zoom: NOT implemented (handle_orbit_zoom system does not exist)
+     - Orbit zoom: Implemented (handle_orbit_zoom system uses scroll wheel input)
      - Orbit pan: NOT implemented (handle_orbit_pan system does not exist)
    - ParticlePlugin (implemented): Particle spawning and rendering systems with custom point sprite shader
    - TimelinePlugin (implemented within GenesisUiPlugin): Timeline UI with play/pause, logarithmic slider, and speed control
@@ -170,7 +170,7 @@ Currently, the rendering-level Particle is directly populated in [`spawn_particl
 ### 3.2 Point Sprite Rendering Resources
 
 **PointSpriteMaterial**
-- Custom Bevy material implementing `Material` trait
+- Custom Bevy material implementing `AsBindGroup` trait
 - Uses a custom WGSL shader (`point_sprite.wgsl`) for vertex and fragment processing
 - Uniform parameters:
   - `color: LinearRgba` - Base color for all particles
@@ -178,6 +178,11 @@ Currently, the rendering-level Particle is directly populated in [`spawn_particl
   - `attenuation_factor: f32` - Controls size attenuation with distance
 - Uses additive blending (AlphaMode::Add) for a glowing effect
 - Registered via `MaterialPlugin::<PointSpriteMaterial>::default()` in ParticlePlugin
+
+**PointSpriteMaterialHandle**
+- Component for attaching a point sprite material to particle entities
+- Wraps `Handle<PointSpriteMaterial>` for Bevy asset system integration
+- Allows particles to share a single material handle for efficient GPU instancing
 
 **PointMesh**
 - Resource containing a shared `Handle<Mesh>` for all particle entities
@@ -267,21 +272,20 @@ Per-Instance Rendering
   - CameraMode enum exists in genesis-render::camera but CameraConfig uses String for initial_mode field
   - genesis.toml has fields: initial_mode (String), orbit_distance (f64)
 - **Configuration Field Status**:
-  - **initial_mode vs CameraMode enum**: CameraConfig.initial_mode is a String, and CameraMode enum exists. CameraState::from_config() in genesis-render/src/camera/mod.rs (line 60) correctly accesses `config.initial_mode` and converts it to CameraMode enum.
-  - **time_acceleration_min vs time_acceleration_max**: genesis.toml has `time_acceleration_min` and `time_acceleration_max` fields, and TimeConfig struct also has these fields (field names match correctly)
+  - **initial_mode vs CameraMode enum**: CameraConfig.initial_mode is a String, and CameraMode enum exists. CameraState::from_config() in genesis-render/src/camera/mod.rs (line 117) correctly accesses `config.initial_mode` and converts it to CameraMode enum.
   - **All configuration fields match correctly** between genesis.toml and Config structs (ParticleConfig, CameraConfig, TimeConfig, WindowConfig, DisplayConfig)
 - **Status**:
   - Camera setup (setup_camera system): Implemented - spawns 3D camera at orbit_distance looking at origin with OrbitController (distance: orbit_distance) and CameraController::default().
   - Camera movement controls: Implemented for both free-flight (update_free_flight_camera) and orbit (update_orbit_camera) modes
   - Camera mode switching: Implemented via toggle_camera_mode system (press 'O' key to toggle between FreeFlight and Orbit)
-  - Orbit camera zoom: **NOT implemented** (handle_orbit_zoom system does NOT exist - zoom functionality is not currently implemented)
+  - Orbit camera zoom: **Implemented** (handle_orbit_zoom system exists at camera/mod.rs:316-333) - scroll wheel zooms in/out with clamped distance [1.0, 200.0]
   - Orbit camera pan: **NOT implemented** (handle_orbit_pan system does NOT exist - pan functionality is not currently implemented)
   - Camera interpolation: **NOT implemented** (interpolate_camera system does NOT exist in camera/mod.rs or CameraPlugin)
 
 ### 6. Input System Architecture
-- **InputState Resource**: Tracks keyboard direction vector, mouse delta, and mouse button states
+- **InputState Resource**: Tracks keyboard direction vector, mouse delta, mouse button states, and scroll wheel delta
 - **Keyboard Handling**: WASD key inputs mapped to directional vectors
-- **Mouse Handling**: Mouse button states tracked using HashMap<MouseButton, bool>; Tracks mouse motion delta
+- **Mouse Handling**: Mouse button states tracked using HashMap<MouseButton, bool>; Tracks mouse motion delta; Tracks scroll wheel delta for orbit zoom
 - **Status**: InputPlugin fully implemented with handle_keyboard_input and handle_mouse_input systems (run in PreUpdate schedule)
 
 ### 7. Epoch Plugin Architecture (Planned for Future Phases)
@@ -312,7 +316,7 @@ The following infrastructure is planned for future phases and does NOT exist in 
 - **Configuration Field Notes**:
   - **ParticleConfig**: Field names match correctly between genesis.toml and ParticleConfig struct (initial_count, max_count, base_size) - no mismatches
   - **CameraConfig**: genesis.toml has `initial_mode` and `orbit_distance` fields; CameraConfig struct has matching `initial_mode` (String) and `orbit_distance` (f64) fields - fields match correctly
-  - **TimeConfig**: genesis.toml has `initial_time_acceleration` and TimeConfig struct also has `initial_time_acceleration` - no mismatches
+  - **TimeConfig**: genesis.toml has `time_acceleration_min` and `time_acceleration_max` fields; TimeConfig struct has matching fields - all configuration fields match correctly
 - **Note**: Configuration loading infrastructure is fully implemented. All struct fields with #[serde(default)] use default values when not present in genesis.toml
 
 ### 9. Testing Infrastructure
@@ -333,15 +337,16 @@ A running Bevy application with a 3D particle system, camera controls, and a tim
 **Implemented:**
 - Core infrastructure setup (workspace, Cargo.toml)
 - Bevy 0.15+ application scaffold with window and event loop
-- Basic input handling (keyboard, mouse) - InputPlugin with InputState, handle_keyboard_input, handle_mouse_input (runs in PreUpdate)
+- Basic input handling (keyboard, mouse, scroll wheel) - InputPlugin with InputState (including scroll_delta), handle_keyboard_input, handle_mouse_input (runs in PreUpdate)
 - Time integration system with f64 accumulator - TimeIntegrationPlugin, TimeAccumulator, update_cosmic_time system, pause/resume methods
 - Particle rendering system with custom point sprite shader (PointSpriteMaterial, PointMesh) with GPU instancing
 - Particle spawning system (spawn_particles) that creates test cluster at origin with configurable count
 - Particle update system (update_particles) with basic outward expansion animation
 - Energy-based particle color system (update_particle_energy_colors) with thermal gradient (white-hot core → red edges)
+- Particle position synchronization system (sync_particle_position) to keep Particle.position and Transform.translation in sync
 - Camera system with free-flight and orbit modes - CameraPlugin, CameraController, OrbitController, update_free_flight_camera, update_orbit_camera
 - Camera mode switching via toggle_camera_mode (press 'O' key)
-- Orbit camera zoom: **NOT implemented** (handle_orbit_zoom system does not exist)
+- Orbit camera zoom: **Implemented** (handle_orbit_zoom system uses scroll wheel input, clamps distance [1.0, 200.0])
 - Orbit camera pan: **NOT implemented** (handle_orbit_pan system does not exist)
 - Overlay UI with FPS and particle count panels - update_overlay_ui system
 - Timeline UI with play/pause, logarithmic slider, and speed control - TimelinePlugin, CosmicTime resource with logarithmic mapping, timeline_panel_ui system (runs in PostUpdate)
@@ -384,7 +389,7 @@ genesis-core (Bevy - for Resource trait)
 - `PlaybackState` (genesis-ui) is synchronized with `TimeAccumulator` (genesis-core)
 - `OverlayState` (genesis-ui) is used by overlay UI system (NOTE: missing show_epoch_info field)
 - `ConfigResource` (main.rs) wraps Config for Bevy resource system
-- `ParticleConfig` (genesis-core) can be used directly as Resource (has Resource derive), but main.rs references non-existent ParticleConfigResource
+- `ParticleConfig` (genesis-core) is used directly as Resource via `config.particle.clone()` in main.rs line 88
 - `PointMesh` (genesis-render) is a shared resource for all particle entities
 - **NOTE**: EpochManager does NOT exist (not defined in codebase)
 
