@@ -12,7 +12,7 @@
 ### Unrequested Features (Refactor Candidates)
 *Features implemented in src/ but NOT specified in PRD.md Phase 1*
 
-- [ ] refactor: Remove middle mouse button tracking (genesis-render/src/input/mod.rs:91)
+- [x] refactor: Remove middle mouse button tracking (genesis-render/src/input/mod.rs:91)
   - Middle mouse button state tracking not specified in PRD Phase 1
   - PRD Phase 1 only mentions "orbit camera (click-drag)" which uses left mouse button
   - Middle mouse state is only used by unrequested orbit pan feature

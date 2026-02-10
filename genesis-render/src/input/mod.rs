@@ -12,8 +12,8 @@
 //! # Input Limitations
 //!
 //! - **Keyboard**: WASD keys are mapped (W, A, S, D)
-//! - **Mouse**: Only left mouse button state is tracked (used for orbit rotation)
-//! - **Middle/right mouse**: NOT tracked (orbit pan not implemented)
+//! - **Mouse**: Left mouse button state is tracked (left for orbit rotation)
+//! - **Scroll wheel**: Track scroll delta for orbit and free-flight zoom controls
 
 use bevy::input::mouse::{MouseMotion, MouseWheel};
 use bevy::input::ButtonInput;
@@ -84,11 +84,10 @@ pub fn handle_mouse_input(
     // Clear previous mouse button states
     input_state.mouse_buttons.clear();
 
-    // Update mouse button state (Left only - used for orbit camera rotation)
+    // Update mouse button state (Left for orbit rotation)
     input_state
         .mouse_buttons
         .insert(MouseButton::Left, mouse_buttons.pressed(MouseButton::Left));
-    input_state.mouse_buttons.insert(MouseButton::Middle, mouse_buttons.pressed(MouseButton::Middle));
 
     // Reset mouse delta
     input_state.mouse_delta = Vec2::ZERO;

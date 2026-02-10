@@ -25,7 +25,7 @@
 //! Mode switching toggles `CameraState.mode`, and the appropriate controller responds to input.
 //! - Free-flight: WASD movement + mouse look (always active when mode is FreeFlight)
 //! - Orbit: Left mouse drag to rotate (only active when mode is Orbit)
-//! - Zoom/Pan: NOT implemented (handle_orbit_zoom and handle_orbit_pan systems do not exist)
+//! - Zoom: Implemented (scroll wheel zooms in/out for both camera modes)
 //!
 //! # Configuration
 //!

@@ -18,9 +18,9 @@
 //! # Camera System Implementation Status
 //!
 //! - **Free-flight mode**: Fully implemented with WASD movement and mouse look
-//! - **Orbit mode**: Rotation implemented (left mouse drag), zoom and pan NOT implemented
-//! - **Mode switching**: Implemented via 'O' key toggle
-//! - **Camera interpolation**: NOT implemented (deferred to Phase 7)
+//! - **Orbit mode**: Rotation (left mouse drag) and zoom (scroll wheel) implemented
+//! - **Mode switching**: Implemented via 'O' key toggle with smooth interpolation between modes
+//! - **Camera interpolation**: Fully implemented via interpolate_camera() system with cubic ease-in-out easing
 //!
 //! # Particle Rendering
 //!
