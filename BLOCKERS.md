@@ -32,9 +32,9 @@
 
 ### [2026-02-10] - Build Error: bind_group_layout trait method in ParticleMaterial
 
-**Status:** Resolved - No longer present
+**Status:** Resolved
 
-**Resolution:** This compilation error no longer exists. The build completes successfully (verified 2026-02-10). The PointSpriteMaterial implementation correctly implements the Material trait without the bind_group_layout method.
+**Resolution:** Removed incorrect `Material` trait implementation from `PointSpriteMaterial` and updated dependent code to use custom rendering approach. Full workspace build now succeeds.
 
 ## Format for New Blockers
 

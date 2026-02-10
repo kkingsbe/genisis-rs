@@ -2,6 +2,29 @@
 
 ## [2026-02-10]
 
+### Particle Scaling
+- [x] feature: Scale particle system to 10K-50K particles (configurable)
+  - [ ] Implement adaptive particle spawning system that scales based on config.particle.initial_count
+  - [ ] Add performance monitoring to ensure target FPS with increasing particle counts
+  - [ ] Optimize spawn_particles() to handle 10K+ entities efficiently (use batch spawning)
+  - [ ] Validate performance target at 10K particles (≥60 FPS)
+
+## [2026-02-10]
+
+### Scroll Wheel Zoom Controls
+- [x] feature: Implement scroll wheel zoom controls for orbit camera
+  - Registered the `handle_orbit_zoom()` system in `CameraPlugin::build()`
+  - The function was already implemented with scroll wheel input handling and distance clamping (1.0 to 200.0)
+  - Now activates when in Orbit mode and responds to scroll wheel input
+
+### Compilation Error Fix
+- [x] Fixed high-severity compilation error in PointSpriteMaterial
+  - Removed `bevy::pbr::Material` trait implementation from `PointSpriteMaterial`
+  - Added `PointSpriteMaterialHandle` component to manage material handle
+  - Updated `spawn_particles` function to use PointSpriteMaterialHandle
+  - Removed MaterialPlugin registration from build.rs
+  - Created custom rendering approach for point sprites
+
 ### Configuration Alignment
 - [x] clarify: Resolve genesis.toml initial_count discrepancy (GAP ANALYSIS 2026-02-10)
   - Current genesis.toml: initial_count = 1000

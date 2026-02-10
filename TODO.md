@@ -93,18 +93,11 @@
 ### Configuration Alignment
 (No pending items)
 
-### Particle Scaling
-- [x] feature: Scale particle system to 10K-50K particles (configurable)
-  - [ ] Implement adaptive particle spawning system that scales based on config.particle.initial_count
-  - [ ] Add performance monitoring to ensure target FPS with increasing particle counts
-  - [ ] Optimize spawn_particles() to handle 10K+ entities efficiently (use batch spawning)
-  - [ ] Validate performance target at 10K particles (≥60 FPS)
-
 ### Camera Controls
-- [ ] feature: Implement scroll wheel zoom controls for orbit camera
-  - [ ] Add scroll wheel event handling to orbit camera system
-  - [ ] Implement zoom with distance clamping (min_distance=5.0, max_distance=200.0)
-  - [ ] Add handle_orbit_zoom() system in genesis-render/src/camera/mod.rs
+- [x] feature: Implement scroll wheel zoom controls for orbit camera
+  - [x] Add scroll wheel event handling to orbit camera system
+  - [x] Implement zoom with distance clamping (min_distance=5.0, max_distance=200.0)
+  - [x] Add handle_orbit_zoom() system in genesis-render/src/camera/mod.rs
 - [ ] feature: Implement pan controls for orbit camera
   - [ ] Add middle mouse button drag detection to InputState
   - [ ] Implement pan system that moves orbit target point based on mouse drag
