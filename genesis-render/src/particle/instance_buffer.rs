@@ -27,6 +27,7 @@ use bevy::render::render_resource::{
     BufferBindingType, BufferDescriptor, BufferUsages, ShaderStages,
 };
 use bevy::render::renderer::{RenderDevice, RenderQueue};
+use bytemuck::Zeroable;
 
 use super::Particle;
 
