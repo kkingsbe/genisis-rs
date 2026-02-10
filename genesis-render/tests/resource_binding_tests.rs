@@ -865,6 +865,8 @@ fn test_vertex_shader_uses_storage_buffer() {
 #[test]
 fn test_particle_component_structure() {
     let particle = Particle {
+        initial_position: Vec3::ZERO,
+        initial_velocity: Vec3::ZERO,
         position: Vec3::new(1.0, 2.0, 3.0),
         velocity: Vec3::new(0.0, 0.0, 0.0),
         color: bevy::color::Color::from(bevy::color::palettes::css::RED),

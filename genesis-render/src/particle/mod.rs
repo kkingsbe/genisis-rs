@@ -42,9 +42,11 @@
 
 use bevy::asset::Asset;
 use bevy::prelude::*;
+use bevy::pbr::Material;
+use bevy::render::alpha::AlphaMode;
 use bevy::render::mesh::{MeshVertexAttribute, PrimitiveTopology};
 use bevy::render::render_asset::RenderAssetUsages;
-use bevy::render::render_resource::AsBindGroup;
+use bevy::render::render_resource::{AsBindGroup, ShaderRef};
 use bevy::render::RenderApp;
 use genesis_core::config::ParticleConfig;
 use genesis_core::{events::ScrubbingEvent, time::TimeAccumulator};
@@ -96,6 +98,20 @@ pub struct PointSpriteMaterial {
     /// Formula: size = base_size / (1.0 + distance * attenuation_factor)
     #[uniform(2)]
     pub attenuation_factor: f32,
+}
+
+impl Material for PointSpriteMaterial {
+    fn vertex_shader() -> ShaderRef {
+        "point_sprite.wgsl".into()
+    }
+
+    fn fragment_shader() -> ShaderRef {
+        "point_sprite.wgsl".into()
+    }
+
+    fn alpha_mode(&self) -> AlphaMode {
+        AlphaMode::Add
+    }
 }
 
 /// Component for holding a PointSpriteMaterial handle
