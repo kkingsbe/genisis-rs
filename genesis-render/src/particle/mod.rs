@@ -418,7 +418,7 @@ impl Plugin for ParticlePlugin {
             // Update systems
             .add_systems(Update, update_particles)
             .add_systems(Update, update_particle_energy_colors)
-            .add_systems(Update, sync_particle_position.after(update_particle_energy_colors))
+            .add_systems(Update, sync_particle_position.before(update_particle_energy_colors))
             // Extract system: Transfer Particle data to render world
             .add_systems(ExtractSchedule, extract_particle_instances)
             // Render system: Prepare GPU buffers and bind groups
@@ -523,10 +523,9 @@ impl Plugin for ParticlePlugin {
 // 4. **Fragment Shader**: Outputs the color directly for the entire point:
 //    `return input.color;`
 //
-// Note: The Particle component's color and size data are currently stored on
-// the entity but not yet transferred to the instance attributes. Additional
-// infrastructure is needed to sync Particle component data with the GPU instance
-// attributes.
+// Note: The Particle component's color and size data are stored on
+// the entity and synchronized to GPU storage buffers via instance_buffer.rs
+// infrastructure (extract_particle_instances and prepare_particle_instance_buffers systems).
 //
 // ## WHAT IS STILL NEEDED
 // ...

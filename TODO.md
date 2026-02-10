@@ -14,8 +14,8 @@
 #### Particle Position Synchronization
 - [x] fix: Sync Particle.position with Transform.translation (CRITICAL - Breaks energy-based coloring per PRD Phase 1)
   - [x] Add sync_particle_position() system that copies Transform.translation to Particle.position each frame
-  - [ ] Query (Entity, &Transform, &mut Particle) and update particle.position from transform.translation
-  - [ ] Register sync_particle_position() system in Update schedule before update_particle_energy_colors
+  - [x] Query (Entity, &Transform, &mut Particle) and update particle.position from transform.translation
+  - [x] Register sync_particle_position() system in Update schedule before update_particle_energy_colors
   - [ ] This ensures update_particle_energy_colors() calculates energy from actual particle positions
 
 ### Configuration Alignment
