@@ -21,11 +21,12 @@ This document contains tasks for future sprints. Items here are not yet schedule
   - [ ] Register sync_particle_position() system in Update schedule before update_particle_energy_colors
   - [ ] This ensures update_particle_energy_colors() calculates energy from actual particle positions, not spawn positions
 - [ ] Scale particle system from 1000 to 100K-1M particles
-  - [ ] Implement adaptive particle spawning system that scales based on config.particle.initial_count
-  - [ ] Add performance monitoring to ensure target FPS with increasing particle counts
+  - [ ] Milestone 1: Implement adaptive particle spawning system that scales based on config.particle.initial_count
+  - [ ] Milestone 2: Validate performance target at 10K particles (≥60 FPS)
+  - [ ] Milestone 3: Validate performance target at 50K particles (≥60 FPS)
+  - [ ] Milestone 4: Validate performance target at 100K particles (≥60 FPS)
+  - [ ] Milestone 5: Add performance monitoring to ensure target FPS with increasing particle counts
   - [ ] Optimize spawn_particles() to handle 100K+ entities efficiently (use batch spawning)
-  - [ ] Implement particle LOD (Level of Detail) system to reduce rendering load for distant particles
-  - [ ] Add GPU memory management for large particle systems (buffer reuse, streaming)
 - [ ] **feature: Implement energy cooling model for singularity visualization (PRD Phase 1 requirement)**
   - [ ] Create Temperature resource struct tracking universe temperature in Kelvin (genesis-core/src/temperature.rs)
   - [ ] Implement adiabatic cooling model: T(t) = T₀ / a(t) where T₀ = 10²⁷ K (Planck boundary)
@@ -266,6 +267,14 @@ The following items were previously marked as completed but are NOT implemented:
   - [ ] Register transition system in CoreSchedule with .run_if(cosmic_time_exceeds_planck_boundary)
 
 **NOTE:** The following epoch plugin creation tasks (lines 220-269) span all future phases (2-7). These umbrella tasks are well-broken down into subtasks but should be distributed to their respective sprint sections for better organization. Consider moving these tasks to: Sprint 2 (InflationEpoch, QGPEpoch), Sprint 3 (NucleosynthesisEpoch), Sprint 4 (RecombinationEpoch), Sprint 5 (DarkAgesEpoch), Sprint 6 (CosmicDawnEpoch).
+
+**NOTE:** Epoch plugin tasks below are organized by phase but should be distributed to respective sprint sections:
+- InflationEpoch, QGPEpoch → Sprint 2-3
+- NucleosynthesisEpoch → Sprint 3
+- RecombinationEpoch → Sprint 4
+- DarkAgesEpoch, CosmicDawnEpoch → Sprint 5
+- ReionizationEpoch, StructureFormationEpoch → Sprint 6
+- GalaxyFormationEpoch, CosmicWebEpoch → Sprint 7
 
 - [ ] Implement future epoch plugins (InflationEpoch, QGPEpoch, NucleosynthesisEpoch, RecombinationEpoch, DarkAgesEpoch, CosmicDawnEpoch)
   - [ ] Create InflationEpoch plugin in genesis-core/src/epoch/inflation.rs (10⁻³²s to 10⁻⁶s)
@@ -903,6 +912,9 @@ The following items were previously marked as completed but are NOT implemented:
 - [ ] Create HDF5 snapshot export (positions, velocities, masses, temperatures)
 - [ ] Add CSV timeline summary export (scale factor, temperature, Hubble parameter)
 - [ ] Implement export controls in UI
+  - [ ] Create genesis-export/Cargo.toml with dependencies (serde, hdf5-rust, etc.)
+  - [ ] Add genesis-export to workspace Cargo.toml members
+  - [ ] Define ExportPlugin struct implementing Plugin trait
 
 ### Timeline Integration
 - [ ] Add smooth transition from linear perturbation growth to nonlinear structure

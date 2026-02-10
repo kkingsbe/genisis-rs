@@ -1,16 +1,16 @@
 {
-  "lastRun": "2026-02-10T02:37:25.854Z",
+  "lastRun": "2026-02-10T03:52:04.028Z",
   "lastSuccess": "2026-02-10T02:56:36.708Z",
-  "lastFailure": "2026-02-10T02:42:04.080Z",
-  "errorCount": 39,
-  "consecutiveFailures": 0,
-  "status": "success",
+  "lastFailure": "2026-02-10T03:52:03.927Z",
+  "errorCount": 44,
+  "consecutiveFailures": 5,
+  "status": "running",
   "lastTerminationReason": null,
   "earlyTerminationCount": 0,
   "totalExecutionTimeMs": 17715831,
   "averageExecutionTimeMs": 17715831,
   "successfulTerminations": 0,
   "failedTerminations": 0,
-  "error": "Failed to acquire lock for task 'architect' after 3 attempts: Failed to acquire lock for task 'architect': timeout after 5000ms",
+  "error": "CLI execution failed with exit code null",
   "lastOutputFile": "/workspace/.architect-output-1770692196710.md"
 }

@@ -2,6 +2,21 @@
 
 ## [2026-02-10]
 
+### Configuration Alignment
+- [x] clarify: Resolve genesis.toml initial_count discrepancy (GAP ANALYSIS 2026-02-10)
+  - Current genesis.toml: initial_count = 1000
+  - Code default (ParticleConfig::default()): initial_count = 100_000
+  - PRD Phase 1: "100K–1M point sprites" capability
+  - Decision needed: Should genesis.toml default be 100000 to match code default and PRD?
+  - **Resolution**: Decision made - align genesis.toml with code default and PRD requirement (100K minimum)
+- [x] fix: Update genesis.toml initial_count based on decision (AFTER CLARIFICATION)
+  - **Resolution**: Updated genesis.toml initial_count from 1000 to 100000 to match code default and PRD Phase 1 requirement
+
+### Particle Position Synchronization
+- [x] This ensures update_particle_energy_colors() calculates energy from actual particle positions
+
+## [2026-02-10]
+
 ### Critical Bug Fixes (Blockers)
 - [x] fix: Compilation error in genesis-render/src/particle/instance_buffer.rs - missing `use bytemuck::Zeroable;` import at line 31 causes `ParticleInstanceData::zeroed()` to fail at line 315 in test_particle_instance_data_zeroable
 - [x] fix: Failing test in genesis-render/tests/resource_binding_tests.rs - test_particle_component_structure at line 867 missing `velocity` field in Particle struct initialization (error: E0063)

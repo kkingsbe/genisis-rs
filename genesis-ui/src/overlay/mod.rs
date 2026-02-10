@@ -8,11 +8,24 @@ use bevy_egui::{egui, EguiContexts};
 
 /// Resource tracking overlay visibility
 ///
-/// Stores visibility flags for various HUD elements.
-/// Overlay UI rendering is implemented via update_overlay_ui system with egui.
+/// Stores visibility flags for various HUD elements including FPS counter
+/// and particle count display. This resource is initialized from DisplayConfig
+/// and allows runtime toggling of overlay elements.
+///
+/// # Fields
+///
+/// - `show_fps`: When true, displays the current frame rate counter
+/// - `show_particle_count`: When true, displays the total number of active particles
+///
+/// # Note
+///
+/// The `show_epoch_info` field is not implemented yet (not present in OverlayState
+/// or DisplayConfig).
 #[derive(Resource)]
 pub struct OverlayState {
+    /// Display FPS counter in HUD
     pub show_fps: bool,
+    /// Display particle count
     pub show_particle_count: bool,
 }
 

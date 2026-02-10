@@ -295,6 +295,43 @@ pub fn update_orbit_camera(
     }
 }
 
+/// System to handle orbit camera zoom via scroll wheel
+///
+/// Updates the orbit distance based on scroll wheel input when in ORBIT camera mode.
+/// The distance is clamped between 1.0 and 200.0 to prevent zooming inside the target
+/// or too far away.
+///
+/// # Parameters
+///
+/// * `input` - Resource containing input state including scroll_delta
+/// * `camera_state` - Resource tracking current camera mode
+/// * `orbit_controllers` - Query for mutable access to OrbitController components
+///
+/// # Behavior
+///
+/// - Only operates when CameraState.mode is ORBIT
+/// - Reads input.scroll_delta and applies it to OrbitController.distance
+/// - Uses 0.1 as zoom sensitivity multiplier for scroll_delta
+/// - Clamps distance between 1.0 (min) and 200.0 (max)
+pub fn handle_orbit_zoom(
+    input: Res<InputState>,
+    camera_state: Res<CameraState>,
+    mut orbit_controllers: Query<&mut OrbitController>,
+) {
+    // Only update when in ORBIT mode
+    if camera_state.mode != CameraMode::Orbit {
+        return;
+    }
+
+    // Apply scroll delta to orbit distance with 0.1 sensitivity
+    let zoom_delta = input.scroll_delta * 0.1;
+
+    for mut controller in orbit_controllers.iter_mut() {
+        // Update distance and clamp to valid range
+        controller.distance = (controller.distance - zoom_delta).clamp(1.0, 200.0);
+    }
+}
+
 /// System to toggle between camera modes
 ///
 /// Switches between FreeFlight and Orbit camera modes when the 'O' key is pressed.

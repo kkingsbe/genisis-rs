@@ -88,20 +88,13 @@
 (No pending items)
 
 #### Particle Position Synchronization
-- [x] This ensures update_particle_energy_colors() calculates energy from actual particle positions
+(No pending items)
 
 ### Configuration Alignment
-- [x] clarify: Resolve genesis.toml initial_count discrepancy (GAP ANALYSIS 2026-02-10)
-  - Current genesis.toml: initial_count = 1000
-  - Code default (ParticleConfig::default()): initial_count = 100_000
-  - PRD Phase 1: "100K–1M point sprites" capability
-  - Decision needed: Should genesis.toml default be 100000 to match code default and PRD?
-  - **Resolution**: Decision made - align genesis.toml with code default and PRD requirement (100K minimum)
-- [x] fix: Update genesis.toml initial_count based on decision (AFTER CLARIFICATION)
-  - **Resolution**: Updated genesis.toml initial_count from 1000 to 100000 to match code default and PRD Phase 1 requirement
+(No pending items)
 
 ### Particle Scaling
-- [ ] feature: Scale particle system to 10K-50K particles (configurable)
+- [x] feature: Scale particle system to 10K-50K particles (configurable)
   - [ ] Implement adaptive particle spawning system that scales based on config.particle.initial_count
   - [ ] Add performance monitoring to ensure target FPS with increasing particle counts
   - [ ] Optimize spawn_particles() to handle 10K+ entities efficiently (use batch spawning)

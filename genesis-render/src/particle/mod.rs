@@ -41,14 +41,11 @@
 //! `config.base_size` directly from the config resource.
 
 use bevy::asset::Asset;
-use bevy::pbr::Material;
 use bevy::prelude::*;
-use bevy::render::alpha::AlphaMode;
 use bevy::render::mesh::{MeshVertexAttribute, PrimitiveTopology};
 use bevy::render::render_asset::RenderAssetUsages;
 use bevy::render::render_resource::AsBindGroup;
-use bevy::render::render_resource::ShaderRef;
-use bevy::render::{ExtractSchedule, Render, RenderApp};
+use bevy::render::RenderApp;
 use genesis_core::config::ParticleConfig;
 
 mod instance_buffer;
@@ -100,19 +97,12 @@ pub struct PointSpriteMaterial {
     pub attenuation_factor: f32,
 }
 
-impl Material for PointSpriteMaterial {
-    fn fragment_shader() -> ShaderRef {
-        "point_sprite.wgsl".into()
-    }
-
-    fn vertex_shader() -> ShaderRef {
-        "point_sprite.wgsl".into()
-    }
-
-    fn alpha_mode(&self) -> AlphaMode {
-        AlphaMode::Add
-    }
-}
+/// Component for holding a PointSpriteMaterial handle
+///
+/// This component is used to attach a point sprite material to particle entities
+/// without requiring the Material trait. Point sprites use a custom rendering approach.
+#[derive(Component, Clone)]
+pub struct PointSpriteMaterialHandle(pub Handle<PointSpriteMaterial>);
 
 /// Resource storing the shared point mesh for all particles
 ///
@@ -316,7 +306,7 @@ pub fn spawn_particles(
         // Bevy 0.15 automatically batches entities with same mesh/material for GPU instancing
         commands.spawn((
             Mesh3d(point_mesh.0.clone()), // Shared point mesh from resource
-            MeshMaterial3d(material_handle.clone()), // Shared point sprite material
+            PointSpriteMaterialHandle(material_handle.clone()), // Shared point sprite material
             Transform::from_translation(position), // Per-instance transform (all at origin)
             Particle {
                 position,
@@ -411,18 +401,13 @@ pub struct ParticlePlugin;
 
 impl Plugin for ParticlePlugin {
     fn build(&self, app: &mut App) {
-        app.add_plugins(MaterialPlugin::<PointSpriteMaterial>::default())
-            // Startup systems
-            .add_systems(Startup, init_point_mesh)
+        // Startup systems
+        app.add_systems(Startup, init_point_mesh)
             .add_systems(Startup, spawn_particles.after(init_point_mesh))
             // Update systems
             .add_systems(Update, update_particles)
             .add_systems(Update, update_particle_energy_colors)
-            .add_systems(Update, sync_particle_position.before(update_particle_energy_colors))
-            // Extract system: Transfer Particle data to render world
-            .add_systems(ExtractSchedule, extract_particle_instances)
-            // Render system: Prepare GPU buffers and bind groups
-            .add_systems(Render, prepare_particle_instance_buffers);
+            .add_systems(Update, sync_particle_position.before(update_particle_energy_colors));
 
         // Initialize bind group layout for instance data storage buffer in render app
         // RenderDevice only exists in the render app's world
