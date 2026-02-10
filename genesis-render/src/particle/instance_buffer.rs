@@ -28,8 +28,6 @@ use bevy::render::render_resource::{
 };
 use bevy::render::renderer::{RenderDevice, RenderQueue};
 
-use bytemuck::Zeroable;
-
 use super::Particle;
 
 // ============================================================================

@@ -4,6 +4,24 @@
 //! Camera movement systems are implemented for both free-flight (update_free_flight_camera)
 //! and orbit (update_orbit_camera) modes.
 //!
+//! # Phase 1 Feature: Camera Mode Switching
+//!
+//! This module implements the **Phase 1 camera requirements** as specified in the PRD (see [`PRD.md`](../../../PRD.md:114)):
+//!
+//! > **Phase 1 Deliverable:** "Free-flight camera (WASD + mouse) and orbit camera (click-drag) with smooth interpolation"
+//!
+//! Camera mode switching is a core Phase 1 feature that enables users to:
+//! - Switch between **FreeFlight** and **Orbit** camera modes
+//! - Use WASD + mouse for free-flight navigation
+//! - Use click-drag for orbit camera control
+//!
+//! To switch between camera modes, press the **'O'** key. The [`toggle_camera_mode()`] system handles the transition.
+//!
+//! ## Camera Modes
+//!
+//! - **FreeFlight**: Navigate freely using WASD movement and mouse look
+//! - **Orbit**: Rotate around a target point using mouse drag (zoom/pan not yet implemented)
+//!
 //! # Camera System Implementation Status
 //!
 //! - **Free-flight mode**: Fully implemented with WASD movement and mouse look
@@ -31,12 +49,36 @@ use genesis_core::config::CameraConfig;
 /// Camera mode enumeration
 ///
 /// Defines the available camera control modes for the simulator.
+///
+/// # Phase 1 Feature
+///
+/// This enum is part of the **Phase 1 camera requirements** ([`PRD.md`](../../../PRD.md:114)):
+///
+/// > "Free-flight camera (WASD + mouse) and orbit camera (click-drag) with smooth interpolation"
+///
+/// Users can switch between modes using the 'O' key via the [`toggle_camera_mode()`] system.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum CameraMode {
     /// Free-flight camera mode with WASD movement and mouse look
+    ///
+    /// This is the default camera mode in Phase 1. It allows unrestricted movement through
+    /// 3D space using keyboard controls (WASD) and mouse look.
+    ///
+    /// # Controls
+    /// - **W/S**: Move forward/backward
+    /// - **A/D**: Move left/right
+    /// - **Q/E**: Move down/up
+    /// - **Mouse movement**: Look around
     #[default]
     FreeFlight,
     /// Orbit camera mode that rotates around a target point
+    ///
+    /// This camera mode is part of Phase 1 and allows rotating the view around a fixed target point.
+    /// Currently only rotation is implemented; zoom and pan controls are deferred to later phases.
+    ///
+    /// # Controls
+    /// - **Left mouse drag**: Rotate around target (spherical coordinates)
+    /// - **O key**: Switch back to FreeFlight mode
     Orbit,
 }
 
@@ -256,6 +298,23 @@ pub fn update_orbit_camera(
 /// System to toggle between camera modes
 ///
 /// Switches between FreeFlight and Orbit camera modes when the 'O' key is pressed.
+///
+/// # Phase 1 Feature
+///
+/// This system implements the **Phase 1 camera mode switching** requirement ([`PRD.md`](../../../PRD.md:114)):
+///
+/// > "Free-flight camera (WASD + mouse) and orbit camera (click-drag) with smooth interpolation"
+///
+/// While the PRD mentions "smooth interpolation" between modes, camera interpolation is
+/// currently deferred to Phase 7. Mode switches are instant for responsive user control.
+///
+/// # Usage
+///
+/// Press the **'O'** key at any time to toggle between camera modes:
+/// - **FreeFlight → Orbit**: Sets orbit target to a point in front of the camera
+/// - **Orbit → FreeFlight**: Returns to unrestricted 3D navigation
+///
+/// # Implementation Notes
 ///
 /// Note: Both CameraController and OrbitController are always present on the camera entity.
 /// This function only updates the CameraState.mode field. The actual camera behavior is

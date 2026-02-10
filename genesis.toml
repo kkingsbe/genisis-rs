@@ -23,7 +23,6 @@ orbit_distance = 100.0
 [time]
 time_acceleration_min = 1.0
 time_acceleration_max = 1000000000000.0
-initial_time_acceleration = 1000000000.0
 
 # Display/HUD configuration
 [display]

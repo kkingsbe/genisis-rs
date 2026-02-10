@@ -23,8 +23,6 @@ pub struct TimeConfig {
     pub time_acceleration_min: f64,
     /// Maximum time acceleration factor (10¹² = maximum acceleration)
     pub time_acceleration_max: f64,
-    /// Initial time acceleration factor
-    pub initial_time_acceleration: f64,
 }
 
 impl Default for TimeConfig {
@@ -32,7 +30,6 @@ impl Default for TimeConfig {
         Self {
             time_acceleration_min: 1.0,
             time_acceleration_max: 1e12,
-            initial_time_acceleration: 1.0,
         }
     }
 }
