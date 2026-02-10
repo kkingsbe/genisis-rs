@@ -31,6 +31,7 @@ pub mod cosmology;
 pub use inflaton::InflatonPlugin;
 pub use crate::cosmology::{ScaleFactor, CosmicEpoch, Temperature};
 pub use perturbations::GaussianRandomField;
+pub use perturbations::PowerSpectrum;
 
 /// Version of the physics library
 pub const VERSION: &str = env!("CARGO_PKG_VERSION");

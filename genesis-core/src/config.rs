@@ -258,6 +258,41 @@ impl DisplayConfig {
     }
 }
 
+/// Physics configuration settings for cosmological parameters
+#[derive(Debug, Clone, Deserialize, Serialize)]
+pub struct PhysicsConfig {
+    /// Spectral index (n_s) for power spectrum P(k) ∝ k^(n_s – 1)
+    /// Default value of 0.96 corresponds to the standard ΛCDM model
+    pub spectral_index: f64,
+}
+
+impl Default for PhysicsConfig {
+    fn default() -> Self {
+        Self {
+            spectral_index: 0.96,
+        }
+    }
+}
+
+impl PhysicsConfig {
+    /// Validates the physics configuration
+    ///
+    /// # Returns
+    /// * `Ok(())` if all validations pass
+    /// * `Err(String)` with a descriptive error message if validation fails
+    pub fn validate(&self) -> Result<(), String> {
+        // Spectral index should be in reasonable range for ΛCDM (approximately 0.9 to 1.1)
+        // but we only enforce that it's non-negative here to allow flexibility
+        if self.spectral_index < 0.0 {
+            return Err(format!(
+                "PhysicsConfig.spectral_index must be non-negative, got {}",
+                self.spectral_index
+            ));
+        }
+        Ok(())
+    }
+}
+
 /// Main configuration structure for Genesis Engine
 ///
 /// This struct contains all Phase 1 parameters for the engine configuration.
@@ -275,6 +310,8 @@ pub struct Config {
     pub window: WindowConfig,
     /// Display/HUD configuration
     pub display: DisplayConfig,
+    /// Physics configuration
+    pub physics: PhysicsConfig,
 }
 
 impl Default for Config {
@@ -285,6 +322,7 @@ impl Default for Config {
             camera: CameraConfig::default(),
             window: WindowConfig::default(),
             display: DisplayConfig::default(),
+            physics: PhysicsConfig::default(),
         }
     }
 }
@@ -298,7 +336,7 @@ impl Config {
 
     /// Validates the configuration
     ///
-    /// This method validates all sub-configurations: time, particle, camera, window, and display.
+    /// This method validates all sub-configurations: time, particle, camera, window, display, and physics.
     /// It short-circuits and returns the first error encountered.
     ///
     /// # Returns
@@ -311,6 +349,7 @@ impl Config {
         self.camera.validate()?;
         self.window.validate()?;
         self.display.validate()?;
+        self.physics.validate()?;
         Ok(())
     }
 

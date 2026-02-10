@@ -258,7 +258,7 @@ pub fn energy_to_color(energy: f32) -> Color {
 /// - T > 1e13: Interpolates YELLOW (1e13) to WHITE (1e14)
 /// - T > 1e12: Interpolates ORANGE (1e12) to YELLOW (1e13)
 /// - T ≤ 1e12: Returns ORANGE (temperature floor)
-pub fn temperature_to_color(T: f64) -> Color {
+pub fn temperature_to_color(t: f64) -> Color {
     // Temperature breakpoints (in Kelvin)
     const T_BLUE_WHITE: f64 = 1e15;
     const T_WHITE: f64 = 1e14;
@@ -286,21 +286,21 @@ pub fn temperature_to_color(T: f64) -> Color {
     const G_ORANGE: f32 = 0.65;
     const B_ORANGE: f32 = 0.0;
 
-    if T >= T_BLUE_WHITE {
+    if t >= T_BLUE_WHITE {
         // Return blue-white for extremely high temperatures (≥10¹⁵K)
         Color::srgb(R_BLUE_WHITE, G_BLUE_WHITE, B_BLUE_WHITE)
-    } else if T >= T_WHITE {
+    } else if t >= T_WHITE {
         // WHITE to BLUE_WHITE: t in [T_WHITE, T_BLUE_WHITE], normalized to [0.0, 1.0]
-        let t = ((T - T_WHITE) / (T_BLUE_WHITE - T_WHITE)) as f32;
-        lerp_rgb(R_WHITE, G_WHITE, B_WHITE, R_BLUE_WHITE, G_BLUE_WHITE, B_BLUE_WHITE, t)
-    } else if T >= T_YELLOW {
+        let interp_t = ((t - T_WHITE) / (T_BLUE_WHITE - T_WHITE)) as f32;
+        lerp_rgb(R_WHITE, G_WHITE, B_WHITE, R_BLUE_WHITE, G_BLUE_WHITE, B_BLUE_WHITE, interp_t)
+    } else if t >= T_YELLOW {
         // YELLOW to WHITE: t in [T_YELLOW, T_WHITE], normalized to [0.0, 1.0]
-        let t = ((T - T_YELLOW) / (T_WHITE - T_YELLOW)) as f32;
-        lerp_rgb(R_YELLOW, G_YELLOW, B_YELLOW, R_WHITE, G_WHITE, B_WHITE, t)
-    } else if T >= T_ORANGE {
+        let interp_t = ((t - T_YELLOW) / (T_WHITE - T_YELLOW)) as f32;
+        lerp_rgb(R_YELLOW, G_YELLOW, B_YELLOW, R_WHITE, G_WHITE, B_WHITE, interp_t)
+    } else if t >= T_ORANGE {
         // ORANGE to YELLOW: t in [T_ORANGE, T_YELLOW], normalized to [0.0, 1.0]
-        let t = ((T - T_ORANGE) / (T_YELLOW - T_ORANGE)) as f32;
-        lerp_rgb(R_ORANGE, G_ORANGE, B_ORANGE, R_YELLOW, G_YELLOW, B_YELLOW, t)
+        let interp_t = ((t - T_ORANGE) / (T_YELLOW - T_ORANGE)) as f32;
+        lerp_rgb(R_ORANGE, G_ORANGE, B_ORANGE, R_YELLOW, G_YELLOW, B_YELLOW, interp_t)
     } else {
         // Return orange as floor for low temperatures (<10¹²K)
         Color::srgb(R_ORANGE, G_ORANGE, B_ORANGE)

@@ -32,6 +32,9 @@ Phase 2 has infrastructure setup but **NO PHYSICS IMPLEMENTATION**:
 
 ## [2026-02-10]
 
+### Drift Remediation - Documentation Updates
+- docs: Update COMPLETED.md to accurately reflect Phase 2 status - Clarify that only Phase 1 is complete, Phase 2 has infrastructure (crate, module stubs) but no physics implementation
+
 ### Sprint 2 - Phase 2: Inflation & Quantum Seeds - Density Perturbations (INFRASTRUCTURE ONLY)
 - [x] Implement Fourier transform (FFT) to convert real-space density field to k-space - Module stub exists, no FFT implementation
 

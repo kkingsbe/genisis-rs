@@ -11,6 +11,98 @@ use rand::SeedableRng;
 
 pub mod fft;
 
+/// Represents a cosmological power spectrum P(k).
+///
+/// The power spectrum describes how the variance of density perturbations
+/// is distributed across different spatial scales (wavenumbers). In standard
+/// cosmology, it follows a power-law form: P(k) = A * k^(n_s - 1), where
+/// n_s is the spectral index and A is the amplitude.
+#[derive(Debug, Clone)]
+pub struct PowerSpectrum {
+    /// The spectral index n_s (typically ~0.96 for standard cosmology).
+    /// Controls how power is distributed across scales: n_s < 1 means
+    /// more power on large scales, n_s > 1 means more power on small scales.
+    spectral_index: f64,
+    /// The normalization amplitude A (typically ~2.1e-9 for CMB).
+    amplitude: f64,
+}
+
+impl PowerSpectrum {
+    /// Creates a new power spectrum with the given spectral index and amplitude.
+    ///
+    /// # Arguments
+    ///
+    /// * `spectral_index` - The spectral index n_s (typically ~0.96)
+    /// * `amplitude` - The normalization amplitude A
+    ///
+    /// # Returns
+    ///
+    /// A new `PowerSpectrum` instance.
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// use genesis_physics::perturbations::PowerSpectrum;
+    ///
+    /// let ps = PowerSpectrum::new(0.96, 1.0);
+    /// ```
+    pub fn new(spectral_index: f64, amplitude: f64) -> Self {
+        Self {
+            spectral_index,
+            amplitude,
+        }
+    }
+
+    /// Computes the power P(k) at a given wavenumber k.
+    ///
+    /// Implements the power-law form: P(k) = A * k^(n_s - 1).
+    ///
+    /// # Arguments
+    ///
+    /// * `k` - The wavenumber (inverse spatial scale)
+    ///
+    /// # Returns
+    ///
+    /// The power at wavenumber k. Returns 0.0 for k <= 0.
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// use genesis_physics::perturbations::PowerSpectrum;
+    ///
+    /// let ps = PowerSpectrum::new(0.96, 1.0);
+    /// let power = ps.compute(1.0);
+    /// ```
+    pub fn compute(&self, k: f64) -> f64 {
+        if k <= 0.0 {
+            return 0.0;
+        }
+        self.amplitude * k.powf(self.spectral_index - 1.0)
+    }
+}
+
+impl Default for PowerSpectrum {
+    /// Creates a power spectrum with standard cosmological parameters.
+    ///
+    /// Uses spectral_index = 0.96 (Planck-measured value) and amplitude = 1.0
+    /// (will be normalized when applied to actual data).
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// use genesis_physics::perturbations::PowerSpectrum;
+    ///
+    /// let ps = PowerSpectrum::default();
+    /// assert_eq!(ps.compute(1.0), 1.0);
+    /// ```
+    fn default() -> Self {
+        Self {
+            spectral_index: 0.96,
+            amplitude: 1.0,
+        }
+    }
+}
+
 /// Generates a pair of independent standard normal (Gaussian) random numbers
 /// using the Box-Muller transform.
 ///
@@ -387,5 +479,74 @@ mod tests {
         // Allow some tolerance due to random sampling
         assert!(mean.abs() < 0.2, "Mean {} should be close to 0", mean);
         assert!((std_dev - 1.0).abs() < 0.2, "Std dev {} should be close to 1", std_dev);
+    }
+
+    // PowerSpectrum Tests
+
+    /// Test PowerSpectrum::default() creates instance with spectral_index = 0.96 and amplitude = 1.0
+    #[test]
+    fn test_power_spectrum_default() {
+        let ps = PowerSpectrum::default();
+        // Verify indirectly through compute(1.0) which should return 1.0 for default parameters
+        // P(1.0) = A * 1.0^(n_s - 1) = 1.0 * 1.0^(-0.04) = 1.0
+        let result = ps.compute(1.0);
+        assert!((result - 1.0).abs() < 1e-9, 
+                "Default PowerSpectrum at k=1.0 should return 1.0, got {}", result);
+    }
+
+    /// Test PowerSpectrum::compute() with standard parameters (n_s=0.96, A=1.0)
+    #[test]
+    fn test_power_spectrum_compute_standard() {
+        let ps = PowerSpectrum::default();
+        // P(1.0) = A * k^(n_s - 1) = 1.0 * 1.0^(0.96 - 1) = 1.0 * 1.0^(-0.04) = 1.0
+        let result = ps.compute(1.0);
+        assert!((result - 1.0).abs() < 1e-9, 
+                "P(1.0) should be 1.0 for standard parameters, got {}", result);
+    }
+
+    /// Test PowerSpectrum::compute() with custom parameters
+    #[test]
+    fn test_power_spectrum_compute_custom() {
+        // n_s = 2.0, A = 2.0
+        let ps = PowerSpectrum::new(2.0, 2.0);
+        // P(3.0) = A * k^(n_s - 1) = 2.0 * 3.0^(2.0 - 1) = 2.0 * 3.0 = 6.0
+        let result = ps.compute(3.0);
+        let expected = 2.0 * 3.0f64.powf(1.0); // 2.0 * 3.0 = 6.0
+        assert!((result - expected).abs() < 1e-9, 
+                "P(3.0) should be {} for n_s=2.0, A=2.0, got {}", expected, result);
+    }
+
+    /// Test PowerSpectrum::compute() with k = 0.0 (edge case)
+    #[test]
+    fn test_power_spectrum_compute_zero_k() {
+        let ps = PowerSpectrum::default();
+        let result = ps.compute(0.0);
+        assert_eq!(result, 0.0, "compute(0.0) should return 0.0, got {}", result);
+    }
+
+    /// Test PowerSpectrum::compute() with negative k (edge case)
+    #[test]
+    fn test_power_spectrum_compute_negative_k() {
+        let ps = PowerSpectrum::default();
+        let result = ps.compute(-1.0);
+        assert_eq!(result, 0.0, "compute(-1.0) should return 0.0, got {}", result);
+    }
+
+    /// Test PowerSpectrum::new() constructor
+    #[test]
+    fn test_power_spectrum_new_constructor() {
+        // Verify constructor by testing compute() results
+        let ps1 = PowerSpectrum::new(0.96, 1.0);
+        let ps2 = PowerSpectrum::new(2.0, 2.0);
+        
+        // P(1.0) = 1.0 * 1.0^(0.96 - 1) = 1.0
+        let result1 = ps1.compute(1.0);
+        assert!((result1 - 1.0).abs() < 1e-9, 
+                "new(0.96, 1.0) at k=1.0 should return 1.0, got {}", result1);
+        
+        // P(1.0) = 2.0 * 1.0^(2.0 - 1) = 2.0
+        let result2 = ps2.compute(1.0);
+        assert!((result2 - 2.0).abs() < 1e-9, 
+                "new(2.0, 2.0) at k=1.0 should return 2.0, got {}", result2);
     }
 }

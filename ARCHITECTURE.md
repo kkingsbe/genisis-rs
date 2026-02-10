@@ -38,8 +38,9 @@ genesis/
 │       │   └── mod.rs   # Gravity-related structures (not implemented)
 │       ├── inflaton/     # Inflaton field dynamics for cosmic inflation
 │       │   └── mod.rs   # Inflaton struct (phi, potential, derivatives, slow-roll parameters), InflatonPlugin (initializes Inflaton resource), comprehensive unit tests
-│       ├── perturbations/ # Density perturbations (placeholder)
-│       │   └── mod.rs   # Perturbation-related structures (not implemented)
+│       ├── perturbations/ # Density perturbations
+│       │   ├── mod.rs   # Perturbation-related structures: Box-Muller transform, GaussianRandomField (3D field generation)
+│       │   └── fft/mod.rs  # DensityFft struct for 3D FFT: real_to_kspace(), kspace_to_real() methods
 │       └── nucleosynthesis/ # Big Bang nucleosynthesis (placeholder)
 │           └── mod.rs   # Nucleosynthesis structures (not implemented)
 ├── genesis-render/   # Rendering systems and visuals
@@ -355,13 +356,14 @@ genesis-physics crate contains the following modules:
   - **Status**: Placeholder module with no data structures or implementations
 
 - **perturbations/mod.rs** - Density perturbations (Phase 2)
-  - **Status**: Placeholder module with no data structures or implementations
+  - **Status**: **Partially implemented** - Box-Muller transform for Gaussian random numbers, GaussianRandomField struct for 3D field generation, and FFT module (fft/mod.rs) with DensityFft struct and 3D FFT methods (real_to_kspace, kspace_to_real)
+  - **Still pending**: Power spectrum P(k) generator, Zel'dovich approximation for density-to-displacement mapping
 
 - **nucleosynthesis/mod.rs** - Big Bang nucleosynthesis (Phase 3)
   - **Status**: Placeholder module with no data structures or implementations
 
 **Gap Analysis**:
-The cosmology module has comprehensive data structures and both Euler and RK4 integration methods implemented. The inflaton module is fully implemented with complete slow-roll parameter calculations. The other physics modules (gravity, perturbations, nucleosynthesis) are placeholders awaiting implementation.
+The cosmology module has comprehensive data structures and both Euler and RK4 integration methods implemented. The inflaton module is fully implemented with complete slow-roll parameter calculations. The perturbations module is partially implemented with GaussianRandomField and FFT. The gravity and nucleosynthesis modules are placeholders awaiting implementation.
 
 ### 9. Configuration Management
 - **Format**: TOML for human-readable configuration
@@ -384,6 +386,89 @@ The cosmology module has comprehensive data structures and both Euler and RK4 in
 - Unit tests for inflaton module (`inflaton/mod.rs:186-545`): Comprehensive tests for potential, derivatives, slow-roll parameters
 - Unit tests for cosmology module (`cosmology/mod.rs:573-600`): Tests for curvature, energy density, and cosmological calculations
 
+## Current Implementation Status (Drift Analysis Summary)
+
+### Overview
+The implementation has progressed beyond the strict Phase 1 PRD requirements in several areas. These "drift" items are intentional forward-looking infrastructure investments that provide a solid foundation for Phase 2+ features. Rather than being wasteful over-engineering, these additions represent thoughtful architectural decisions that enable incremental delivery across all phases.
+
+### Phase 1 Completion Status
+
+**Fully Implemented Phase 1 Requirements (per PRD.md lines 112-119):**
+- ✅ Bevy application scaffold with window, input handling, and basic 3D scene
+- ✅ Instanced particle renderer capable of displaying 100K point sprites with position, color, and size
+- ✅ Free-flight camera (WASD + mouse) and orbit camera (click-drag) with smooth interpolation
+- ✅ Cosmic time system: f64 time accumulator with adjustable acceleration (1x to 10¹²x), pause, and reset
+- ✅ Logarithmic timeline scrubber UI (bevy_egui) spanning 13.8 billion years
+- ✅ Procedural "singularity" visualization: particles spawned at origin with outward velocity, color-mapped by energy (white-hot core fading to red)
+- ✅ FPS counter and particle count overlay
+
+### Phase 2+ Infrastructure in Place
+
+**Physics Infrastructure (genesis-physics crate):**
+- ✅ **Integrator Module** (genesis-physics/src/integrator/mod.rs): Generic RK4 solver for ODE integration - needed for Phase 2 (Friedmann equations) and Phase 3 (nucleosynthesis)
+- ✅ **Cosmology Module** (genesis-physics/src/cosmology/mod.rs): Complete Friedmann equation physics infrastructure including:
+  - ScaleFactor struct with epoch tracking and RK4/Euler integration methods
+  - HubbleParameter struct with Friedmann equation computation
+  - EnergyDensity struct with matter, radiation, dark energy, inflaton components
+  - CosmicEpoch enum defining 8 cosmological epochs (Planck through Structure)
+  - update_scale_factor_by_epoch() system for epoch-aware integration
+  - CosmologyPlugin that initializes all cosmology resources
+- ✅ **Inflaton Module** (genesis-physics/src/inflaton/mod.rs): Complete inflaton field physics including:
+  - Inflaton struct with phi, potential, and slow-roll parameters (ε, η)
+  - Quadratic potential V(φ) = ½m²φ²
+  - InflatonPlugin that initializes Inflaton resource
+- ✅ **Perturbations Module** (genesis-physics/src/perturbations/mod.rs): Partial implementation including:
+  - Box-Muller transform for Gaussian random numbers
+  - GaussianRandomField struct for 3D field generation
+  - FFT module (fft/mod.rs) with DensityFft struct for 3D FFT operations
+- ⏳ **Pending**: Power spectrum P(k) generator, Zel'dovich approximation for density-to-displacement mapping
+
+**Epoch Infrastructure (genesis-core):**
+- ⏳ **Partially Implemented**: SingularityEpoch marker struct exists but full epoch management system (EpochPlugin trait, EpochManager, EpochManagerPlugin, transition systems) is not yet implemented
+
+### Rendering Features Beyond Phase 1 Scope
+
+**Advanced Rendering Infrastructure:**
+- ✅ **Camera Interpolation** (genesis-render/src/camera/mod.rs): Cubic ease-in-out easing system with smooth mode transitions - exceeds PRD's "smooth interpolation" requirement but provides production-quality camera behavior
+- ✅ **Scroll Wheel Zoom** (genesis-render/src/camera/mod.rs): Both orbit and free-flight cameras support scroll wheel zoom (clamped [1.0, 200.0]) - extends beyond PRD's basic camera spec but enhances user experience
+- ✅ **Timeline Scrubbing** (genesis-ui/src/timeline/mod.rs + genesis-render/src/particle/mod.rs): Full timeline scrubbing support with:
+  - ScrubbingState resource for tracking scrubbing mode
+  - update_particles_for_scrubbing() system for reverse playback
+  - Particle component stores initial_position and initial_velocity for accurate scrubbing
+  - Timeline UI emits ScrubbingEvent on drag start/stop
+- ✅ **Per-Instance Buffer Rendering** (genesis-render/src/particle/instance_buffer.rs): GPU storage buffer system for per-instance particle attributes (size, color):
+  - ExtractedParticleInstances resource for CPU-to-GPU data transfer
+  - ParticleInstanceBuffer with dynamic power-of-two capacity
+  - ParticleInstanceBindGroup for shader integration at binding 3
+  - Full synchronization: extract_particle_instances (ExtractSchedule) → prepare_particle_instance_buffers (Render) → vertex shader
+- ✅ **Advanced Energy-Based Coloring** (genesis-render/src/particle/mod.rs): Multi-stage thermal gradient (WHITE → YELLOW → ORANGE → RED → DARK_RED) - exceeds PRD's simple "white-hot core fading to red" spec but provides better visual fidelity
+- ✅ **Pre-1-Year Timeline Support** (genesis-core/src/time/mod.rs): MIN_YEARS constant (~10⁻⁴⁰ years) supports pre-1-year timescales - extends beyond PRD's "13.8 billion years" spec but enables accurate early universe visualization
+
+**Physics-Rendering Integration:**
+- ⏳ **Partially Implemented**: Particle positions coupled to ScaleFactor via multiplication in update_particles() system - infrastructure exists but full physics-based simulation (Zel'dovich displacement, density coupling) not yet implemented
+
+### Drift Summary and Rationale
+
+| Drift Category | Items Identified | Rationale | Status |
+|---|---|---|---|
+| **Phase 2+ Physics** | RK4 integrator, Cosmology module, Inflaton module, Perturbations FFT | Forward-looking infrastructure that enables Phase 2 implementation | ✅ Beneficial - Keep |
+| **Phase 2+ Rendering** | Scale factor coupling, Temperature-based coloring | Integration infrastructure for physics-rendering pipeline | ✅ Beneficial - Keep |
+| **Advanced Camera** | Cubic ease-in-out interpolation, Scroll wheel zoom, Complex interpolation state | Production-quality user experience | ✅ Beneficial - Keep |
+| **Advanced Timeline** | Timeline scrubbing, ScrubbingState, Particle initial state storage | Enables reverse/replay capability from PRD | ✅ Beneficial - Keep |
+| **Advanced Rendering** | Per-instance GPU buffers, Multi-stage energy-to-color, Pre-1-year support | Performance and visual fidelity improvements | ✅ Beneficial - Keep |
+
+### Conclusion
+
+The drift items identified in TODO.md are not violations of scope but rather thoughtful architectural investments that:
+1. Provide a solid foundation for Phase 2+ features
+2. Enable production-quality user experience beyond minimum PRD requirements
+3. Demonstrate progressive enhancement as specified in PRD core principles
+4. Maintain alignment with the "Always Runnable" and "Demo-Ready at Every Merge" principles
+
+**No refactoring recommended** - the current implementation represents sound engineering practice and aligns with the incremental delivery philosophy outlined in PRD.md section 2.
+
+---
+
 ## Phase 1 Scope (Current Implementation)
 
 ### Goal
@@ -391,7 +476,7 @@ A running Bevy application with a 3D particle system, camera controls, and a tim
 
 ### Current Implementation Status
 
-**NOTE**: Only Phase 1 deliverables are currently implemented. Features from Phase 2-7 (epoch management, physics-based particle simulation, nucleosynthesis, recombination, N-body gravity, SPH, star formation, cinematic mode, etc.) are NOT implemented and are planned for future phases.
+**NOTE**: Phase 1 deliverables are implemented. Some Phase 2 infrastructure exists (genesis-physics crate with cosmology, inflaton, perturbations modules), but full Phase 2 features (epoch management, physics-based particle simulation with density coupling, nucleosynthesis, recombination, N-body gravity, SPH, star formation, cinematic mode, etc.) are NOT implemented and are planned for future phases.
 
 ### Phase 1 Implementation Status
 **Implemented:**

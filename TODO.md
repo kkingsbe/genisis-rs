@@ -17,7 +17,7 @@
 ### Physics Integration
 
 ### Density Perturbations
-- [ ] Create power spectrum generator P(k) ∝ k^(n_s – 1) with configurable n_s parameter (default 0.96)
+- [x] Create power spectrum generator P(k) ∝ k^(n_s – 1) with configurable n_s parameter (default 0.96)
 - [ ] Apply power spectrum to k-space field (multiply by sqrt(P(k)) and random phase)
 - [ ] Implement inverse FFT to convert k-space back to real-space density perturbations
 - [ ] Implement Zel'dovich approximation for density-to-displacement mapping (displacement = ∇ψ where ∇²ψ = -δ)
@@ -94,7 +94,6 @@
 ## Drift Remediation
 
 ### Documentation Updates
-- [x] docs: Update COMPLETED.md to accurately reflect Phase 2 status - Clarify that only Phase 1 is complete, Phase 2 has infrastructure (crate, module stubs) but no physics implementation
 - [ ] docs: Update TODO.md title - Either implement Phase 2 features or update title to reflect actual current work
 - [ ] docs: Mark Phase 2 features as blocked - If Phase 2 cannot proceed, document blockers and dependencies
 
@@ -212,6 +211,38 @@
 - [ ] fix: Correct gravity module placeholder comment - genesis-physics/src/gravity/mod.rs comment says "Phase 5" but N-body gravitational physics is actually a Phase 5 requirement per PRD (Phase 5: Dark Ages & First Structures includes "Direct-sum N-body gravity")
 
 ---
+
+---
+
+## Drift Detection (Janitor Analysis 2026-02-10)
+
+### New Drift Items Identified
+
+#### Phase 2+ Physics Features (Unrequested for Phase 1)
+
+- [ ] refactor: Remove unrequested Friedmann equation integrator - genesis-physics/src/cosmology/mod.rs implements complete Friedmann equation physics (Hubble parameter computation, energy density components, scale factor integration) which is a Phase 2 requirement, not Phase 1
+- [ ] refactor: Remove unrequested inflaton field module - genesis-physics/src/inflaton/mod.rs implements complete inflaton field physics (quadratic potential V(φ), slow-roll parameters ε and η) which is a Phase 2 requirement, not Phase 1
+- [ ] refactor: Remove unrequested cosmology plugin - genesis-physics/src/lib.rs::CosmologyPlugin is exported but registered in main.rs (line 82) which registers resources and systems for cosmological physics that are Phase 2+ requirements, not Phase 1
+- [ ] refactor: Remove unrequested generic RK4 integrator - genesis-physics/src/integrator/mod.rs implements generic RK4 solver which is not required until Phase 2 (for Friedmann equations) or Phase 3 (for nucleosynthesis ODE solver)
+- [ ] refactor: Remove unrequested FFT utility - genesis-physics/src/perturbations/fft/mod.rs implements FFT for density field analysis which is a Phase 5 requirement, not Phase 1
+- [ ] refactor: Remove unrequested epoch constants - genesis-core/src/time/mod.rs defines INFLATION_START_YEARS, INFLATION_END_YEARS, and PLANCK_EPOCH_YEARS which are Phase 2+ requirements, not Phase 1
+
+#### Phase 2+ Rendering Features (Unrequested for Phase 1)
+
+- [ ] refactor: Remove unrequested scale factor coupling - genesis-render/src/particle/mod.rs::update_particles() couples particle positions to cosmology::ScaleFactor via multiplication (position = (position + velocity * delta) * scale_factor.value) which is Phase 2 requirement, not Phase 1
+- [ ] refactor: Remove unrequested temperature-based coloring - genesis-render/src/particle/mod.rs::temperature_to_color() implements temperature-based particle coloring which is not specified in PRD Phase 1 (Phase 1 only specifies energy-based coloring: white-hot core fading to red)
+
+#### Features Beyond PRD Phase 1 Scope
+
+- [ ] refactor: Remove advanced camera interpolation - genesis-render/src/camera/mod.rs implements interpolate_camera() system with cubic ease-in-out easing which extends beyond PRD Phase 1's simple "smooth interpolation" specification
+- [ ] refactor: Remove scroll wheel zoom - genesis-render/src/camera/mod.rs implements handle_free_flight_zoom() and handle_orbit_zoom() systems for scroll wheel zoom, which extends beyond PRD Phase 1's camera specification (WASD + mouse movement for free-flight, click-drag for orbit)
+- [ ] refactor: Remove complex camera interpolation state - genesis-render/src/camera/mod.rs::CameraState includes interpolating, interpolation_progress, interpolation_duration, interpolation_elapsed and start/end position/rotation/mode fields which extends beyond Phase 1's simple mode switching requirement
+- [ ] refactor: Remove timeline scrubbing complexity - genesis-render/src/particle/mod.rs implements ScrubbingState resource and update_particles_for_scrubbing() system for timeline scrubbing with inverse time calculations, which is more complex than Phase 1's basic timeline functionality
+- [ ] refactor: Remove advanced energy-to-color mapping - genesis-render/src/particle/mod.rs::energy_to_color() implements a multi-stage thermal gradient (WHITE → YELLOW → ORANGE → RED → DARK_RED) which exceeds PRD Phase 1's simple specification of "white-hot core fading to red"
+- [ ] refactor: Remove particle scrubbing with initial state - genesis-render/src/particle/mod.rs::Particle stores initial_position and initial_velocity for timeline scrubbing, which is more advanced than Phase 1's basic particle spawning
+- [ ] refactor: Remove per-instance buffer rendering - genesis-render/src/particle/instance_buffer.rs implements GPU storage buffer with per-instance data (size, color) which is more advanced than Phase 1's basic instanced point sprite requirement
+- [ ] refactor: Remove pre-1-year timeline support - genesis-ui/src/timeline/mod.rs::CosmicTime supports negative slider values representing pre-1-year times using MIN_YEARS (1e-40 years), which extends beyond PRD Phase 1's specified timeline of "13.8 billion years"
+- [ ] refactor: Simplify timeline speed control - genesis-ui/src/timeline/mod.rs::PlaybackState.speed (1.0 to 1e12) uses direct pass-through without logarithmic scaling mentioned in PRD Phase 1 ("logarithmic time slider with adjustable acceleration 1x to 10^12x")
 
 ### Testing
 - [ ] SPRINT QA: Run full build and test suite. Fix ALL errors. If green, create/update '.sprint_complete' with the current date.
