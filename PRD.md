@@ -281,7 +281,7 @@ For reference, the following table maps physical epochs to the simulation phases
 | Epoch | Time Range | Key Physics | Implemented In |
 |-------|-----------|-------------|---------------|
 | Planck Boundary | t < 10⁻³²s | Quantum gravity (visual only) | Phase 1 |
-| Inflation | 10⁻³²s – 10⁻³²s | Exponential metric expansion | Phase 2 |
+| Inflation | 10⁻³⁶s – 10⁻³²s | Exponential metric expansion | Phase 2 |
 | Quark-Gluon Plasma | 10⁻³²s – 10⁻⁶s | QGP cooling, confinement | Phase 2 |
 | Nucleosynthesis | 3 min – 20 min | Light element formation | Phase 3 |
 | Recombination | ~380,000 yr | Electron capture, CMB release | Phase 4 |
