@@ -9,13 +9,12 @@
 ### Failing Tests
 
 ### Ignored Tests (8 in genesis-render/tests/resource_binding_tests.rs)
-- [ ] review: Ignored tests in genesis-render/tests/resource_binding_tests.rs: test_complete_particle_rendering_setup, test_extract_system_transfers_data, test_materials_initialized_before_rendering, test_pipeline_cache_no_index_out_of_bounds, test_resource_reference_counting, test_resources_accessible_during_update, test_resources_created_at_startup, test_system_ordering_point_mesh_before_spawn
+- [x] review: Ignored tests in genesis-render/tests/resource_binding_tests.rs: test_complete_particle_rendering_setup, test_extract_system_transfers_data, test_materials_initialized_before_rendering, test_pipeline_cache_no_index_out_of_bounds, test_resource_reference_counting, test_resources_accessible_during_update, test_resources_created_at_startup, test_system_ordering_point_mesh_before_spawn
 
 
 ## Sprint 2 - Phase 2: Inflation & Quantum Seeds
 
 ### Physics Integration
-- [x] Implement decelerating expansion post-inflation (a(t) ∝ t^(2/3) for matter-dominated era)
 - [ ] Couple particle positions to scale factor a(t) (multiply positions by current a(t) in update system)
 - [ ] Implement temperature evolution model (T ∝ 1/a for adiabatic expansion, with T₀ ≈ 10²⁷ K at inflation start)
 - [ ] Create InflationPhysics resource tracking inflaton field φ, potential V(φ), and slow-roll parameters (ε, η)
@@ -128,9 +127,21 @@
 - [ ] fix: Clarify "smooth interpolation" implementation scope - PRD mentions simple interpolation but code implements complex cubic ease-in-out system
 - [ ] fix: Resolve Timeline speed control implementation inconsistency - Comment says direct pass-through but UI uses logarithmic scaling
 
-### PRD vs Implementation Drift
-- [ ] refactor: Remove unrequested inflaton field physics module (genesis-physics/src/inflaton/mod.rs) - move to Phase 2 when implementing Friedmann equation integrator
-- [ ] fix: Align cosmology module with Phase 1 PRD requirements - remove Phase 2 Friedmann equation integrator from genesis-physics/src/cosmology/mod.rs; Phase 1 should only have simple f64 time accumulator (already implemented in genesis-core/src/time/mod.rs)
+### PRD vs Implementation Drift (Janitor Analysis 2026-02-10)
+
+#### Unrequested Features (Phase 2+ features implemented in genesis-physics crate)
+
+- [ ] refactor: Remove unrequested Friedmann equation integrator - genesis-physics/src/cosmology/mod.rs implements complete Friedmann equation physics (Hubble parameter computation, energy density components, scale factor integration) which is a Phase 2 requirement, not Phase 1
+- [ ] refactor: Remove unrequested inflaton field module - genesis-physics/src/inflaton/mod.rs implements complete inflaton field physics (quadratic potential V(φ), slow-roll parameters ε and η) which is a Phase 2 requirement, not Phase 1
+- [ ] refactor: Remove unrequested generic RK4 integrator - genesis-physics/src/integrator/mod.rs implements generic RK4 solver which is not required until Phase 2 (for Friedmann equations) or Phase 3 (for nucleosynthesis ODE solver)
+- [ ] refactor: Remove unrequested epoch-based scale factor system - genesis-physics/src/cosmology/mod.rs::update_scale_factor_by_epoch() implements cosmic epoch transitions and different expansion laws (exponential during inflation, matter-dominated post-inflation) which are Phase 2+ features
+- [ ] refactor: Remove unrequested CosmologyPlugin - genesis-physics/src/cosmology/mod.rs::CosmologyPlugin registers resources and systems for cosmological physics (ScaleFactor, HubbleParameter, EnergyDensity) which are not needed in Phase 1
+- [ ] refactor: Remove GenesisPhysicsPlugin or defer to Phase 2 - genesis-physics/src/lib.rs::GenesisPhysicsPlugin is exported but the entire physics crate should be deferred to Phase 2 when implementing inflation physics
+- [ ] refactor: Fix nucleosynthesis module placeholder comment - genesis-physics/src/nucleosynthesis/mod.rs comment says "Phase 5" but nucleosynthesis is actually a Phase 3 requirement per PRD
+- [ ] refactor: Fix perturbations module placeholder comment - genesis-physics/src/perturbations/mod.rs comment says "Phase 5" but density perturbations are actually a Phase 2 requirement per PRD
+
+#### Existing Drift Items (previously identified)
+
 - [ ] fix: Align timeline speed control with PRD logarithmic acceleration requirement - apply logarithmic mapping from PlaybackState.speed (1.0 to 1e12) to TimeAccumulator.acceleration in genesis-ui/src/timeline/mod.rs sync_time_resources() function
 
 ### Refactor Items (unrequested features)
