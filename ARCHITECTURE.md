@@ -354,10 +354,10 @@ genesis-physics crate contains the following modules:
 - **gravity/mod.rs** - Gravity simulation
   - **Status**: Placeholder module with no data structures or implementations
 
-- **perturbations/mod.rs** - Density perturbations
+- **perturbations/mod.rs** - Density perturbations (Phase 2)
   - **Status**: Placeholder module with no data structures or implementations
 
-- **nucleosynthesis/mod.rs** - Big Bang nucleosynthesis
+- **nucleosynthesis/mod.rs** - Big Bang nucleosynthesis (Phase 3)
   - **Status**: Placeholder module with no data structures or implementations
 
 **Gap Analysis**:
@@ -975,3 +975,161 @@ This document provides a comprehensive gap analysis comparing the Product Requir
 2. **Camera Interpolation Status:** Camera interpolation is fully implemented via interpolate_camera() system (update - documentation now reflects this correctly)
 3. **Easing Function Module:** Easing functions are documented but inline implementation exists as ease_cubic() function in camera/mod.rs
 4. **Inflaton Module Status:** Fully implemented with Inflaton struct, potential functions, slow-roll parameters, and InflatonPlugin (update - documentation now reflects this correctly)
+
+### [2026-02-10] Timeline Scrubbing Strategy for Irreversible Processes
+
+**Issue:** The PRD requires both real-time physics simulation with irreversible processes (nucleosynthesis, star formation, galaxy assembly) AND timeline scrubbing that allows users to "scrub the timeline back and forth — the expansion reverses and replays." These requirements are fundamentally in conflict.
+
+**Decision:** Implement a **hybrid timeline scrubbing approach** that balances user experience, performance, and physical accuracy:
+
+1. **Phase 1-2 (Kinematic Expansion): Full Scrubbing Support**
+   - Particles follow simple kinematic motion (position = initial_position + velocity × time)
+   - Time-symmetric physics allow true reverse scrubbing
+   - No state restoration needed - recompute from time parameter
+
+2. **Phase 3 (Nucleosynthesis): Limited Scrubbing Within Window**
+   - Allow scrubbing within the nucleosynthesis window (3-20 minutes)
+   - Store periodic snapshots during nucleosynthesis evolution
+   - Cannot scrub before nucleosynthesis starts (irreversible barrier)
+   - Use snapshots to restore state within the window
+
+3. **Phase 4 (Recombination): Forward-Only After CMB Release**
+   - Allow scrubbing through recombination phase (380,000 years)
+   - Forward-only playback after CMB is released (irreversible barrier)
+   - User sees "Cannot scrub past recombination" message when attempting reverse
+
+4. **Phase 5-6 (Structure Formation): Forward-Only Playback**
+   - Disable reverse scrubbing for structure and galaxy formation
+   - Timeline shows full range but only forward playback works
+   - Clear user indication: "Forward-only playback for irreversible phases"
+   - Optional: Implement limited "rewind 30 seconds" for presentation purposes
+
+5. **Snapshot System for Partial Reversibility**
+   - Store lightweight snapshots at configurable intervals (e.g., every 1 million years)
+   - Snapshot includes: particle positions, velocities, composition, halo structures
+   - Memory budget: Target < 500 MB VRAM for snapshot storage
+   - Allow scrubbing backward to nearest snapshot, then replay forward
+
+6. **User Experience Design**
+   - Visual indicators on timeline showing scrubbing limits
+   - Gradient on timeline slider: green (fully scrubbing), yellow (limited), red (forward-only)
+   - Informative message when user hits scrubbing limit
+   - "Demo Mode" option that hides limitations for presentations
+
+**Rationale:**
+1. **Memory Constraints**: Full snapshot system for all phases would require 2-5 GB VRAM, exceeding <4 GB budget
+2. **Scientific Accuracy**: Irreversible processes (nuclear reactions, star formation) cannot be truly reversed
+3. **User Experience**: Full scrubbing for early phases provides satisfying exploration; forward-only for later phases is scientifically honest
+4. **Performance**: Lightweight snapshots (periodic) enable limited reversibility without memory overhead
+5. **Demo Use Case**: "Demo Mode" can hide limitations for presentations while maintaining accuracy
+
+**Impact:**
+- Timeline scrubbing implementation: Hybrid approach (kinematic recompute + periodic snapshots)
+- Memory budget: <500 MB VRAM for snapshot storage
+- User experience: Clear limitations with visual indicators
+- Physics accuracy: Irreversible processes remain irreversible
+- Demo capability: "Demo Mode" hides limitations for presentations
+
+### [2026-02-10] Nucleosynthesis Validation Data Sources
+
+**Issue:** Phase 3 specifies validation overlay showing observed primordial abundances, but does not specify which datasets, which elements, or how to handle the known "lithium problem."
+
+**Decision:** Use the following validation data sources and approach:
+
+**Reference Values (Primary: Planck 2018)**
+- **Helium-4 (Y_p)**: 0.2471 ± 0.0002 (Planck 2018, CMB-derived)
+- **Deuterium/Hydrogen (D/H)**: 2.58 × 10⁻⁵ ± 0.07 × 10⁻⁵ (Planck 2018)
+- **Lithium-7 (⁷Li/H)**: 5.0 × 10⁻¹⁰ (Standard BBN prediction - NOT observed value)
+- **Helium-3 (³He/H)**: 1.0 × 10⁻⁵ (Planck 2018)
+
+**Validation Elements**
+- Primordial stable elements only: **p (hydrogen), D (deuterium), ³He, ⁴He, ⁷Li**
+- Exclude unstable intermediates: T (tritium), ⁷Be (beryllium-7)
+
+**Tolerance Criteria**
+- **Helium-4**: Within 5% (explicit PRD requirement)
+- **Deuterium**: Within 10% (reasonable given observational uncertainties)
+- **Lithium-7**: Within 20% OR reproduce ~3× discrepancy as educational feature
+- **Helium-3**: Within 15% (observational data less precise)
+
+**Lithium Problem Handling**
+- Show **both predicted and observed values** in validation overlay
+- Include a tooltip or info panel explaining the discrepancy
+- Note that this is an open question in cosmology
+- Educational value: demonstrates real scientific frontier
+
+**Visual Presentation**
+- **Primary Display**: Percentage difference with color coding (Green/Yellow/Red)
+- **Secondary Display**: Multiple reference dataset lines (optional, user-toggleable)
+- Real-time update as simulation progresses
+- Toggle button to enable/disable validation overlay
+
+**Alternative Datasets (Optional User-Selectable)**
+- Planck 2018 (default, recommended)
+- WMAP (legacy, for comparison)
+- Direct observation values (metal-poor galaxies)
+- User-provided custom values
+
+**Rationale:**
+1. **Scientific Authority**: Planck 2018 is most precise and recent CMB dataset
+2. **Educational Value**: Showing lithium problem demonstrates real scientific frontier
+3. **User Flexibility**: Alternative datasets support educational comparison
+4. **Clear Success Criteria**: Explicit tolerances for each element
+5. **Implementation Clarity**: Specific values avoid ambiguity
+
+**Impact:**
+- Phase 3 validation overlay implementation (Planck 2018 values as default)
+- Success criteria for Phase 3 completion (tolerances defined)
+- Educational value (lithium problem highlighted)
+- User experience (clear visual indicators, optional dataset comparison)
+- Configuration file format (validation parameters included for presets)
+
+### [2026-02-10] Particle Identity and Persistence Across Phases
+
+**Issue:** The PRD describes particles in multiple phases but is ambiguous whether these are the same particles persisting with identity across phases, or whether particles are regenerated for each phase.
+
+**Decision:** Implement **Persistent Particles with Evolving Attributes** (Option A):
+
+**Core Design**
+- Particles are created once in Phase 1 (Singularity) and persist through all phases
+- Each particle has extensible attributes that evolve across epochs
+- No particle regeneration at phase boundaries
+- Particle count changes via splitting (high-density regions) and merging (voids)
+
+**Particle Attribute Structure**
+- **Core Attributes (Phase 1)**: position, velocity, mass, energy
+- **Composition Attributes (Phase 3)**: element_abundances {H, D, ³He, ⁴He, ⁷Li, ⁷Be}
+- **Ionization Attributes (Phase 4)**: ionization_state, electron_fraction
+- **Structure Attributes (Phase 5)**: is_dark_matter, halo_id, density_neighbors
+- **Galaxy Attributes (Phase 6)**: is_star, galaxy_id, stellar_age
+
+**Phase Transition Handling**
+- Smooth transitions between phases (no particle recreation)
+- Attributes are added/modified as phases progress
+- Visual crossfade handles appearance changes
+- No data loss during transitions
+
+**Particle Count Evolution**
+- **Phase 1-2**: Fixed count (100K - 1M particles)
+- **Phase 3-4**: Same particles, composition changes
+- **Phase 5**: Splitting in high-density regions, merging in voids (adaptive LOD)
+- **Phase 6**: Star particles created from dense gas (new entities, not splitting)
+
+**Timeline Scrubbing Integration**
+- Particle persistence enables true timeline scrubbing
+- Scrubbing works by recomputing particle states from time parameter
+- Efficient memory usage (single particle pool)
+
+**Rationale:**
+1. **PRD Alignment**: Matches "continuous story" narrative and "physically grounded" simulation
+2. **Scientific Accuracy**: Real cosmological evolution tracks the same particles
+3. **Timeline Scrubbing**: Natural implementation without complex snapshot system
+4. **User Experience**: Users watch "the same universe" evolve
+5. **Performance**: Single particle pool avoids allocation/deallocation overhead
+
+**Impact:**
+- Particle data structure design: Extensible attribute system
+- Epoch plugin architecture: Shared particle storage across all epoch plugins
+- Timeline scrubbing implementation: Recompute from time parameter (efficient)
+- Phase transition handling: Smooth attribute evolution, no recreation
+- Memory management: Single shared particle pool with adaptive LOD for Phase 5+

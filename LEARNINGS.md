@@ -117,3 +117,36 @@ This file documents patterns, decisions, and lessons learned while working on th
 - Pre-threshold representation: Slider values from `-0.5` to `slider_threshold` handle the sub-picosecond time range
 - Minimum time handling: `MIN_YEARS=1e-40` (~3.15e-33 seconds) is effectively zero for simulation purposes
 - Roundtrip verification: Essential when implementing bidirectional conversion functions to detect edge cases
+
+---
+
+## Session 2026-02-10 - Gaussian Random Field Generator
+
+### Task Completed
+- TODO Item: Create 3D Gaussian random field generator on regular grid (apply Box-Muller transform to each grid point)
+
+### Decomposition Pattern
+Successfully decomposed the task into 4 atomic subtasks:
+1. Add rand crate dependency to genesis-physics/Cargo.toml
+2. Create GaussianRandomField struct with generate() function in genesis-physics/src/perturbations/mod.rs
+3. Export GaussianRandomField from genesis-physics/src/lib.rs
+4. Add integration test in genesis-physics/tests/gaussian_random_field_integration.rs
+
+### Learnings
+- The existing perturbations module already had `box_muller_pair()` function, reducing implementation complexity
+- No rand crate was initially available - had to add `rand = "0.8"` to dependencies
+- The module used a custom Pcg32 RNG for tests instead of external dependencies
+- Documentation style in existing code uses extensive docstrings with sections: Purpose, Arguments, Returns, Notes, Examples
+- Using `Vec<Vec<Vec<f64>>>` for 3D grid storage is acceptable for Phase 2 scales (32-128³)
+- Integration tests in genesis-physics/tests/ directory verify public API access via `genesis_physics::GaussianRandomField`
+
+### Gotchas
+- Need to ensure Cargo.toml is updated before using new dependencies in source code
+- Tests with 128³ grids can be slow for development; use smaller grids (4-8³) for unit tests
+- Statistical validation requires sufficient samples; 32³ provides ~32,768 values for reliable mean/std dev estimation
+
+### Decisions Made
+- Use f64 for cosmological precision (existing pattern in perturbations module)
+- Support optional seed parameter for reproducibility (useful for debugging and validation)
+- Grid indexed as [z][y][x] matching common 3D array conventions
+- Public API via `genesis_physics::GaussianRandomField` following the re-export pattern in lib.rs
