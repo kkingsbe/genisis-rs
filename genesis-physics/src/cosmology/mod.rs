@@ -232,6 +232,37 @@ pub fn compute_exponential_scale_factor(a0: f64, t_elapsed: f64, h: f64) -> f64 
     a0 * (h * t_elapsed).exp()
 }
 
+/// Compute matter-dominated scale factor: a(t) = (t/t_eq)^(2/3)
+///
+/// # Arguments
+/// * `t` - Cosmic time (in any time units)
+/// * `t_eq` - Matter-radiation equality time (normalization constant, same units as t)
+///
+/// # Returns
+/// Scale factor value at time t during the matter-dominated era
+///
+/// # Physics
+/// During the matter-dominated era, the scale factor grows as t^(2/3), which is
+/// a decelerating expansion compared to the exponential expansion during inflation.
+/// This power-law expansion arises from solving the Friedmann equations with
+/// matter density ρ ∝ a^(-3).
+///
+/// # Example
+/// ```
+/// use genesis_physics::cosmology::compute_matter_dominated_scale_factor;
+/// // At t = 2*t_eq, the scale factor should be (2)^(2/3) ≈ 1.587
+/// let a = compute_matter_dominated_scale_factor(2.0, 1.0);
+/// ```
+pub fn compute_matter_dominated_scale_factor(t: f64, t_eq: f64) -> f64 {
+    // Handle t <= 0 gracefully to avoid division issues
+    if t <= 0.0 {
+        return 0.0;
+    }
+    
+    // a(t) = (t/t_eq)^(2/3)
+    (t / t_eq).powf(2.0 / 3.0)
+}
+
 /// Hubble parameter H(t) of the universe
 /// 
 /// The Hubble parameter describes the rate of cosmic expansion:
@@ -505,6 +536,43 @@ impl Cosmology {
 
         // For exponential expansion: ȧ = H * a
         self.scale_factor.derivative = h * new_a;
+    }
+
+    /// Update scale factor using matter-dominated expansion post-inflation
+    ///
+    /// This method applies a(t) = (t/t_eq)^(2/3) for the matter-dominated era,
+    /// which follows the inflation epoch. This power-law expansion is decelerating
+    /// compared to the exponential expansion during inflation, arising from the
+    /// Friedmann equations with matter density ρ ∝ a^(-3).
+    ///
+    /// # Arguments
+    /// * `dt` - Time step in GeV⁻¹
+    /// * `t_eq` - Matter-radiation equality time (normalization constant, same units as t)
+    ///
+    /// # Physics
+    /// For matter-dominated expansion: a(t) = (t/t_eq)^(2/3)
+    /// The time derivative is: ȧ = da/dt = (2/3) * (t/t_eq)^(-1/3) * (1/t_eq) = (2/3) * a/t
+    ///
+    /// # Side Effects
+    /// - Updates `self.scale_factor.value` using `compute_matter_dominated_scale_factor()` with the new time
+    /// - Updates `self.scale_factor.time` by adding `dt`
+    /// - Updates `self.scale_factor.derivative` to (2/3) * a/t (consistent with matter-dominated expansion)
+    /// - Updates `self.scale_factor.epoch` to `CosmicEpoch::QuarkGluonPlasma`
+    pub fn integrate_scale_factor_matter_dominated(&mut self, dt: f64, t_eq: f64) {
+        // Calculate new time
+        let new_time = self.scale_factor.time + dt;
+
+        // Update scale factor value using matter-dominated formula
+        self.scale_factor.value = compute_matter_dominated_scale_factor(new_time, t_eq);
+
+        // Update time
+        self.scale_factor.time = new_time;
+
+        // For matter-dominated expansion: ȧ = (2/3) * a/t
+        self.scale_factor.derivative = (2.0 / 3.0) * self.scale_factor.value / self.scale_factor.time;
+
+        // Update epoch to Quark-Gluon Plasma (matter-dominated era follows inflation)
+        self.scale_factor.epoch = CosmicEpoch::QuarkGluonPlasma;
     }
 }
 
@@ -1142,5 +1210,207 @@ mod exponential_tests {
             // Larger H should produce larger scale factor
             assert!(result > a0, "Scale factor should increase with positive H");
         }
+    }
+}
+
+#[cfg(test)]
+mod matter_dominated_tests {
+    use super::*;
+
+    #[test]
+    fn test_compute_matter_dominated_scale_factor_zero_time() {
+        // Test with t=0 returns 0.0 (edge case handling)
+        let t_eq = 1.0;
+        let result = compute_matter_dominated_scale_factor(0.0, t_eq);
+        assert_eq!(result, 0.0, "Scale factor should be 0 at t=0");
+    }
+
+    #[test]
+    fn test_compute_matter_dominated_scale_factor_normalization() {
+        // Test with t=t_eq returns 1.0 (normalization condition)
+        let t_eq = 1.0;
+        let result = compute_matter_dominated_scale_factor(t_eq, t_eq);
+        assert_eq!(result, 1.0, "Scale factor should be 1 at t=t_eq");
+    }
+
+    #[test]
+    fn test_compute_matter_dominated_scale_factor_scaling() {
+        // Test with t=8*t_eq returns 4.0 (since (8)^(2/3) = 4)
+        let t_eq = 1.0;
+        let result = compute_matter_dominated_scale_factor(8.0 * t_eq, t_eq);
+        // (8)^(2/3) = 4
+        assert!((result - 4.0).abs() < 1e-10, "Scale factor should be ~4.0 at t=8*t_eq, got {}", result);
+    }
+
+    #[test]
+    fn test_compute_matter_dominated_scale_factor_negative_time() {
+        // Test with negative t returns 0.0 (edge case)
+        let t_eq = 1.0;
+        let result = compute_matter_dominated_scale_factor(-1.0, t_eq);
+        assert_eq!(result, 0.0, "Scale factor should be 0 for negative time");
+    }
+
+    #[test]
+    fn test_compute_matter_dominated_scale_factor_power_law() {
+        // Test the power law: a(t) = (t/t_eq)^(2/3)
+        let t_eq = 10.0;
+        let t = 40.0; // 4 * t_eq
+        
+        let result = compute_matter_dominated_scale_factor(t, t_eq);
+        // (40/10)^(2/3) = 4^(2/3) ≈ 2.5198
+        let expected = 4.0f64.powf(2.0 / 3.0);
+        
+        assert!((result - expected).abs() < 1e-10, 
+                "Power law should hold: expected {}, got {}", expected, result);
+    }
+
+    #[test]
+    fn test_compute_matter_dominated_scale_factor_monotonic() {
+        // Test that a(t) is monotonically increasing for positive t
+        let t_eq = 1.0;
+        let a1 = compute_matter_dominated_scale_factor(1.0, t_eq);
+        let a2 = compute_matter_dominated_scale_factor(2.0, t_eq);
+        let a3 = compute_matter_dominated_scale_factor(4.0, t_eq);
+
+        assert!(a2 > a1, "Scale factor should increase with time");
+        assert!(a3 > a2, "Scale factor should increase with time");
+    }
+
+    #[test]
+    fn test_integrate_scale_factor_matter_dominated_value_update() {
+        // Test that scale_factor.value is updated correctly after integration
+        let mut c = Cosmology::new();
+        let t_eq = 1.0;
+        let dt = 1.0;
+        
+        // Start with some initial state
+        c.scale_factor.time = 1.0; // Start at t=1
+        
+        c.integrate_scale_factor_matter_dominated(dt, t_eq);
+        
+        // Scale factor should be updated
+        let new_time = c.scale_factor.time;
+        let expected_a = compute_matter_dominated_scale_factor(new_time, t_eq);
+        
+        assert!((c.scale_factor.value - expected_a).abs() < 1e-10,
+                "Scale factor should match matter-dominated formula: expected {}, got {}",
+                expected_a, c.scale_factor.value);
+    }
+
+    #[test]
+    fn test_integrate_scale_factor_matter_dominated_time_increment() {
+        // Test that scale_factor.time is incremented by dt
+        let mut c = Cosmology::new();
+        let t_eq = 1.0;
+        let dt = 0.5;
+        
+        let initial_time = c.scale_factor.time;
+        c.integrate_scale_factor_matter_dominated(dt, t_eq);
+        
+        assert_eq!(c.scale_factor.time, initial_time + dt,
+                   "Time should advance by dt");
+    }
+
+    #[test]
+    fn test_integrate_scale_factor_matter_dominated_derivative() {
+        // Test that scale_factor.derivative follows ȧ = (2/3) * a/t
+        let mut c = Cosmology::new();
+        let t_eq = 1.0;
+        let dt = 1.0;
+        
+        // Start at a non-zero time to avoid division issues
+        c.scale_factor.time = 2.0;
+        c.integrate_scale_factor_matter_dominated(dt, t_eq);
+        
+        let a = c.scale_factor.value;
+        let t = c.scale_factor.time;
+        let expected_derivative = (2.0 / 3.0) * a / t;
+        
+        assert!((c.scale_factor.derivative - expected_derivative).abs() < 1e-10,
+                "Derivative should equal (2/3) * a/t: expected {}, got {}",
+                expected_derivative, c.scale_factor.derivative);
+    }
+
+    #[test]
+    fn test_integrate_scale_factor_matter_dominated_epoch() {
+        // Test that scale_factor.epoch is set to CosmicEpoch::QuarkGluonPlasma
+        let mut c = Cosmology::new();
+        let t_eq = 1.0;
+        let dt = 0.5;
+        
+        // Initially in Planck epoch
+        assert_eq!(c.scale_factor.epoch, CosmicEpoch::Planck);
+        
+        c.integrate_scale_factor_matter_dominated(dt, t_eq);
+        
+        assert_eq!(c.scale_factor.epoch, CosmicEpoch::QuarkGluonPlasma,
+                   "Epoch should be set to QuarkGluonPlasma");
+    }
+
+    #[test]
+    fn test_integrate_scale_factor_matter_dominated_multiple_steps() {
+        // Test that multiple integration steps produce consistent results
+        let mut c = Cosmology::new();
+        let t_eq = 1.0;
+        let dt = 0.5;
+        let steps = 4;
+        
+        // Start at a non-zero time
+        c.scale_factor.time = 1.0;
+        
+        // Integrate multiple steps
+        for _ in 0..steps {
+            c.integrate_scale_factor_matter_dominated(dt, t_eq);
+        }
+        
+        // Final time should be 1.0 + 4 * 0.5 = 3.0
+        let expected_time = 1.0 + steps as f64 * dt;
+        assert_eq!(c.scale_factor.time, expected_time,
+                   "Time should be accumulated correctly");
+        
+        // Final scale factor should match formula
+        let expected_a = compute_matter_dominated_scale_factor(c.scale_factor.time, t_eq);
+        assert!((c.scale_factor.value - expected_a).abs() < 1e-10,
+                "Scale factor should match matter-dominated formula after multiple steps");
+    }
+
+    #[test]
+    fn test_integrate_scale_factor_matter_dominated_from_zero() {
+        // Test integration starting from t=0
+        let mut c = Cosmology::new();
+        let t_eq = 1.0;
+        let dt = 1.0;
+        
+        // Start at t=0
+        c.scale_factor.time = 0.0;
+        c.scale_factor.value = 0.0;
+        
+        c.integrate_scale_factor_matter_dominated(dt, t_eq);
+        
+        // Time should be dt
+        assert_eq!(c.scale_factor.time, dt, "Time should be dt");
+        
+        // Scale factor should match formula at t=dt
+        let expected_a = compute_matter_dominated_scale_factor(dt, t_eq);
+        assert!((c.scale_factor.value - expected_a).abs() < 1e-10,
+                "Scale factor should match formula at t=dt");
+    }
+
+    #[test]
+    fn test_matter_dominated_decelerating_expansion() {
+        // Verify that matter-dominated expansion is decelerating
+        // For matter-dominated: a(t) ∝ t^(2/3), so ȧ ∝ t^(-1/3)
+        // The second derivative ä = d(ȧ)/dt = d/dt[(2/3)*a/t] = (2/3)*(ȧ/t - a/t²)
+        // Since ȧ = (2/3)*a/t, we get: ä = (2/3)*((2/3)*a/t² - a/t²) = (2/3)*(a/t²)*(2/3 - 1) = -(1/9)*a/t² < 0
+        // So expansion is decelerating (negative ä)
+        
+        let t_eq = 1.0;
+        let t = 8.0;
+
+        let a = compute_matter_dominated_scale_factor(t, t_eq);
+        let _a_dot = (2.0 / 3.0) * a / t;
+        let a_double_dot = - (1.0 / 9.0) * a / (t * t);
+
+        assert!(a_double_dot < 0.0, "Second derivative should be negative (decelerating expansion)");
     }
 }

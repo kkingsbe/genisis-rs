@@ -7,7 +7,6 @@
 ## Test Health
 
 ### Failing Tests
-- [x] fix: Failing test in genesis-physics/src/cosmology/mod.rs - compute_exponential_scale_factor (line 226): doctest compile error E0425: cannot find function `compute_exponential_scale_factor` in scope (needs import: `use genesis_physics::cosmology::compute_exponential_scale_factor;`)
 
 ### Ignored Tests (8 in genesis-render/tests/resource_binding_tests.rs)
 - [ ] review: Ignored tests in genesis-render/tests/resource_binding_tests.rs: test_complete_particle_rendering_setup, test_extract_system_transfers_data, test_materials_initialized_before_rendering, test_pipeline_cache_no_index_out_of_bounds, test_resource_reference_counting, test_resources_accessible_during_update, test_resources_created_at_startup, test_system_ordering_point_mesh_before_spawn
@@ -16,7 +15,7 @@
 ## Sprint 2 - Phase 2: Inflation & Quantum Seeds
 
 ### Physics Integration
-- [ ] Implement decelerating expansion post-inflation (a(t) ∝ t^(2/3) for matter-dominated era)
+- [x] Implement decelerating expansion post-inflation (a(t) ∝ t^(2/3) for matter-dominated era)
 - [ ] Couple particle positions to scale factor a(t) (multiply positions by current a(t) in update system)
 - [ ] Implement temperature evolution model (T ∝ 1/a for adiabatic expansion, with T₀ ≈ 10²⁷ K at inflation start)
 - [ ] Create InflationPhysics resource tracking inflaton field φ, potential V(φ), and slow-roll parameters (ε, η)
