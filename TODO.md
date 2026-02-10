@@ -67,10 +67,6 @@
 
 ### Timeline Enhancements (Phase 1 PRD Requirements)
 
-- [x] feature: Implement basic timeline scrubbing to TimeAccumulator synchronization
-  - [ ] Enable particles to move backward/forward when scrubbing the timeline
-  - [ ] Basic synchronization with TimeAccumulator.years during timeline scrub
-  - [ ] Note: Full snapshot-based reverse/replay system is future sprint priority
 - [ ] feature: Timeline reverse/replay capability (PRD Phase 1 Demo Moment requires "Scrub the timeline back and forth")
   - Location: genesis-ui/src/timeline/mod.rs
   - Current: Timeline scrubbing updates cosmic_time but particles don't move backward
@@ -86,7 +82,7 @@
 - [ ] SPRINT QA: Run full build and test suite. Fix ALL errors. If green, create/update '.sprint_complete' with the current date.
 
 ### Test Health - Failing Tests
-- [ ] fix: Failing compilation in genesis-render/src/camera/mod.rs from recent commit - Rust borrow checker errors at lines 595, 597, 657, 719, 781, 825, 875, 938
+- [x] fix: Failing compilation in genesis-render/src/camera/mod.rs from recent commit - Rust borrow checker errors at lines 595, 597, 657, 719, 781, 825, 875, 938 (completed 2026-02-10 - fixed by extracting controller values before mutable Transform borrow)
   - Error: cannot borrow `world` as mutable because it is also borrowed as immutable
   - Issue: world.get::<CameraController>() and world.get_mut::<Transform>() cannot be held simultaneously
   - Impact: Blocks test suite from running (cargo test fails with 8 compilation errors)
