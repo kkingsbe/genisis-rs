@@ -17,7 +17,7 @@
 - [x] Create InflationPhysics resource tracking inflaton field φ, potential V(φ), and slow-roll parameters (ε, η)
 
 ### Density Perturbations
-- [ ] Implement Box-Muller transform for generating Gaussian random numbers (u1, u2 → normal distribution)
+- [x] Implement Box-Muller transform for generating Gaussian random numbers (u1, u2 → normal distribution)
 - [ ] Create 3D Gaussian random field generator on regular grid (apply Box-Muller transform to each grid point)
 - [ ] Implement Fourier transform (FFT) to convert real-space density field to k-space
 - [ ] Create power spectrum generator P(k) ∝ k^(n_s – 1) with configurable n_s parameter (default 0.96)
