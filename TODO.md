@@ -4,13 +4,20 @@
 
 ---
 
+## Test Health
+
+### Failing Tests
+- [x] fix: Failing test in genesis-physics/src/cosmology/mod.rs - compute_exponential_scale_factor (line 226): doctest compile error E0425: cannot find function `compute_exponential_scale_factor` in scope (needs import: `use genesis_physics::cosmology::compute_exponential_scale_factor;`)
+
+### Ignored Tests (8 in genesis-render/tests/resource_binding_tests.rs)
+- [ ] review: Ignored tests in genesis-render/tests/resource_binding_tests.rs: test_complete_particle_rendering_setup, test_extract_system_transfers_data, test_materials_initialized_before_rendering, test_pipeline_cache_no_index_out_of_bounds, test_resource_reference_counting, test_resources_accessible_during_update, test_resources_created_at_startup, test_system_ordering_point_mesh_before_spawn
+
 
 ## Sprint 2 - Phase 2: Inflation & Quantum Seeds
 
 ### Physics Integration
 - [ ] Implement decelerating expansion post-inflation (a(t) ∝ t^(2/3) for matter-dominated era)
 - [ ] Couple particle positions to scale factor a(t) (multiply positions by current a(t) in update system)
-- [x] Add ScaleFactor resource tracking current a(t) value, ȧ, and cosmic epoch (inflation vs matter-dominated)
 - [ ] Implement temperature evolution model (T ∝ 1/a for adiabatic expansion, with T₀ ≈ 10²⁷ K at inflation start)
 - [ ] Create InflationPhysics resource tracking inflaton field φ, potential V(φ), and slow-roll parameters (ε, η)
 
@@ -121,6 +128,11 @@
 - [ ] fix: Align InflatonPlugin registration with GenesisPhysicsPlugin - InflatonPlugin is exported but never registered in the application
 - [ ] fix: Clarify "smooth interpolation" implementation scope - PRD mentions simple interpolation but code implements complex cubic ease-in-out system
 - [ ] fix: Resolve Timeline speed control implementation inconsistency - Comment says direct pass-through but UI uses logarithmic scaling
+
+### PRD vs Implementation Drift
+- [ ] refactor: Remove unrequested inflaton field physics module (genesis-physics/src/inflaton/mod.rs) - move to Phase 2 when implementing Friedmann equation integrator
+- [ ] fix: Align cosmology module with Phase 1 PRD requirements - remove Phase 2 Friedmann equation integrator from genesis-physics/src/cosmology/mod.rs; Phase 1 should only have simple f64 time accumulator (already implemented in genesis-core/src/time/mod.rs)
+- [ ] fix: Align timeline speed control with PRD logarithmic acceleration requirement - apply logarithmic mapping from PlaybackState.speed (1.0 to 1e12) to TimeAccumulator.acceleration in genesis-ui/src/timeline/mod.rs sync_time_resources() function
 
 ### Refactor Items (unrequested features)
 - [ ] refactor: Remove or document `years_to_gev_inv()` if not needed for Phase 1 - GeV⁻¹ conversion not mentioned in Phase 1 requirements

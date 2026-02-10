@@ -224,6 +224,7 @@ impl Default for ScaleFactor {
 ///
 /// # Example
 /// ```
+/// use genesis_physics::cosmology::compute_exponential_scale_factor;
 /// let a = compute_exponential_scale_factor(1.0, 1e-35, 1e14);
 /// // a ≈ 1.0 + small expansion
 /// ```
