@@ -1341,6 +1341,11 @@ The following items were previously marked as completed but are NOT implemented:
   - [ ] Create genesis-export/Cargo.toml with dependencies (serde, hdf5-rust, etc.)
   - [ ] Add genesis-export to workspace Cargo.toml members
   - [ ] Define ExportPlugin struct implementing Plugin trait
+- [ ] Implement PNG/EXR high-resolution frame capture system
+  - [ ] Design FrameCapture resource with resolution settings (1920x1080, 4K, 8K)
+  - [ ] Implement HDR (EXR) export for accurate temperature/color data
+  - [ ] Implement PNG export for standard screenshot capture
+  - [ ] Add UI controls for frame capture (capture button, format selector)
 
 ### Timeline Integration
 - [ ] Add smooth transition from linear perturbation growth to nonlinear structure

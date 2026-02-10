@@ -45,8 +45,10 @@
 //! where M_pl is the reduced Planck mass ~ 2.435 × 10¹⁸ GeV.
 
 use bevy::prelude::*;
+use bevy::time::Time;
 
 use crate::integrator::{rk4_step};
+use genesis_core::time::{TimeAccumulator, INFLATION_START_YEARS, INFLATION_END_YEARS, SECONDS_PER_YEAR};
 
 /// Cosmological constants used in Friedmann equation calculations
 pub mod constants {
@@ -183,6 +185,25 @@ impl Default for ScaleFactor {
             time: 0.0,
         }
     }
+}
+
+/// Compute exponential scale factor during inflation: a(t) = a₀e^(Ht)
+///
+/// # Arguments
+/// * `a0` - Initial scale factor
+/// * `t_elapsed` - Elapsed time during inflation (in GeV⁻¹)
+/// * `h` - Hubble parameter H during inflation (in GeV)
+///
+/// # Returns
+/// Scale factor value at time t
+///
+/// # Example
+/// ```
+/// let a = compute_exponential_scale_factor(1.0, 1e-35, 1e14);
+/// // a ≈ 1.0 + small expansion
+/// ```
+pub fn compute_exponential_scale_factor(a0: f64, t_elapsed: f64, h: f64) -> f64 {
+    a0 * (h * t_elapsed).exp()
 }
 
 /// Hubble parameter H(t) of the universe
@@ -433,6 +454,82 @@ impl Cosmology {
         // Recompute Hubble for the new state
         self.update_hubble();
     }
+
+    /// Update scale factor using exponential expansion during inflation epoch
+    ///
+    /// This method applies a(t) = a₀e^(Ht) where H is constant during inflation.
+    /// During inflation, the Hubble parameter is approximately constant at
+    /// H ≈ 10¹⁴ GeV.
+    ///
+    /// # Arguments
+    /// * `dt` - Time step in GeV⁻¹
+    ///
+    /// # Side Effects
+    /// - Updates `self.scale_factor.value` to the new exponential value
+    /// - Updates `self.scale_factor.time` by adding `dt`
+    /// - Updates `self.scale_factor.derivative` to H*a (consistent with ȧ = H*a for exponential expansion)
+    pub fn integrate_scale_factor_inflation(&mut self, dt: f64) {
+        let a0 = self.scale_factor.value;
+        let h = constants::INFLATION_HUBBLE_GEV;
+        let new_a = compute_exponential_scale_factor(a0, dt, h);
+
+        // Update scale factor state
+        self.scale_factor.value = new_a;
+        self.scale_factor.time += dt;
+
+        // For exponential expansion: ȧ = H * a
+        self.scale_factor.derivative = h * new_a;
+    }
+}
+
+/// Converts years to GeV⁻¹ (natural time units).
+///
+/// # Arguments
+/// * `years` - Time in years
+///
+/// # Returns
+/// Equivalent time in GeV⁻¹
+///
+/// # Formula
+/// In natural units, 1 GeV⁻¹ = ħ / 1 GeV ≈ 6.582 × 10⁻²⁵ s
+/// So 1 year = 31,557,600 s / (6.582 × 10⁻²⁵ s/GeV⁻¹) ≈ 4.79 × 10³¹ GeV⁻¹
+fn years_to_gev_inv(years: f64) -> f64 {
+    const H_BAR: f64 = 6.582e-25; // ħ in GeV·s
+    years * SECONDS_PER_YEAR / H_BAR
+}
+
+/// System that updates scale factor using the appropriate expansion law
+/// based on the current cosmic epoch.
+///
+/// # Epoch Behavior
+/// - **Inflation (1e-44 to 1e-32 years)**: Exponential expansion a(t) = a₀e^(Ht)
+/// - **Post-inflation (> 1e-32 years)**: RK4 integration using Friedmann equation
+///
+/// # Arguments
+/// * `cosmology` - Mutable reference to cosmology state
+/// * `time_accumulator` - Time tracking resource (cosmic time in years)
+/// * `time` - Bevy's time resource for delta time calculation
+#[allow(dead_code)]
+pub fn update_scale_factor_by_epoch(
+    mut cosmology: ResMut<Cosmology>,
+    time_accumulator: Res<TimeAccumulator>,
+    time: Res<Time>,
+) {
+    // Get delta time in years
+    let delta_seconds = time.delta_secs() as f64;
+    let delta_years = delta_seconds * time_accumulator.acceleration / SECONDS_PER_YEAR;
+
+    // Convert delta time from years to GeV⁻¹ (natural units)
+    let dt_gev_inv = years_to_gev_inv(delta_years);
+
+    // Determine the current cosmic epoch and use the appropriate integration method
+    if time_accumulator.years < INFLATION_END_YEARS {
+        // During inflation: use exponential expansion
+        cosmology.integrate_scale_factor_inflation(dt_gev_inv);
+    } else {
+        // After inflation: use RK4 integration
+        cosmology.integrate_scale_factor_rk4(dt_gev_inv);
+    }
 }
 
 pub struct CosmologyPlugin;
@@ -442,7 +539,8 @@ impl Plugin for CosmologyPlugin {
         app.init_resource::<Cosmology>()
             .init_resource::<ScaleFactor>()
             .init_resource::<HubbleParameter>()
-            .init_resource::<EnergyDensity>();
+            .init_resource::<EnergyDensity>()
+            .add_systems(PostUpdate, update_scale_factor_by_epoch);
     }
 }
 
@@ -852,5 +950,162 @@ mod rk4_tests {
         // Results should be close for small dt
         let diff = (cosmology_rk4.scale_factor.value - cosmology_euler.scale_factor.value).abs();
         assert!(diff < 0.01, "RK4 and Euler differ too much for small dt: {}", diff);
+    }
+}
+
+#[cfg(test)]
+mod exponential_tests {
+    use super::*;
+
+    #[test]
+    fn test_compute_exponential_scale_factor_basic() {
+        // Test that a(t) = a₀e^(Ht) produces expected values
+        let a0 = 1.0;
+        let h = 1e14;
+        let t = 0.0;
+        let result = compute_exponential_scale_factor(a0, t, h);
+        // At t=0, a(t) = a₀
+        assert!((result - a0).abs() < 1e-10);
+    }
+
+    #[test]
+    fn test_compute_exponential_scale_factor_positive_time() {
+        // Test that exponential growth works for positive time
+        let a0 = 1.0;
+        let h = 1.0; // Use H=1 for easier calculation
+        let t = 1.0;
+        let result = compute_exponential_scale_factor(a0, t, h);
+        // a(t) = 1 * e^1 ≈ 2.718
+        assert!((result - std::f64::consts::E).abs() < 1e-10);
+    }
+
+    #[test]
+    fn test_exponential_derivative_consistency() {
+        // Test that ȧ = H*a for exponential expansion
+        let a0 = 1.0;
+        let h = 1e14;
+        let dt = 1e-35; // Small time step
+
+        // Compute a(t)
+        let a1 = compute_exponential_scale_factor(a0, dt, h);
+
+        // Compute derivative: ȧ = H*a (should equal (a1 - a0)/dt for small dt)
+        let expected_derivative = h * a0;
+        let computed_derivative = (a1 - a0) / dt;
+
+        assert!((computed_derivative - expected_derivative).abs() < 1e-5);
+    }
+
+    #[test]
+    fn test_exponential_growth_monotonic() {
+        // Test that a(t) is monotonically increasing during inflation
+        let a0 = 1.0;
+        let h = 1e14;
+
+        let a1 = compute_exponential_scale_factor(a0, 1e-35, h);
+        let a2 = compute_exponential_scale_factor(a1, 1e-35, h);
+        let a3 = compute_exponential_scale_factor(a2, 1e-35, h);
+
+        assert!(a1 > a0);
+        assert!(a2 > a1);
+        assert!(a3 > a2);
+    }
+
+    #[test]
+    fn test_integrate_scale_factor_inflation_basic() {
+        // Test the integrate_scale_factor_inflation method on Cosmology
+        let mut c = Cosmology::new();
+        c.scale_factor.value = 1.0;
+        let initial_a = c.scale_factor.value;
+        let initial_time = c.scale_factor.time;
+
+        let dt = 1e-35;
+        c.integrate_scale_factor_inflation(dt);
+
+        // Scale factor should increase
+        assert!(c.scale_factor.value > initial_a,
+                "Scale factor should increase during inflation");
+
+        // Time should advance
+        assert_eq!(c.scale_factor.time, initial_time + dt,
+                   "Time should advance by dt");
+
+        // Derivative should be H * a
+        let expected_derivative = constants::INFLATION_HUBBLE_GEV * c.scale_factor.value;
+        assert!((c.scale_factor.derivative - expected_derivative).abs() < 1e-10,
+                "Derivative should equal H * a");
+    }
+
+    #[test]
+    fn test_integrate_scale_factor_inflation_exponential() {
+        // Test that integrate_scale_factor_inflation produces exponential growth
+        let mut c = Cosmology::new();
+        c.scale_factor.value = 1.0;
+        let h = constants::INFLATION_HUBBLE_GEV;
+
+        let dt = 1e-35;
+        c.integrate_scale_factor_inflation(dt);
+
+        // Check that the result matches compute_exponential_scale_factor
+        let a0 = 1.0;
+        let expected = compute_exponential_scale_factor(a0, dt, h);
+
+        assert!((c.scale_factor.value - expected).abs() < 1e-10,
+                "integrate_scale_factor_inflation should match compute_exponential_scale_factor");
+    }
+
+    #[test]
+    fn test_integrate_scale_factor_inflation_multiple_steps() {
+        // Test that multiple integration steps produce consistent exponential growth
+        let mut c = Cosmology::new();
+        c.scale_factor.value = 1.0;
+        let h = constants::INFLATION_HUBBLE_GEV;
+
+        let dt = 1e-35;
+        let steps = 5;
+
+        // Integrate multiple steps
+        for _ in 0..steps {
+            c.integrate_scale_factor_inflation(dt);
+        }
+
+        // Compute expected value: a = a0 * e^(H * total_time)
+        let total_time = dt * steps as f64;
+        let expected = compute_exponential_scale_factor(1.0, total_time, h);
+
+        assert!((c.scale_factor.value - expected).abs() < 1e-10,
+                "Multiple steps should produce exponential growth");
+    }
+
+    #[test]
+    fn test_exponential_formula_consistency() {
+        // Test that the formula a(t) = a₀e^(Ht) is consistently applied
+        let a0_values = vec![0.5, 1.0, 2.0];
+        let h = 1e14;
+        let t = 1e-35;
+
+        for a0 in a0_values {
+            let result = compute_exponential_scale_factor(a0, t, h);
+            let expected = a0 * (h * t).exp();
+            assert!((result - expected).abs() < 1e-10,
+                    "Exponential formula should be consistent for a0={}", a0);
+        }
+    }
+
+    #[test]
+    fn test_exponential_with_different_hubble() {
+        // Test exponential growth with different Hubble parameters
+        let a0 = 1.0;
+        let t = 1e-35;
+        let h_values = vec![1e13, 1e14, 1e15];
+
+        for h in h_values {
+            let result = compute_exponential_scale_factor(a0, t, h);
+            let expected = a0 * (h * t).exp();
+            assert!((result - expected).abs() < 1e-10,
+                    "Exponential formula should work for H={}", h);
+            // Larger H should produce larger scale factor
+            assert!(result > a0, "Scale factor should increase with positive H");
+        }
     }
 }

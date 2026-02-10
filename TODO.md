@@ -8,8 +8,6 @@
 ## Sprint 2 - Phase 2: Inflation & Quantum Seeds
 
 ### Physics Integration
-- [x] Implement RK4 solver for scale factor a(t) differential equation (ȧ = H*a)
-- [x] Add slow-roll inflaton potential V(φ) model (quadratic potential: V(φ) = ½m²φ² with m ~ 10¹⁶ GeV)
 - [ ] Implement metric expansion during inflation (exponential: a(t) = a₀e^(Ht) where H ≈ 10¹⁴ GeV)
 - [ ] Implement decelerating expansion post-inflation (a(t) ∝ t^(2/3) for matter-dominated era)
 - [ ] Couple particle positions to scale factor a(t) (multiply positions by current a(t) in update system)
@@ -110,8 +108,6 @@
 - [ ] docs: Mark Phase 2 features as blocked - If Phase 2 cannot proceed, document blockers and dependencies
 
 ### Phase 2 Implementation Items
-- [x] feat: Implement RK4 solver for scale factor a(t) differential equation (ȧ = H*a) - ALREADY IMPLEMENTED in genesis-physics/src/cosmology/mod.rs as integrate_scale_factor_rk4() method, but TODO.md line 11 incorrectly shows as not done
-- [x] feat: Implement Friedmann equation integrator - ALREADY IMPLEMENTED in genesis-physics/src/cosmology/mod.rs as compute_hubble() and update_hubble() methods, but marked incorrectly in TODO.md
 - [ ] feat: Implement slow-roll inflaton potential V(φ) - Add quadratic potential model V(φ) = ½m²φ² with m ~ 10¹⁶ GeV in genesis-physics/src/inflaton/mod.rs
 - [ ] feat: Implement slow-roll inflaton potential V(φ) - Add quadratic potential model V(φ) = ½m²φ² with m ~ 10¹⁶ GeV
 - [ ] feat: Implement metric expansion during inflation - Add exponential expansion a(t) = a₀e^(Ht) where H ≈ 10¹⁴ GeV

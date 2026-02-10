@@ -3,6 +3,16 @@
 ## [2026-02-10]
 
 ### Sprint 2 - Phase 2: Inflation & Quantum Seeds - Physics Integration
+- [x] Implement RK4 solver for scale factor a(t) differential equation (ȧ = H*a)
+- [x] Add slow-roll inflaton potential V(φ) model (quadratic potential: V(φ) = ½m²φ² with m ~ 10¹⁶ GeV)
+
+### Drift Remediation - Physics Implementation Verification
+- [x] feat: Implement RK4 solver for scale factor a(t) differential equation (ȧ = H*a) - ALREADY IMPLEMENTED in genesis-physics/src/cosmology/mod.rs as integrate_scale_factor_rk4() method
+- [x] feat: Implement Friedmann equation integrator - ALREADY IMPLEMENTED in genesis-physics/src/cosmology/mod.rs as compute_hubble() and update_hubble() methods
+
+## [2026-02-10]
+
+### Sprint 2 - Phase 2: Inflation & Quantum Seeds - Physics Integration
 - [x] Implement Friedmann equation: H² = (8πG/3)ρ - k/a² (where H = ȧ/a)
 
 ### Drift Analysis - PRD vs Implementation (Phase 1)
