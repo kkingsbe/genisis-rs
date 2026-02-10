@@ -3,6 +3,11 @@
 ## [2026-02-10]
 
 ### Sprint 2 - Phase 2: Inflation & Quantum Seeds - Physics Integration
+- [x] Implement temperature evolution model (T ∝ 1/a for adiabatic expansion, with T₀ ≈ 10²⁷ K at inflation start)
+
+## [2026-02-10]
+
+### Sprint 2 - Phase 2: Inflation & Quantum Seeds - Physics Integration
 - [x] Couple particle positions to scale factor a(t) (multiply positions by current a(t) in update system)
 
 ### Test Health
