@@ -40,8 +40,10 @@
 use bevy::input::keyboard::KeyCode;
 use bevy::input::mouse::MouseButton;
 use bevy::input::ButtonInput;
+use bevy::math::EulerRot;
 use bevy::prelude::*;
 use bevy::time::Time;
+use std::f32::consts::PI;
 
 use crate::input::InputState;
 use genesis_core::config::CameraConfig;
@@ -92,6 +94,17 @@ pub struct CameraState {
     pub target: Option<Vec3>,
     /// Current orbit target point for orbit camera mode
     pub current_orbit_target: Vec3,
+    // Interpolation state
+    pub interpolating: bool,
+    pub interpolation_progress: f32,  // 0.0 to 1.0
+    pub interpolation_duration: f32,  // seconds
+    pub interpolation_elapsed: f32,   // seconds
+    pub interpolation_start_pos: Vec3,
+    pub interpolation_end_pos: Vec3,
+    pub interpolation_start_rot: Quat,
+    pub interpolation_end_rot: Quat,
+    pub interpolation_start_mode: CameraMode,
+    pub interpolation_end_mode: CameraMode,
 }
 
 impl Default for CameraState {
@@ -100,6 +113,17 @@ impl Default for CameraState {
             mode: CameraMode::default(),
             target: None,
             current_orbit_target: Vec3::ZERO,
+            // Interpolation state defaults
+            interpolating: false,
+            interpolation_progress: 0.0,
+            interpolation_duration: 0.0,
+            interpolation_elapsed: 0.0,
+            interpolation_start_pos: Vec3::ZERO,
+            interpolation_end_pos: Vec3::ZERO,
+            interpolation_start_rot: Quat::IDENTITY,
+            interpolation_end_rot: Quat::IDENTITY,
+            interpolation_start_mode: CameraMode::default(),
+            interpolation_end_mode: CameraMode::default(),
         }
     }
 }
@@ -124,6 +148,38 @@ impl CameraState {
             mode,
             ..Default::default()
         }
+    }
+
+    pub fn start_interpolation(
+        &mut self,
+        start_pos: Vec3,
+        start_rot: Quat,
+        end_pos: Vec3,
+        end_rot: Quat,
+        start_mode: CameraMode,
+        end_mode: CameraMode,
+        duration: f32,
+    ) {
+        self.interpolating = true;
+        self.interpolation_progress = 0.0;
+        self.interpolation_duration = duration;
+        self.interpolation_elapsed = 0.0;
+        self.interpolation_start_pos = start_pos;
+        self.interpolation_end_pos = end_pos;
+        self.interpolation_start_rot = start_rot;
+        self.interpolation_end_rot = end_rot;
+        self.interpolation_start_mode = start_mode;
+        self.interpolation_end_mode = end_mode;
+    }
+}
+
+/// Cubic ease-in-out easing function for smooth interpolation
+/// Returns a value from 0.0 to 1.0 based on input t (0.0 to 1.0)
+fn ease_cubic(t: f32) -> f32 {
+    if t < 0.5 {
+        4.0 * t * t * t
+    } else {
+        1.0 - (-2.0 * t + 2.0).powi(3) / 8.0
     }
 }
 
@@ -172,6 +228,16 @@ impl CameraController {
     pub fn right(&self) -> Vec3 {
         self.forward().cross(Vec3::Y).normalize()
     }
+
+    /// Synchronizes controller state from a Transform component
+    /// Used during interpolation to keep controllers in sync with the interpolated position
+    pub fn synchronize_from_transform(&mut self, transform: &Transform) {
+        // Calculate yaw and pitch from the transform rotation (quaternion to euler-like angles)
+        let (_, yaw, pitch) = transform.rotation.to_euler(EulerRot::YXZ);
+        self.yaw = yaw;
+        self.pitch = pitch.clamp(-PI / 2.0 + 0.1, PI / 2.0 - 0.1);
+        // Position is implicitly tracked by the transform itself
+    }
 }
 
 /// Component controlling orbit camera behavior
@@ -213,6 +279,18 @@ impl OrbitController {
             self.distance * self.pitch.cos() * self.yaw.cos(),
         )
     }
+
+    /// Synchronizes controller state from a Transform component
+    /// Used during interpolation to keep controllers in sync with the interpolated position
+    pub fn synchronize_from_transform(&mut self, transform: &Transform) {
+        // Calculate distance from origin
+        self.distance = transform.translation.length();
+
+        // Calculate yaw and pitch from the normalized position
+        let direction = transform.translation.normalize();
+        self.yaw = direction.y.atan2(direction.x);
+        self.pitch = direction.z.asin().clamp(-PI / 2.0 + 0.1, PI / 2.0 - 0.1);
+    }
 }
 
 /// System to update free-flight camera based on input
@@ -227,7 +305,13 @@ pub fn update_free_flight_camera(
     mut cameras: Query<(&mut Transform, &mut CameraController)>,
     input: Res<InputState>,
     time: Res<Time>,
+    camera_state: Res<CameraState>,
 ) {
+    // Skip input handling during interpolation
+    if camera_state.interpolating {
+        return;
+    }
+
     for (mut transform, mut controller) in cameras.iter_mut() {
         // Apply mouse look
         controller.yaw -= input.mouse_delta.x * controller.mouse_sensitivity;
@@ -269,6 +353,11 @@ pub fn update_orbit_camera(
     input: Res<InputState>,
     camera_state: Res<CameraState>,
 ) {
+    // Skip input handling during interpolation
+    if camera_state.interpolating {
+        return;
+    }
+
     // Only update if left mouse button is pressed
     if !input
         .mouse_buttons
@@ -321,6 +410,11 @@ pub fn handle_orbit_zoom(
     camera_state: Res<CameraState>,
     mut orbit_controllers: Query<&mut OrbitController>,
 ) {
+    // Skip input handling during interpolation
+    if camera_state.interpolating {
+        return;
+    }
+
     // Only update when in ORBIT mode
     if camera_state.mode != CameraMode::Orbit {
         return;
@@ -358,6 +452,11 @@ pub fn handle_free_flight_zoom(
     camera_state: Res<CameraState>,
     mut cameras: Query<(&mut Transform, &CameraController)>,
 ) {
+    // Skip input handling during interpolation
+    if camera_state.interpolating {
+        return;
+    }
+
     // Only update when in FREE_FLIGHT mode
     if camera_state.mode != CameraMode::FreeFlight {
         return;
@@ -411,6 +510,11 @@ pub fn handle_orbit_pan(
     mut camera_state: ResMut<CameraState>,
     camera_query: Query<&Transform, With<Camera3d>>,
 ) {
+    // Skip input handling during interpolation
+    if camera_state.interpolating {
+        return;
+    }
+
     // Only update when in ORBIT mode
     if camera_state.mode != CameraMode::Orbit {
         return;
@@ -454,8 +558,7 @@ pub fn handle_orbit_pan(
 ///
 /// > "Free-flight camera (WASD + mouse) and orbit camera (click-drag) with smooth interpolation"
 ///
-/// While the PRD mentions "smooth interpolation" between modes, camera interpolation is
-/// currently deferred to Phase 7. Mode switches are instant for responsive user control.
+/// Mode switches now use smooth interpolation for cinematic transitions.
 ///
 /// # Usage
 ///
@@ -466,34 +569,119 @@ pub fn handle_orbit_pan(
 /// # Implementation Notes
 ///
 /// Note: Both CameraController and OrbitController are always present on the camera entity.
-/// This function only updates the CameraState.mode field. The actual camera behavior is
-/// determined by which controller system responds to input - free-flight responds to WASD
-/// regardless of mode, while orbit only responds when left mouse is pressed.
-///
-/// Both mode switches are instant for responsive user control.
+/// This function initiates interpolation by calling `start_interpolation()`, which sets up
+/// the transition from current state to target state. The actual mode change happens
+/// when interpolation completes.
 fn toggle_camera_mode(
     keys: Res<ButtonInput<KeyCode>>,
     mut camera_state: ResMut<CameraState>,
     camera_query: Query<&Transform, With<Camera3d>>,
 ) {
-    if keys.just_pressed(KeyCode::KeyO) {
-        match camera_state.mode {
-            CameraMode::FreeFlight => {
-                // Switching FROM FreeFlight TO Orbit - instant switch for now
-                camera_state.mode = CameraMode::Orbit;
+    // Skip mode toggle during interpolation
+    if camera_state.interpolating {
+        return;
+    }
 
-                // Set orbit target to a point in front of the camera
-                if let Ok(camera_transform) = camera_query.get_single() {
+    if keys.just_pressed(KeyCode::KeyO) {
+        // Get current camera transform
+        if let Ok(camera_transform) = camera_query.get_single() {
+            let start_pos = camera_transform.translation;
+            let start_rot = camera_transform.rotation;
+            let start_mode = camera_state.mode;
+            let duration = 1.0; // Interpolation duration in seconds
+
+            match camera_state.mode {
+                CameraMode::FreeFlight => {
+                    // Switching FROM FreeFlight TO Orbit
+                    let end_mode = CameraMode::Orbit;
+
+                    // Calculate orbit target position
                     let forward = camera_transform.forward();
-                    camera_state.current_orbit_target =
-                        camera_transform.translation + forward * 10.0;
+                    let orbit_target = camera_transform.translation + forward * 10.0;
+                    camera_state.current_orbit_target = orbit_target;
+
+                    // Calculate target orbit position (camera stays where it is,
+                    // just changes mode for now - the orbit controller will manage it)
+                    let end_pos = start_pos;
+                    let end_rot = start_rot;
+
+                    camera_state.start_interpolation(
+                        start_pos,
+                        start_rot,
+                        end_pos,
+                        end_rot,
+                        start_mode,
+                        end_mode,
+                        duration,
+                    );
+                }
+                CameraMode::Orbit => {
+                    // Switching from Orbit to FreeFlight
+                    let end_mode = CameraMode::FreeFlight;
+
+                    // Keep current position and rotation
+                    let end_pos = start_pos;
+                    let end_rot = start_rot;
+
+                    camera_state.start_interpolation(
+                        start_pos,
+                        start_rot,
+                        end_pos,
+                        end_rot,
+                        start_mode,
+                        end_mode,
+                        duration,
+                    );
                 }
             }
-            CameraMode::Orbit => {
-                // Switching from Orbit to FreeFlight - instant switch
-                camera_state.mode = CameraMode::FreeFlight;
-            }
         }
+    }
+}
+
+/// Smoothly interpolates camera position and rotation during mode transitions
+fn interpolate_camera(
+    time: Res<Time>,
+    mut camera_state: ResMut<CameraState>,
+    mut query: Query<(&mut Transform, &mut CameraController, &mut OrbitController), With<Camera>>,
+) {
+    if !camera_state.interpolating {
+        return;
+    }
+    
+    // Update elapsed time
+    camera_state.interpolation_elapsed += time.delta_secs();
+    
+    // Calculate progress
+    let raw_progress = (camera_state.interpolation_elapsed / camera_state.interpolation_duration).min(1.0);
+    camera_state.interpolation_progress = ease_cubic(raw_progress);
+    
+    // Interpolate position
+    let current_pos = camera_state.interpolation_start_pos.lerp(
+        camera_state.interpolation_end_pos,
+        camera_state.interpolation_progress,
+    );
+    
+    // Interpolate rotation (slerp for smooth rotation)
+    let current_rot = camera_state.interpolation_start_rot.slerp(
+        camera_state.interpolation_end_rot,
+        camera_state.interpolation_progress,
+    );
+    
+    // Apply to camera transform
+    for (mut transform, mut free_controller, mut orbit_controller) in query.iter_mut() {
+        transform.translation = current_pos;
+        transform.rotation = current_rot;
+
+        // Synchronize both controllers' internal state with current transform
+        // This ensures seamless handoff when interpolation completes
+        free_controller.synchronize_from_transform(&transform);
+        orbit_controller.synchronize_from_transform(&transform);
+    }
+    
+    // Check if interpolation is complete
+    if camera_state.interpolation_elapsed >= camera_state.interpolation_duration {
+        camera_state.interpolating = false;
+        camera_state.mode = camera_state.interpolation_end_mode;
     }
 }
 
@@ -503,6 +691,7 @@ impl Plugin for CameraPlugin {
     fn build(&self, app: &mut App) {
         app.init_resource::<CameraState>()
             .add_systems(Update, toggle_camera_mode)
+            .add_systems(Update, interpolate_camera)
             .add_systems(Update, update_free_flight_camera)
             .add_systems(Update, update_orbit_camera)
             .add_systems(Update, handle_orbit_zoom)

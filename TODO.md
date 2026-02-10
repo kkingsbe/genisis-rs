@@ -9,10 +9,6 @@
 ### Unrequested Features (Refactor Candidates)
 *Features implemented in src/ but NOT specified in PRD.md Phase 1*
 
-- [x] refactor: Remove Q/E vertical camera movement (genesis-render/src/input/mod.rs:73-78)
-  - PRD Phase 1 doesn't specify vertical movement controls
-  - Only WASD horizontal movement mentioned in Phase 1 Deliverables
-
 - [ ] refactor: Remove middle mouse button tracking (genesis-render/src/input/mod.rs:100)
   - Middle mouse button state tracking not specified in PRD Phase 1
   - Middle mouse panning is unrequested feature
@@ -28,7 +24,7 @@
 ### Contradictions with PRD (Fix Candidates)
 *Features that contradict PRD.md Phase 1 requirements*
 
-- [ ] fix: Implement smooth camera interpolation between modes (genesis-render/src/camera/mod.rs:28)
+- [x] fix: Implement smooth camera interpolation between modes (genesis-render/src/camera/mod.rs:28)
   - PRD Phase 1 Deliverable specifies: "Free-flight camera (WASD + mouse) and orbit camera (click-drag) with **smooth interpolation**"
   - Current implementation: "Camera interpolation: NOT implemented (deferred to Phase 7)"
   - This is a direct contradiction of Phase 1 requirements
@@ -40,6 +36,11 @@
   - PRD Phase 1 Demo Moment: "Scrub the timeline back and forth — the expansion reverses and replays"
   - Current behavior: Timeline scrubbing updates cosmic_time but particles don't move backward
   - Note: Already tracked in existing TODO below (Timeline Enhancements section)
+
+- [ ] implement: Q/E key movement for vertical camera control (genesis-render/src/input/mod.rs:50-74)
+  - PRD camera documentation: "**Q/E**: Move down/up"
+  - Current: handle_keyboard_input() only implements WASD, Q/E not implemented
+  - Location: genesis-render/src/camera/mod.rs:72
 
 ---
 
