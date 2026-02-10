@@ -2,6 +2,19 @@
 
 **Sprint Goal:** Implement physics-driven cosmic inflation, seed the universe with density fluctuations that will become the cosmic web, and add temperature visualization.
 
+## TOP PRIORITY: GPU Tests (Newly Available)
+
+**Status:** GPU access is now available from the environment! GPU was previously unavailable, making it impossible to run tests that require GPU rendering. Now that we have GPU access, running these tests is the highest priority.
+
+**GPU Tests to Run:**
+- genesis-render/tests/particle_system_tests.rs
+- genesis-render/tests/resource_binding_tests.rs (4 tests currently ignored)
+- genesis-render/tests/shader_tests.rs
+- genesis-physics/tests/fft_integration.rs
+- genesis-physics/tests/gaussian_random_field_integration.rs
+
+**Action:** Run `cargo test --all` to execute the full test suite with GPU support.
+
 ---
 
 ## Test Health
@@ -17,9 +30,6 @@
 ### Physics Integration
 
 ### Density Perturbations
-- [x] Create power spectrum generator P(k) ∝ k^(n_s – 1) with configurable n_s parameter (default 0.96)
-- [x] Apply power spectrum to k-space field (multiply by sqrt(P(k)) and random phase)
-- [ ] Implement inverse FFT to convert k-space back to real-space density perturbations
 - [ ] Implement Zel'dovich approximation for density-to-displacement mapping (displacement = ∇ψ where ∇²ψ = -δ)
 - [ ] Map density perturbations to particle displacement (add displacement vectors to particle positions on spawn)
 - [ ] Map density perturbations to particle color intensity (brighter = higher density: intensity = 1.0 + α*δ where α controls contrast)

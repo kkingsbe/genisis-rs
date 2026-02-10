@@ -128,13 +128,14 @@ The following requirements from PRD.md are NOT adequately represented in BACKLOG
 - **Example:** Lines 643-654 have inflation physics tasks nested under "Physics Integration" → "Implement Friedmann equation" → subtasks
 - **Recommendation:** Flatten task structure to 2 levels maximum (main task → atomic subtasks)
 
-##### 3.2 Vague Tasks Needing Breakdown
-- **Issue:** Some tasks are not actionable without further decomposition
-- **Examples:**
-  - Line 861: "Implement volumetric fog renderer using Bevy fog or custom shader" - needs algorithm choice and API selection
-  - Line 983: "Implement sub-grid star formation" - needs algorithm specification
-  - Line 1003: "Implement ionization front expansion" - needs data structure design
-  - Line 1343: "Generate streamlines using velocity field integration" - needs integration algorithm choice
+##### 3.2 Vague Tasks Needing Breakdown (RESOLVED - 2026-02-10 Architect Session)
+- **Status:** All previously identified vague tasks have been broken down into detailed subtasks
+- **Examples (now refined):**
+  - ~~Line 861: "Implement volumetric fog renderer using Bevy fog or custom shader"~~ → RESOLVED: Line 983 now has detailed subtasks for fog density function, clearing system, etc.
+  - ~~Line 983: "Implement sub-grid star formation"~~ → RESOLVED: Line 1375 now has detailed subtasks for Kennicutt-Schmidt law, density thresholds, Pop III stars, etc.
+  - ~~Line 1003: "Implement ionization front expansion"~~ → RESOLVED: Line 1393 now has detailed subtasks for IonizationBubble struct, SDF calculation, sphere rendering, etc.
+  - ~~Line 1343: "Generate streamlines using velocity field integration"~~ → RESOLVED: Line 1756 now has detailed subtasks for seeding strategy, integration method, mesh creation, color mapping, etc.
+- **Resolution:** All tasks are now actionable with clear implementation steps
 
 ##### 3.3 Duplicate Task Distribution
 - **Issue:** Some tasks appear in multiple sprint sections when they span multiple phases

@@ -32,6 +32,11 @@ Phase 2 has infrastructure setup but **NO PHYSICS IMPLEMENTATION**:
 
 ## [2026-02-10]
 
+### Sprint 2 - Phase 2: Inflation & Quantum Seeds - Density Perturbations
+- [x] Implement inverse FFT to convert k-space back to real-space density perturbations
+
+## [2026-02-10]
+
 ### Drift Remediation - Documentation Updates
 - docs: Update COMPLETED.md to accurately reflect Phase 2 status - Clarify that only Phase 1 is complete, Phase 2 has infrastructure (crate, module stubs) but no physics implementation
 
@@ -739,3 +744,9 @@ The following Phase 1 PRD deliverables are IMPLEMENTED and verified:
     - [x] Added appropriate asset registration code to initialize `Assets<PointSpriteMaterial>`
     - [x] Verified the fix by running `cargo run`
     - [x] Documented the resolution in BLOCKERS.md
+
+## [2026-02-10]
+
+### Sprint 2 - Phase 2: Inflation & Quantum Seeds - Density Perturbations
+- [x] Create power spectrum generator P(k) ∝ k^(n_s – 1) with configurable n_s parameter (default 0.96)
+- [x] Apply power spectrum to k-space field (multiply by sqrt(P(k)) and random phase)
