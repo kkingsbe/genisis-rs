@@ -18,7 +18,7 @@
 
 ### Density Perturbations
 - [x] Create power spectrum generator P(k) ∝ k^(n_s – 1) with configurable n_s parameter (default 0.96)
-- [ ] Apply power spectrum to k-space field (multiply by sqrt(P(k)) and random phase)
+- [x] Apply power spectrum to k-space field (multiply by sqrt(P(k)) and random phase)
 - [ ] Implement inverse FFT to convert k-space back to real-space density perturbations
 - [ ] Implement Zel'dovich approximation for density-to-displacement mapping (displacement = ∇ψ where ∇²ψ = -δ)
 - [ ] Map density perturbations to particle displacement (add displacement vectors to particle positions on spawn)
