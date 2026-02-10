@@ -27,6 +27,18 @@ genesis/
 │       │   └── singularity.rs    # Singularity epoch marker struct (does NOT implement EpochPlugin trait)
 │       ├── config.rs     # Configuration structures (WindowConfig, ParticleConfig, CameraConfig, etc.)
 │       └── lib.rs
+├── genesis-physics/   # Physics simulation modules
+│   └── src/
+│       ├── cosmology/   # Cosmological physics (Friedmann equations)
+│       │   └── mod.rs   # Curvature, EnergyDensity, ScaleFactor, HubbleParameter, Cosmology (data structures only, RK4 integrator not implemented)
+│       ├── gravity/      # Gravity simulation (placeholder)
+│       │   └── mod.rs   # Gravity-related structures (not implemented)
+│       ├── inflaton/     # Inflation physics (placeholder)
+│       │   └── mod.rs   # Inflaton field structures (not implemented)
+│       ├── perturbations/ # Density perturbations (placeholder)
+│       │   └── mod.rs   # Perturbation-related structures (not implemented)
+│       └── nucleosynthesis/ # Big Bang nucleosynthesis (placeholder)
+│           └── mod.rs   # Nucleosynthesis structures (not implemented)
 ├── genesis-render/   # Rendering systems and visuals
 │   └── src/
 │       ├── particle/     # Instanced particle rendering
@@ -83,11 +95,14 @@ The application registers the following plugins and resources:
 ## Core Architectural Decisions
 
 ### 1. Modular Crate Architecture
-- **Rationale**: Separates concerns into core, render, and UI domains
+- **Rationale**: Separates concerns into core, render, physics, and UI domains
 - **Benefit**: Clear dependency boundaries, easier testing, parallel development
 - **genesis-core**: Pure simulation logic (epoch, physics, time), depends on Bevy for Resource trait
   - Exports: Config, ParticleConfig, CameraConfig, TimeConfig, WindowConfig, DisplayConfig, TimeIntegrationPlugin, SingularityEpoch
   - **NOTE**: CameraMode is exported from genesis-render, not genesis-core. EpochCameraConfig, EpochManager, EpochManagerPlugin, EpochPlugin, and EpochChangeEvent are NOT exported (not defined in codebase)
+- **genesis-physics**: Physics simulation modules with data structures and planned computation kernels
+  - Exports: CosmologyPlugin, Curvature, EnergyDensity, ScaleFactor, HubbleParameter, Cosmology (data structures only, RK4 integrator not implemented)
+  - NOTE: gravity, inflaton, perturbations, nucleosynthesis modules exist as placeholders (data structures not implemented)
 - **genesis-render**: Rendering systems using Bevy ECS (camera, particle components)
   - Exports: CameraMode, CameraPlugin, CameraState, InputPlugin, ParticlePlugin
 - **genesis-ui**: UI state resources using Bevy ECS (timeline, overlay)
@@ -305,7 +320,32 @@ The following infrastructure is planned for future phases and does NOT exist in 
 
 **Status**: Epoch management infrastructure is NOT implemented. The current implementation only includes basic epoch marker and camera configuration types that provide foundational infrastructure for future epoch transitions. The full epoch plugin architecture (EpochPlugin trait, EpochManager, and transition systems) is deferred to future phases.
 
-### 8. Configuration Management
+### 8. Physics Module Implementation Status
+
+**Current Implementation**:
+genesis-physics crate contains the following modules:
+
+- **cosmology/mod.rs** - Cosmological physics data structures
+  - **Implemented**: Curvature enum (Open, Flat, Closed), EnergyDensity struct (total, matter, radiation, dark_energy, inflaton), ScaleFactor struct (value, derivative, time), HubbleParameter struct (value, squared), Cosmology struct (combines all parameters), CosmologyPlugin (Bevy plugin that registers all cosmology resources)
+  - **Methods Implemented**: compute_hubble() (Friedmann equation), compute_scale_factor_derivative(), update_hubble(), update_scale_factor_derivative(), integrate_scale_factor_euler()
+  - **NOT Implemented**: RK4 integrator for accurate long-term evolution (only Euler method available)
+
+- **gravity/mod.rs** - Gravity simulation
+  - **Status**: Placeholder module with no data structures or implementations
+
+- **inflaton/mod.rs** - Inflation physics
+  - **Status**: Placeholder module with no data structures or implementations
+
+- **perturbations/mod.rs** - Density perturbations
+  - **Status**: Placeholder module with no data structures or implementations
+
+- **nucleosynthesis/mod.rs** - Big Bang nucleosynthesis
+  - **Status**: Placeholder module with no data structures or implementations
+
+**Gap Analysis**:
+The cosmology module has comprehensive data structures and basic Euler integration, but lacks the RK4 integrator needed for accurate long-term scale factor evolution. The other physics modules (gravity, inflaton, perturbations, nucleosynthesis) are placeholders awaiting implementation.
+
+### 9. Configuration Management
 - **Format**: TOML for human-readable configuration
 - **Status**: Configuration system implemented with file loading support
   - Config struct with WindowConfig, ParticleConfig, CameraConfig, TimeConfig, DisplayConfig fully defined
@@ -319,7 +359,7 @@ The following infrastructure is planned for future phases and does NOT exist in 
   - **TimeConfig**: genesis.toml has `time_acceleration_min` and `time_acceleration_max` fields; TimeConfig struct has matching fields - all configuration fields match correctly
 - **Note**: Configuration loading infrastructure is fully implemented. All struct fields with #[serde(default)] use default values when not present in genesis.toml
 
-### 9. Testing Infrastructure
+### 10. Testing Infrastructure
 - **Resource binding tests** (`genesis-render/tests/resource_binding_tests.rs`): 1377 lines validating GPU resource setup
 - **Shader validation tests** (`genesis-render/tests/shader_tests.rs`): 995 lines ensuring WGSL compatibility
 - **Unit tests for particle instance data** (`instance_buffer.rs:298-321`): Validates particle instance data synchronization
@@ -378,6 +418,8 @@ genesis-ui (bevy_egui)
     ↓
 genesis-render (Bevy, wgpu)
     ↓
+genesis-physics (Bevy - for Resource trait)
+    ↓
 genesis-core (Bevy - for Resource trait)
 ```
 
@@ -391,6 +433,7 @@ genesis-core (Bevy - for Resource trait)
 - `ConfigResource` (main.rs) wraps Config for Bevy resource system
 - `ParticleConfig` (genesis-core) is used directly as Resource via `config.particle.clone()` in main.rs line 88
 - `PointMesh` (genesis-render) is a shared resource for all particle entities
+- **Physics Resources** (genesis-physics): Cosmology, ScaleFactor, HubbleParameter, EnergyDensity, Curvature (initialized by CosmologyPlugin - data structures only, RK4 integrator not implemented)
 - **NOTE**: EpochManager does NOT exist (not defined in codebase)
 
 ## Development Guidelines
@@ -420,11 +463,11 @@ The following features are planned for future phases and are not currently imple
 - Compute shaders for advanced particle interactions
 - Audio integration for cosmic events
 - Epoch management system implementation (EpochPlugin trait, EpochManager resource, EpochManagerPlugin, update_epoch_transition system) - Planned for Phase 2+
-- Friedmann equation integrator for scale factor a(t)
-- Density perturbations and Zel'dovich approximation
-- Nucleosynthesis reaction network solver
+- Friedmann equation RK4 integrator for scale factor a(t) - NOTE: [`cosmology/mod.rs`](genesis-physics/src/cosmology/mod.rs) has data structures (Curvature, EnergyDensity, ScaleFactor, HubbleParameter, Cosmology) but only Euler integration is implemented; RK4 integrator needed
+- Density perturbations and Zel'dovich approximation - NOTE: perturbations module exists as placeholder
+- Nucleosynthesis reaction network solver - NOTE: nucleosynthesis module exists as placeholder
 - CMB surface projection and volumetric fog
-- N-body gravity simulation (direct-sum and Barnes-Hut)
+- N-body gravity simulation (direct-sum and Barnes-Hut) - NOTE: gravity module exists as placeholder
 - SPH for baryonic gas dynamics
 - Star formation and reionization visualization
 - Cinematic mode with pre-authored camera paths
@@ -699,17 +742,21 @@ The gap analysis was conducted by:
 
 #### Phase 2 Gaps Identified
 
+**Physics Module Infrastructure Status:**
+- genesis-physics crate exists with placeholder modules for: cosmology, gravity, inflaton, perturbations, nucleosynthesis
+- [`cosmology/mod.rs`](genesis-physics/src/cosmology/mod.rs) provides data structures (Curvature, EnergyDensity, ScaleFactor, HubbleParameter, Cosmology) but the actual Friedmann equation RK4 integrator is NOT implemented
+- Only Euler integration (`integrate_scale_factor_euler`) is provided; higher accuracy RK4 solver is needed
+
 **Missing from TODO and BACKLOG:**
 
-14. **Friedmann Equation Implementation**
-    - **Status:** NOT documented in TODO.md or BACKLOG.md
+14. **Friedmann Equation RK4 Integrator Implementation**
+    - **Status:** Partially implemented - data structures exist in [`cosmology/mod.rs`](genesis-physics/src/cosmology/mod.rs) but only Euler integration is available
     - **Gap:** Complete physics infrastructure missing:
-      - No task for implementing FriedmannSolver struct with G, rho_matter, rho_radiation, rho_lambda fields
-      - No task for implementing FriedmannSolver::compute_hubble_parameter() method
-      - No task for implementing density evolution functions (rho_m(a), rho_r(a), rho_lambda(a))
-      - No task for implementing FriedmannSolver::evolve_scale_factor() with RK4 integration
-      - No task for implementing RK4 helper method rk4_step()
-    - **Impact:** Cannot simulate metric expansion accurately
+      - RK4 integrator not implemented (only Euler method available via `integrate_scale_factor_euler`)
+      - Density evolution functions (rho_m(a), rho_r(a), rho_lambda(a)) not implemented
+      - FriedmannSolver struct with comprehensive state tracking not implemented
+      - Higher accuracy integration for long-term evolution missing
+    - **Impact:** Cannot simulate metric expansion with required accuracy for long timescales
 
 15. **Inflaton Field and Potential**
     - **Status:** NOT documented in TODO.md or BACKLOG.md
@@ -893,7 +940,9 @@ The gap analysis was conducted by:
 
 **Sprint 2 (Phase 2 - Inflation):**
 - BACKLOG.md has extensive documentation for Phase 2 tasks (lines 592-686)
-- Prioritize Friedmann equation implementation first as it's foundational for all subsequent physics
+- genesis-physics crate exists with placeholder modules (cosmology, gravity, inflaton, perturbations, nucleosynthesis)
+- [`cosmology/mod.rs`](genesis-physics/src/cosmology/mod.rs) provides data structures (Curvature, EnergyDensity, ScaleFactor, HubbleParameter, Cosmology) but only Euler integration - RK4 integrator needed
+- Prioritize Friedmann equation RK4 implementation first as it's foundational for all subsequent physics
 - Gaussian random field generation should be implemented second
 - Zel'dovich approximation can use density field from GRF generation
 
@@ -901,9 +950,10 @@ The gap analysis was conducted by:
 
 1. **Strong Foundation:** Phase 1 infrastructure is well-implemented with Bevy ECS, rendering pipeline, camera controls, and UI framework
 2. **Comprehensive Planning:** BACKLOG.md shows excellent sprint planning with granular subtasks for all phases
-3. **Missing Infrastructure Core:** Temperature and Scale Factor resources are foundational for all phases and should be implemented in Sprint 1
-4. **Configuration System:** Config structures are well-defined and external loading is fully implemented
-5. **Per-Instance Rendering:** GPU attribute infrastructure exists but synchronization is incomplete (storage buffer systems exist, shader integration pending)
+3. **Physics Module Status:** genesis-physics crate exists with placeholder modules (cosmology, gravity, inflaton, perturbations, nucleosynthesis). Only the cosmology module has data structures implemented; the Friedmann equation RK4 integrator is missing (only Euler integration available)
+4. **Missing Infrastructure Core:** Temperature and Scale Factor resources are foundational for all phases and should be implemented in Sprint 1
+5. **Configuration System:** Config structures are well-defined and external loading is fully implemented
+6. **Per-Instance Rendering:** GPU attribute infrastructure exists but synchronization is incomplete (storage buffer systems exist, shader integration pending)
 
 **Issues to Address:**
 

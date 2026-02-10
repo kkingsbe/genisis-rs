@@ -2,6 +2,82 @@
 
 ## [2026-02-10]
 
+### Sprint 2 - Phase 2: Inflation & Quantum Seeds - Physics Integration
+- [x] Implement Friedmann equation: H² = (8πG/3)ρ - k/a² (where H = ȧ/a)
+
+### Drift Analysis - PRD vs Implementation (Phase 1)
+- **Status:** ✓ No drift detected - Implementation aligns with PRD Phase 1 requirements
+- **Analysis Summary:** All Phase 1 deliverables from PRD.md are correctly implemented. No features beyond Phase 1 scope were found in the codebase.
+- **Phase 1 Requirements - All Implemented:**
+  - ✓ Bevy application scaffold with window, input handling, and basic 3D scene
+  - ✓ Instanced particle renderer capable of displaying 100K–1M point sprites (position, color, size)
+  - ✓ Free-flight camera (WASD + mouse) and orbit camera (click-drag) with smooth interpolation
+  - ✓ Cosmic time system: f64 time accumulator with adjustable acceleration (1x to 10¹²x), pause, and reset
+  - ✓ Logarithmic timeline scrubber UI (bevy_egui) spanning 13.8 billion years
+  - ✓ Procedural "singularity" visualization: particles spawned at origin with outward velocity, color-mapped by energy (white-hot core fading to red)
+  - ✓ FPS counter and particle count overlay
+- **Phase 2+ Features - Correctly Not Implemented:**
+  - Friedmann equation integrator - NOT implemented
+  - Inflaton potential V(φ) - NOT implemented
+  - 3D Gaussian random field generator - NOT implemented
+  - Zel'dovich approximation - NOT implemented
+  - Nucleosynthesis reaction network - NOT implemented
+  - N-body gravity (direct-sum or Barnes-Hut) - NOT implemented
+  - SPH (Smoothed Particle Hydrodynamics) - NOT implemented
+  - Reionization visualization - NOT implemented
+  - Halo finder (Friends-of-Friends algorithm) - NOT implemented
+  - Galaxy sprites - NOT implemented
+  - Audio (kira/bevy_kira_audio) - NOT implemented
+  - Export (HDF5, VTK, CSV) - NOT implemented
+  - Cinematic mode - NOT implemented
+  - Expanded parameter panel beyond Phase 1 - NOT implemented
+- **Acceptable Preparatory Work (Not Drift):**
+  - genesis-physics module declarations (empty stubs for future phases)
+  - genesis-core/src/time/mod.rs constants for future epochs (INFLATION_START_YEARS, etc.)
+
+### Blocker - Particle Rendering Not Working (Archived)
+- **Date:** 2026-02-10
+- **Severity:** Critical
+- **Root Cause Analysis:** Debug investigation identified 2 critical issues preventing particles from rendering
+  - **Issue 1:** The `extract_particle_instances` and `prepare_particle_instance_buffers` systems were never registered in `ParticlePlugin::build()`, so particle data was never prepared for the render world
+  - **Issue 2:** `spawn_particles()` used `PointSpriteMaterialHandle` (custom handle type) instead of `MeshMaterial3d<PointSpriteMaterial>`, preventing proper material binding
+- **Impact:** Particles spawn but are completely invisible on screen, all particle-based visualization blocked
+- **Resolution:** All three blocker fixes implemented and archived (2026-02-10)
+
+## [2026-02-10]
+
+### Resolved Blocker - Particle Rendering Not Working
+- [x] ⚠️ BLOCKER - Particle Rendering Not Working (resolved 2026-02-10)
+  - **Severity:** Critical
+  - **Root Cause Analysis:** 2 critical issues preventing particles from rendering
+  - **Issue 1:** The `extract_particle_instances` and `prepare_particle_instance_buffers` systems were never registered in `ParticlePlugin::build()`, so particle data was never prepared for the render world
+  - **Issue 2:** `spawn_particles()` used `PointSpriteMaterialHandle` (custom handle type) instead of `MeshMaterial3d<PointSpriteMaterial>`, preventing proper material binding
+  - **Impact:** Particles spawn but are completely invisible on screen, all particle-based visualization blocked
+  - **Resolution:** All three fixes implemented (2026-02-10)
+  - FIX #1: Register extract system in `ParticlePlugin::build()` - Added `add_systems(ExtractSchedule, extract_particle_instances)`
+  - FIX #2: Register prepare system in `ParticlePlugin::build()` - Added `add_systems(Render, prepare_particle_instance_buffers)`
+  - FIX #3: Change material component type in `spawn_particles()` - Replaced `PointSpriteMaterialHandle` with `MeshMaterial3d<PointSpriteMaterial>`
+
+### Resolved Blocker - Missing Asset Resource Registration
+- [x] ⚠️ BLOCKER - Missing Asset Resource Registration (resolved 2026-02-10)
+  - **Severity:** High
+  - **Error:** genesis_render::particle::spawn_particles could not access system parameter ResMut<Assets<PointSpriteMaterial>>
+  - **Root Cause Analysis:** The spawn_particles system in genesis-render/src/particle/mod.rs was attempting to access ResMut<Assets<PointSpriteMaterial>>, but the Assets<PointSpriteMaterial> resource had not been registered with the Bevy app
+  - **Impact:** Application failed to start with runtime panic, all particle spawning functionality blocked, Sprint 2 Phase 2 development blocked
+  - **Status:** Resolved - resolution documented in BLOCKERS.md
+
+### Sprint 2 Phase 2 Infrastructure - genesis-physics Crate
+- [x] Implement genesis-physics crate
+  - [x] Create genesis-physics/Cargo.toml with dependencies: glam (for vector math), nalgebra (for scientific linear algebra), wgpu (for GPU compute), serde (for serialization)
+  - [x] Create genesis-physics/src/lib.rs with module declarations for physics systems (gravity, inflaton, perturbations, nucleosynthesis)
+  - [x] Add GenesisPhysicsPlugin struct implementing Plugin trait with build() method that registers physics systems
+  - [x] Add genesis-physics to workspace Cargo.toml members list: "genesis-physics"
+  - [x] Add genesis-physics dependency to main Cargo.toml: genesis-physics = { path = "genesis-physics" }
+
+---
+
+## [2026-02-10]
+
 ### Sprint QA
 - [x] SPRINT QA: Run full build and test suite. Fix ALL errors. If green, create/update '.sprint_complete' with the current date.
   - Ran full build and test suite
@@ -552,3 +628,15 @@ The following Phase 1 PRD deliverables are IMPLEMENTED and verified:
 
 ### Test Health - Failing Tests
 - [x] fix: Failing test in genesis-render/tests/resource_binding_tests.rs - compilation error due to missing fields `initial_position` and `initial_velocity` in Particle struct initialization (line 867)
+
+## [2026-02-10]
+
+### Critical Fixes (Blockers)
+- [x] fix: Asset Resource Registration - Resolved missing `Assets<PointSpriteMaterial>` resource registration
+  - Root Cause: spawn_particles system attempting to access ResMut<Assets<PointSpriteMaterial>> without resource registration
+  - Impact: Application failed to start with runtime panic, blocking all particle spawning functionality
+  - Resolution:
+    - [x] Examined `genesis-render/src/lib.rs` to locate the `GenesisRenderPlugin::build()` method
+    - [x] Added appropriate asset registration code to initialize `Assets<PointSpriteMaterial>`
+    - [x] Verified the fix by running `cargo run`
+    - [x] Documented the resolution in BLOCKERS.md

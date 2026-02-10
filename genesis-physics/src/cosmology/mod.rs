@@ -46,6 +46,8 @@
 
 use bevy::prelude::*;
 
+use crate::integrator::{rk4_step};
+
 /// Cosmological constants used in Friedmann equation calculations
 pub mod constants {
     /// Gravitational constant in SI units: G ≈ 6.674 × 10⁻¹¹ m³/kg/s²
@@ -353,6 +355,77 @@ impl Cosmology {
 
         // Euler step: a(t + dt) = a(t) + ȧ * dt
         self.scale_factor.value += self.scale_factor.derivative * dt;
+
+        // Update time
+        self.scale_factor.time += dt;
+
+        // Recompute Hubble for the new state
+        self.update_hubble();
+    }
+
+    /// Perform a single integration step for the scale factor using RK4 method
+    ///
+    /// This advances the scale factor forward in time by dt using the
+    /// 4th-order Runge-Kutta method, which provides higher accuracy than
+    /// the simple Euler method.
+    ///
+    /// The differential equations being solved are:
+    /// - da/dt = H * a
+    /// - dȧ/dt = H * ȧ (ignoring the a*d(H)/dt term for simplicity)
+    ///
+    /// The state vector is [a, ȧ] where:
+    /// - a = scale_factor.value (the scale factor)
+    /// - ȧ = scale_factor.derivative (the time derivative of scale factor)
+    ///
+    /// # Arguments
+    /// * `dt` - Time step in GeV⁻¹ (natural units)
+    ///
+    /// # Notes
+    /// The RK4 method uses four slope estimates to achieve 4th-order accuracy:
+    /// - k1 = f(t, y)
+    /// - k2 = f(t + dt/2, y + k1*dt/2)
+    /// - k3 = f(t + dt/2, y + k2*dt/2)
+    /// - k4 = f(t + dt, y + k3*dt)
+    ///
+    /// The derivative calculation for dȧ/dt simplifies to H*ȧ, which ignores
+    /// the a*d(H)/dt term that would require computing time derivatives of
+    /// density parameters. This is a reasonable approximation when the energy
+    /// density changes slowly compared to the expansion timescale.
+    pub fn integrate_scale_factor_rk4(&mut self, dt: f64) {
+        // Update derivative first to ensure ȧ is consistent with current H
+        self.update_scale_factor_derivative();
+
+        // Capture current H for use in the derivative function
+        // During the RK4 step, we assume H is constant (i.e., we ignore d(H)/dt)
+        let h = self.hubble.value;
+
+        // Define the derivative function for the state vector [a, ȧ]
+        // Returns [da/dt, dȧ/dt] = [ȧ, H*ȧ]
+        let derivative = |_t: f64, state: &[f64]| -> Vec<f64> {
+            let _a = state[0];      // scale factor value (not used in simplified form)
+            let a_dot = state[1];  // scale factor derivative
+
+            // da/dt = ȧ
+            let da_dt = a_dot;
+
+            // dȧ/dt = d(H*a)/dt = H*d(a)/dt + a*d(H)/dt
+            // For simplicity, we assume H is constant during the step, so d(H)/dt ≈ 0
+            // Therefore: dȧ/dt ≈ H*ȧ
+            let da_dot_dt = h * a_dot;
+
+            vec![da_dt, da_dot_dt]
+        };
+
+        // Current state vector: [a, ȧ]
+        let y = &[self.scale_factor.value, self.scale_factor.derivative];
+        let t = self.scale_factor.time;
+
+        // Perform RK4 step
+        let y_new = rk4_step(y, t, dt, derivative);
+
+        // Update scale factor from the new state
+        self.scale_factor.value = y_new[0];
+        self.scale_factor.derivative = y_new[1];
 
         // Update time
         self.scale_factor.time += dt;
@@ -700,5 +773,84 @@ mod tests {
         
         // H should be non-negative (may be reduced by large curvature term)
         assert!(h >= 0.0, "Hubble parameter should be non-negative");
+    }
+}
+
+#[cfg(test)]
+mod rk4_tests {
+    use super::*;
+
+    #[test]
+    fn test_rk4_step_basic() {
+        // Test that rk4_step produces a valid result
+        // Simple test: dy/dt = y (exponential growth), y(0) = 1
+        let y = vec![1.0f64];
+        let t = 0.0;
+        let dt = 0.1;
+        
+        let f = |_t: f64, y: &[f64]| -> Vec<f64> {
+            vec![y[0]]
+        };
+        
+        let y_new = rk4_step(&y, t, dt, f);
+        
+        // Result should be approximately e^0.1 ≈ 1.10517
+        assert!((y_new[0] - 1.10517).abs() < 0.001);
+    }
+
+    #[test]
+    fn test_rk4_step_multiple_variables() {
+        // Test with 2D system: dy1/dt = y2, dy2/dt = -y1 (simple harmonic oscillator)
+        let y = vec![1.0f64, 0.0f64]; // y1=1, y2=0
+        let t = 0.0;
+        let dt = 0.1;
+        
+        let f = |_t: f64, y: &[f64]| -> Vec<f64> {
+            vec![y[1], -y[0]]
+        };
+        
+        let y_new = rk4_step(&y, t, dt, f);
+        
+        // After small dt, should be approximately: y1 ≈ cos(dt), y2 ≈ -sin(dt)
+        assert!((y_new[0] - 0.995004).abs() < 0.001); // cos(0.1)
+        assert!((y_new[1] - (-0.0998334)).abs() < 0.001); // -sin(0.1)
+    }
+
+    #[test]
+    fn test_integrate_scale_factor_rk4_increases_time() {
+        let mut cosmology = Cosmology::default();
+        let initial_time = cosmology.scale_factor.time;
+        let dt = 1.0;
+        
+        cosmology.integrate_scale_factor_rk4(dt);
+        
+        assert_eq!(cosmology.scale_factor.time, initial_time + dt);
+    }
+
+    #[test]
+    fn test_integrate_scale_factor_rk4_updates_hubble() {
+        let mut cosmology = Cosmology::default();
+        cosmology.energy_density = EnergyDensity::inflaton_dominated(1e64);
+        cosmology.update_hubble();
+        
+        cosmology.integrate_scale_factor_rk4(0.1);
+        
+        // Hubble parameter should be updated (update_hubble() was called)
+        assert!(cosmology.hubble.value > 0.0, "Hubble parameter should be positive after integration");
+    }
+
+    #[test]
+    fn test_rk4_vs_euler_convergence() {
+        // For small time steps, both RK4 and Euler should converge to similar results
+        let mut cosmology_rk4 = Cosmology::default();
+        let mut cosmology_euler = Cosmology::default();
+        
+        let dt = 0.001; // Small time step
+        cosmology_rk4.integrate_scale_factor_rk4(dt);
+        cosmology_euler.integrate_scale_factor_euler(dt);
+        
+        // Results should be close for small dt
+        let diff = (cosmology_rk4.scale_factor.value - cosmology_euler.scale_factor.value).abs();
+        assert!(diff < 0.01, "RK4 and Euler differ too much for small dt: {}", diff);
     }
 }

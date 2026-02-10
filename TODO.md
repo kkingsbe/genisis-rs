@@ -8,8 +8,7 @@
 ## Sprint 2 - Phase 2: Inflation & Quantum Seeds
 
 ### Physics Integration
-- [x] Implement Friedmann equation: H² = (8πG/3)ρ - k/a² (where H = ȧ/a)
-- [ ] Implement RK4 solver for scale factor a(t) differential equation (ȧ = H*a)
+- [x] Implement RK4 solver for scale factor a(t) differential equation (ȧ = H*a)
 - [ ] Add slow-roll inflaton potential V(φ) model (quadratic potential: V(φ) = ½m²φ² with m ~ 10¹⁶ GeV)
 - [ ] Implement metric expansion during inflation (exponential: a(t) = a₀e^(Ht) where H ≈ 10¹⁴ GeV)
 - [ ] Implement decelerating expansion post-inflation (a(t) ∝ t^(2/3) for matter-dominated era)

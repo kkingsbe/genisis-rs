@@ -6,6 +6,7 @@
 //!
 //! # Modules
 //!
+//! - [`integrator`] - Generic numerical integrators for differential equations
 //! - [`gravity`] - Gravitational physics for particle interactions and structure formation
 //! - [`inflaton`] - Inflaton field dynamics for cosmic inflation epoch
 //! - [`perturbations`] - Density perturbations and quantum fluctuations seeding structure
@@ -19,6 +20,7 @@
 
 use bevy::prelude::*;
 
+pub mod integrator;
 pub mod gravity;
 pub mod inflaton;
 pub mod perturbations;

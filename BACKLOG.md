@@ -1387,9 +1387,36 @@ The following items were previously marked as completed but are NOT implemented:
 
 ### Reionization
 - [ ] Implement ionization front expansion (signed-distance-field bubbles)
+  - [ ] Define IonizationBubble struct with center: Vec3, radius: f64, source_mass: f64 fields (source_mass = total stellar mass in halo)
+  - [ ] Define IonizationField resource storing Vec<IonizationBubble> for active bubbles
+  - [ ] Create bubble_mesh() method generating spherical mesh at bubble.center with radius = bubble.radius
+  - [ ] Use icosphere subdivision (level 2-3) for smooth sphere geometry
+  - [ ] Apply translucent material (alpha = 0.2-0.4) for bubble visibility
+- [ ] Implement signed-distance-field calculation for ionization fronts
+  - [ ] Define sdf_at_position(pos: Vec3) -> f64 function returning minimum distance to any bubble surface
+  - [ ] Calculate: sdf = min(|pos - bubble.center| - bubble.radius for all bubbles)
+  - [ ] Implement grid-based SDF for efficient GPU texture generation (store sdf values in 3D texture)
+  - [ ] Use Marching Cubes algorithm if mesh visualization needed
 - [ ] Create bubbles around star-forming halos
+  - [ ] Define bubble growth model: dr/dt = (L_UV / (4πr²n_e)) where L_UV is UV luminosity from stars
+  - [ ] Calculate UV luminosity: L_UV = Σ (M_star × luminosity_per_mass) for stars in halo
+  - [ ] Use Strömgren sphere approximation: r_ström = (3L_UV / (4πn_e²α_B))^(1/3)
+  - [ ] Update bubble radius each frame: r_new = r_old + (dr/dt × dt × time_acceleration)
+  - [ ] Create new IonizationBubble when halo forms first stars (triggered by StarFormationSystem)
+  - [ ] Attach bubble to star-forming halo entity using IonizationBubble component
 - [ ] Implement bubble overlap and merging
+  - [ ] Detect bubble overlap: if distance(bubble1.center, bubble2.center) < (r1 + r2)
+  - [ ] Merge overlapping bubbles: create new bubble with center at weighted average of centers
+  - [ ] Calculate merged radius: r_merged = (r1³ + r2³)^(1/3) (volume conservation)
+  - [ ] Remove merged bubbles and add merged bubble to IonizationField
+  - [ ] Use spatial partitioning (octree) for efficient overlap detection (O(N log N) instead of O(N²))
 - [ ] Model neutral gas consumption
+  - [ ] Define GasState resource tracking neutral hydrogen fraction (n_HI) and ionized fraction (n_HII)
+  - [ ] Update n_HI based on bubble coverage: n_HI(pos) = n_H_initial × (1 - ionization_fraction_at_position(pos))
+  - [ ] Calculate ionization_fraction_at_position(pos) = step_function(sdf_at_position(pos))
+  - [ ] Use smooth step function: f(x) = 1 / (1 + exp(-k × x)) where k controls sharpness (k ~ 10)
+  - [ ] Update gas rendering material with neutral_fraction uniform (pass to shader)
+  - [ ] Reduce gas particle opacity in ionized regions (alpha = neutral_fraction)
 
 ### Visualization - Galaxies
 - [ ] Create galaxy billboard sprites
@@ -1717,8 +1744,25 @@ The following items were previously marked as completed but are NOT implemented:
     - [ ] Apply density-based color mapping
   - [ ] Velocity streamlines
     - [ ] Compute velocity field from particle velocities on grid
+      - [ ] Define 3D velocity grid with resolution 64³ or 128³ (configurable via Config.overlay.grid_resolution)
+      - [ ] For each grid cell, compute average velocity of particles within cell
+      - [ ] Use particle position interpolation for smoother field (inverse distance weighting or SPH kernel)
+      - [ ] Store velocity grid as Vec<Vec<Vec<Vec3>>> or 3D texture for GPU access
     - [ ] Generate streamlines using velocity field integration
+      - [ ] Define streamline seeding strategy: place seed points on plane or sphere surface at regular intervals
+      - [ ] Choose integration algorithm: Runge-Kutta 4th order (RK4) for accurate path following
+      - [ ] RK4 implementation: compute velocity at start, midpoint1, midpoint2, end; combine with weights (1/6, 1/3, 1/3, 1/6)
+      - [ ] Define maximum streamline length (e.g., 100 integration steps or when exiting domain)
+      - [ ] Define step size: adaptive based on velocity magnitude (smaller steps where velocity gradient is high)
+      - [ ] Stop integration when: velocity magnitude near zero, boundary reached, or maximum steps exceeded
+      - [ ] Store streamline points as Vec<Vec3> for each seed point
     - [ ] Render as line geometry with arrowheads
+      - [ ] Create LineStrip mesh for each streamline from point sequence
+      - [ ] Color streamlines based on velocity magnitude (blue=slow, red=fast) using heat map
+      - [ ] Add arrowhead markers at fixed intervals along streamline (e.g., every 10 integration steps)
+      - [ ] Define arrowhead geometry: tetrahedron or cone pointing along velocity direction
+      - [ ] Apply uniform line width (1-2 pixels) with additive blending for glow effect
+      - [ ] Use GPU instancing for efficient rendering of many streamlines
   - [ ] Dark matter distribution
     - [ ] Filter particles by dark_matter tag
     - [ ] Render dark matter particles with different color/size

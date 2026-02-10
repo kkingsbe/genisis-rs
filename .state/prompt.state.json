@@ -1,0 +1,15 @@
+{
+  "lastRun": "2026-02-10T15:11:03.701Z",
+  "lastSuccess": "2026-02-10T13:39:57.787Z",
+  "lastFailure": "2026-02-10T15:30:06.821Z",
+  "errorCount": 907,
+  "consecutiveFailures": 73,
+  "status": "failed",
+  "lastTerminationReason": "mistake_limit_reached",
+  "earlyTerminationCount": 11,
+  "totalExecutionTimeMs": 49889164,
+  "averageExecutionTimeMs": 4157430,
+  "successfulTerminations": 0,
+  "failedTerminations": 11,
+  "error": "Failed to acquire lock for task 'prompt' after 3 attempts: Failed to acquire lock for task 'prompt': timeout after 5000ms"
+}
