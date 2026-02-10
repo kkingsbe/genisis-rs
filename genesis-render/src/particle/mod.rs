@@ -47,6 +47,7 @@ use bevy::render::render_asset::RenderAssetUsages;
 use bevy::render::render_resource::AsBindGroup;
 use bevy::render::RenderApp;
 use genesis_core::config::ParticleConfig;
+use genesis_core::{events::ScrubbingEvent, time::TimeAccumulator};
 
 mod instance_buffer;
 
@@ -104,6 +105,17 @@ pub struct PointSpriteMaterial {
 #[derive(Component, Clone)]
 pub struct PointSpriteMaterialHandle(pub Handle<PointSpriteMaterial>);
 
+/// Resource tracking whether timeline scrubbing is active
+///
+/// This resource is updated by listening to ScrubbingEvent events and allows
+/// the particle systems to know whether to use scrubbing-based position calculation
+/// (initial_position + initial_velocity * years) or normal physics integration.
+#[derive(Resource, Default)]
+pub struct ScrubbingState {
+    /// `true` when timeline scrubbing is active, `false` during normal playback
+    pub is_scrubbing: bool,
+}
+
 /// Resource storing the shared point mesh for all particles
 ///
 /// Point sprites use a minimal mesh with a single vertex at the origin.
@@ -124,6 +136,10 @@ pub struct Particle {
     pub position: Vec3,
     /// Velocity of the particle
     pub velocity: Vec3,
+    /// Initial spawn position at t=0 (used for timeline scrubbing)
+    pub initial_position: Vec3,
+    /// Initial velocity at spawn time (used for timeline scrubbing)
+    pub initial_velocity: Vec3,
     /// RGBA color of the particle
     pub color: Color,
     /// Particle size in world units
@@ -305,6 +321,8 @@ pub fn spawn_particles(
             Particle {
                 position,
                 velocity,
+                initial_position: position, // Store spawn position at t=0
+                initial_velocity: velocity, // Store initial velocity at spawn time
                 color,
                 size,
             },
@@ -373,6 +391,62 @@ pub fn sync_particle_position(mut query: Query<(&Transform, &mut Particle)>) {
     }
 }
 
+/// System to update ScrubbingState based on ScrubbingEvent events
+///
+/// This system listens for ScrubbingEvent events emitted by the timeline UI
+/// and updates the ScrubbingState resource accordingly. The ScrubbingState is
+/// then used by other systems (e.g., update_particles_for_scrubbing) to determine
+/// whether to use scrubbing-based position calculation or normal physics integration.
+pub fn update_scrubbing_state(
+    mut events: EventReader<ScrubbingEvent>,
+    mut scrubbing_state: ResMut<ScrubbingState>,
+) {
+    for event in events.read() {
+        scrubbing_state.is_scrubbing = event.is_scrubbing;
+    }
+}
+
+/// System to update particle positions based on timeline scrubbing
+///
+/// When scrubbing is active (ScrubbingState.is_scrubbing == true), this system
+/// recalculates particle positions from their initial state:
+///     position = initial_position + initial_velocity * years
+///
+/// This allows particles to move backward and forward based on the elapsed cosmic
+/// time (TimeAccumulator.years) during timeline scrubbing.
+///
+/// When scrubbing is not active, the normal update_particles system handles
+/// physics-based forward integration.
+///
+/// # Usage
+///
+/// This system runs alongside update_particles, but only affects particle
+/// positions when scrubbing is active. The system ordering ensures that:
+/// - During scrubbing: update_particles_for_scrubbing sets positions, update_particles
+///   is effectively skipped (or can be conditionally disabled)
+/// - During normal playback: update_particles handles physics, update_particles_for_scrubbing
+///   does nothing
+pub fn update_particles_for_scrubbing(
+    mut query: Query<(&mut Particle, &mut Transform)>,
+    time_accumulator: Res<TimeAccumulator>,
+    scrubbing_state: Res<ScrubbingState>,
+) {
+    // Only recalculate positions when scrubbing is active
+    if !scrubbing_state.is_scrubbing {
+        return;
+    }
+
+    let years = time_accumulator.years as f32;
+
+    for (mut particle, mut transform) in query.iter_mut() {
+        // Calculate position from initial state: position = initial_position + initial_velocity * years
+        particle.position = particle.initial_position + particle.initial_velocity * years;
+
+        // Sync Particle.position to Transform.translation for rendering
+        transform.translation = particle.position;
+    }
+}
+
 /// Plugin for registering particle systems with the Bevy app
 ///
 /// This plugin sets up the particle rendering system by registering
@@ -399,9 +473,14 @@ impl Plugin for ParticlePlugin {
         app.add_systems(Startup, init_point_mesh)
             .add_systems(Startup, spawn_particles.after(init_point_mesh))
             // Update systems
+            .add_systems(Update, update_scrubbing_state)
+            .add_systems(Update, update_particles_for_scrubbing.after(update_scrubbing_state))
             .add_systems(Update, update_particles)
             .add_systems(Update, update_particle_energy_colors)
             .add_systems(Update, sync_particle_position.before(update_particle_energy_colors));
+
+        // Initialize ScrubbingState resource
+        app.init_resource::<ScrubbingState>();
 
         // Initialize bind group layout for instance data storage buffer in render app
         // RenderDevice only exists in the render app's world

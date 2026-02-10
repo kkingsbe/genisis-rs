@@ -8,6 +8,7 @@
 //!
 //! - [`config`] - Configuration structures for Phase 1 parameters with TOML deserialization support
 //! - [`epoch`] - Epoch markers representing different phases of cosmological evolution (currently: Singularity)
+//! - [`events`] - Event types for inter-system communication (e.g., timeline scrubbing notifications)
 //! - [`physics`] - Particle physics data structures (simulation-level Particle for physics calculations)
 //! - [`time`] - Cosmic time management with f64 precision accumulator and time integration systems
 //!
@@ -15,6 +16,7 @@
 //!
 //! This crate re-exports commonly-used types and plugins:
 //! - `Config`, `CameraConfig`, `ParticleConfig`, `TimeConfig`, `WindowConfig` - Configuration types
+//! - `ScrubbingEvent` - Event for timeline scrubbing notifications
 //! - `SingularityEpoch` - Epoch marker for the Singularity phase
 //! - `TimeIntegrationPlugin` - Bevy plugin for cosmic time accumulation
 //!
@@ -27,6 +29,7 @@
 
 pub mod config;
 pub mod epoch;
+pub mod events;
 pub mod physics;
 pub mod time;
 
@@ -35,6 +38,7 @@ pub use config::{
     TimeConfig, WindowConfig,
 };
 pub use epoch::SingularityEpoch;
+pub use events::ScrubbingEvent;
 pub use time::TimeIntegrationPlugin;
 
 /// Version of the core library

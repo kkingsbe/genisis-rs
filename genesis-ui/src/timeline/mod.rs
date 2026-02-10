@@ -22,6 +22,7 @@
 
 use bevy::prelude::*;
 use bevy_egui::{egui, EguiContexts, EguiSet};
+use genesis_core::events::ScrubbingEvent;
 use genesis_core::time::TimeAccumulator;
 
 /// Resource tracking playback state
@@ -151,6 +152,7 @@ pub fn timeline_panel_ui(
     mut cosmic_time: ResMut<CosmicTime>,
     mut playback_state: ResMut<PlaybackState>,
     mut time_accumulator: ResMut<TimeAccumulator>,
+    mut scrubbing_events: EventWriter<ScrubbingEvent>,
 ) {
     egui::Window::new("Timeline")
         .resizable(false)
@@ -178,13 +180,23 @@ pub fn timeline_panel_ui(
                 ui.label("Time:");
                 let current_slider_value = cosmic_time.to_slider(cosmic_time.cosmic_time);
                 let mut slider_value = current_slider_value;
-                if ui
-                    .add(egui::Slider::new(&mut slider_value, 0.0..=1.0).show_value(false))
-                    .changed()
-                {
+                let slider_response = ui.add(egui::Slider::new(&mut slider_value, 0.0..=1.0).show_value(false));
+                
+                // Emit ScrubbingEvent when user starts dragging
+                if slider_response.drag_started() {
+                    scrubbing_events.send(ScrubbingEvent { is_scrubbing: true });
+                }
+                
+                // Update cosmic time when slider changes
+                if slider_response.changed() {
                     cosmic_time.cosmic_time = cosmic_time.from_slider(slider_value);
                     // Synchronize TimeAccumulator.years with CosmicTime.cosmic_time
                     time_accumulator.years = cosmic_time.cosmic_time;
+                }
+                
+                // Emit ScrubbingEvent when user stops dragging
+                if slider_response.drag_stopped() {
+                    scrubbing_events.send(ScrubbingEvent { is_scrubbing: false });
                 }
 
                 ui.separator();

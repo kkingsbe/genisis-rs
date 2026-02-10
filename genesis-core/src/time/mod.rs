@@ -24,6 +24,8 @@
 use bevy::prelude::{Commands, Plugin, Res, ResMut, Resource, Startup, Update};
 use bevy::time::Time;
 
+use crate::events::ScrubbingEvent;
+
 /// Number of seconds in a cosmic year (365.25 days)
 pub const SECONDS_PER_YEAR: f64 = 31_557_600.0;
 
@@ -159,6 +161,9 @@ impl Plugin for TimeIntegrationPlugin {
 
         // Add update system to accumulate cosmic time each frame
         app.add_systems(Update, update_cosmic_time);
+
+        // Register timeline scrubbing event
+        app.add_event::<ScrubbingEvent>();
     }
 }
 
