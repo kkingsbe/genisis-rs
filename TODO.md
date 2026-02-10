@@ -75,13 +75,13 @@
 
 ## Critical Issues (Must Fix Before Sprint QA)
 
-- [ ] fix: Timeline minimum range enhancement (BACKLOG.md line 15-21)
+- [x] fix: Timeline minimum range enhancement (BACKLOG.md line 15-21)
   - Current: CosmicTime.from_slider() uses effective_min=1.0 when min_time=0.0 (line 86, 104)
   - Issue: Cannot represent very early universe (< 1 year) in logarithmic timeline
   - Impact: Timeline cannot properly display pre-year-1 epochs (Planck boundary at 10⁻³²s, inflation at 10⁻³⁶s-10⁻³²s)
-  - [ ] Update CosmicTime::from_slider() to handle min_time=0.0 properly for sub-year logarithmic scale
-  - [ ] Update CosmicTime::to_slider() to return values < 0 for pre-1-year timescales
-  - [ ] Test timeline scrubbing at t=10⁻³⁰s, t=10⁻⁶s to verify early universe accessibility
+  - [x] Update CosmicTime::from_slider() to handle min_time=0.0 properly for sub-year logarithmic scale
+  - [x] Update CosmicTime::to_slider() to return values < 0 for pre-1-year timescales
+  - [x] Test timeline scrubbing at t=10⁻³⁰s, t=10⁻⁶s to verify early universe accessibility
 
 - [ ] feature: Configuration validation at load time (BACKLOG.md line 22-33)
   - Current: No validation of genesis.toml values when loaded via Config::load()
