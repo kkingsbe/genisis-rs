@@ -8,22 +8,12 @@
 
 ### Critical Bug Fixes (Blockers for Demo Moment)
 
-#### Particle Instance Buffer
-- [x] fix: Compilation error in genesis-render/src/particle/instance_buffer.rs - missing `use bytemuck::Zeroable;` import at line 31 causes `ParticleInstanceData::zeroed()` to fail at line 315 in test_particle_instance_data_zeroable
-
 #### Test Compilation Errors
-- [ ] fix: Failing test in genesis-render/tests/resource_binding_tests.rs - test_particle_component_structure at line 867 missing `velocity` field in Particle struct initialization (error: E0063)
-
-#### Particle Velocity System
-- [x] fix: Add velocity field to Particle component (CRITICAL - Blocks proper particle expansion per PRD Phase 1)
-  - [ ] Add `velocity: Vec3` field to Particle struct in genesis-render/src/particle/mod.rs
-  - [ ] Update spawn_particles() to store calculated velocity in Particle component (line 302-304)
-  - [ ] Modify Particle component initialization: Particle { position, color, size, velocity }
-  - [ ] Update update_particles() to use stored Particle.velocity instead of hardcoded speed (line 337)
+- [x] fix: Failing test in genesis-render/tests/resource_binding_tests.rs - test_particle_component_structure at line 867 missing `velocity` field in Particle struct initialization (error: E0063)
 
 #### Particle Position Synchronization
-- [ ] fix: Sync Particle.position with Transform.translation (CRITICAL - Breaks energy-based coloring per PRD Phase 1)
-  - [ ] Add sync_particle_position() system that copies Transform.translation to Particle.position each frame
+- [x] fix: Sync Particle.position with Transform.translation (CRITICAL - Breaks energy-based coloring per PRD Phase 1)
+  - [x] Add sync_particle_position() system that copies Transform.translation to Particle.position each frame
   - [ ] Query (Entity, &Transform, &mut Particle) and update particle.position from transform.translation
   - [ ] Register sync_particle_position() system in Update schedule before update_particle_energy_colors
   - [ ] This ensures update_particle_energy_colors() calculates energy from actual particle positions

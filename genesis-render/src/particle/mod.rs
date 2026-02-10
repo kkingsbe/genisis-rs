@@ -377,6 +377,18 @@ pub fn update_particle_energy_colors(mut query: Query<&mut Particle>) {
     }
 }
 
+/// Synchronize Transform.translation to Particle.position each frame.
+///
+/// This ensures the energy-based coloring system receives correct position data
+/// by syncing any Transform changes back to the Particle component. This is
+/// important when transforms are modified by other systems (e.g., user interaction,
+/// camera manipulation) to keep Particle.position in sync.
+pub fn sync_particle_position(mut query: Query<(&Transform, &mut Particle)>) {
+    for (transform, mut particle) in query.iter_mut() {
+        particle.position = transform.translation;
+    }
+}
+
 /// Plugin for registering particle systems with the Bevy app
 ///
 /// This plugin sets up the particle rendering system by registering
@@ -406,6 +418,7 @@ impl Plugin for ParticlePlugin {
             // Update systems
             .add_systems(Update, update_particles)
             .add_systems(Update, update_particle_energy_colors)
+            .add_systems(Update, sync_particle_position.after(update_particle_energy_colors))
             // Extract system: Transfer Particle data to render world
             .add_systems(ExtractSchedule, extract_particle_instances)
             // Render system: Prepare GPU buffers and bind groups
