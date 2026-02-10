@@ -34,10 +34,10 @@
   - [ ] Create QGPMaterial with temperature_uniform binding point sprite material
   - [ ] Implement shader color lookup from temperature-to-color ramp texture
   - [ ] Update particle instance color uniforms from Temperature resource each frame
-- [ ] Create temperature-to-color ramp function (map temperature T to color: T > 10¹⁵K → blue-white, 10¹⁴K → white, 10¹³K → yellow, 10¹²K → orange)
-  - [ ] Implement color_from_temperature(T: f64) -> Color function using piecewise linear interpolation
-  - [ ] Define temperature color stops: (1e15, Color::rgb(200, 200, 255)), (1e14, Color::WHITE), (1e13, Color::rgb(255, 255, 100)), (1e12, Color::rgb(255, 165, 0))
-  - [ ] Add unit tests verifying color transitions at each temperature threshold
+- [x] Create temperature-to-color ramp function (map temperature T to color: T > 10¹⁵K → blue-white, 10¹⁴K → white, 10¹³K → yellow, 10¹²K → orange)
+  - [x] Implement color_from_temperature(T: f64) -> Color function using piecewise linear interpolation
+  - [x] Define temperature color stops: (1e15, Color::rgb(200, 200, 255)), (1e14, Color::WHITE), (1e13, Color::rgb(255, 255, 100)), (1e12, Color::rgb(255, 165, 0))
+  - [x] Add unit tests verifying color transitions at each temperature threshold
 - [ ] Implement epoch transition crossfade system (handle epoch change events, trigger camera and visual transitions)
   - [ ] Define EpochTransitionEvent struct with old_epoch: String, new_epoch: String, transition_progress: f64 fields in genesis-core/src/epoch/events.rs
   - [ ] Implement visual crossfade system for epoch transitions using alpha blending between render layers

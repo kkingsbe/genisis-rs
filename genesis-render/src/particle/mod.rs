@@ -234,6 +234,79 @@ pub fn energy_to_color(energy: f32) -> Color {
     }
 }
 
+/// Converts a temperature value to a color on a thermal gradient.
+///
+/// Maps temperature (in Kelvin) to a color gradient representing cosmic
+/// temperature ranges:
+/// - ≥10¹⁵K = blue-white (extreme high energy)
+/// - 10¹⁴K = white (very high energy)
+/// - 10¹³K = yellow (high energy)
+/// - 10¹²K = orange (moderate energy)
+/// - ≤10¹¹K = orange (low energy floor)
+///
+/// The gradient follows: BLUE_WHITE → WHITE → YELLOW → ORANGE (floor at 10¹¹K)
+///
+/// # Arguments
+/// * `T` - Temperature in Kelvin (f64), representing the thermal energy of the particle
+///
+/// # Returns
+/// A `Color` value corresponding to the temperature level.
+///
+/// # Gradient Breakpoints
+/// - T ≥ 1e15: Interpolates BLUE_WHITE (1e15) upward
+/// - T > 1e14: Interpolates WHITE (1e14) to BLUE_WHITE (1e15)
+/// - T > 1e13: Interpolates YELLOW (1e13) to WHITE (1e14)
+/// - T > 1e12: Interpolates ORANGE (1e12) to YELLOW (1e13)
+/// - T ≤ 1e12: Returns ORANGE (temperature floor)
+pub fn temperature_to_color(T: f64) -> Color {
+    // Temperature breakpoints (in Kelvin)
+    const T_BLUE_WHITE: f64 = 1e15;
+    const T_WHITE: f64 = 1e14;
+    const T_YELLOW: f64 = 1e13;
+    const T_ORANGE: f64 = 1e12;
+
+    // Color values (RGB in [0, 1] range)
+    // BLUE_WHITE: (200/255, 200/255, 255/255) ≈ (0.78, 0.78, 1.0)
+    const R_BLUE_WHITE: f32 = 0.78;
+    const G_BLUE_WHITE: f32 = 0.78;
+    const B_BLUE_WHITE: f32 = 1.0;
+
+    // WHITE: (1.0, 1.0, 1.0)
+    const R_WHITE: f32 = 1.0;
+    const G_WHITE: f32 = 1.0;
+    const B_WHITE: f32 = 1.0;
+
+    // YELLOW: (255/255, 255/255, 100/255) ≈ (1.0, 1.0, 0.39)
+    const R_YELLOW: f32 = 1.0;
+    const G_YELLOW: f32 = 1.0;
+    const B_YELLOW: f32 = 0.39;
+
+    // ORANGE: (255/255, 165/255, 0/255) ≈ (1.0, 0.65, 0.0)
+    const R_ORANGE: f32 = 1.0;
+    const G_ORANGE: f32 = 0.65;
+    const B_ORANGE: f32 = 0.0;
+
+    if T >= T_BLUE_WHITE {
+        // Return blue-white for extremely high temperatures (≥10¹⁵K)
+        Color::srgb(R_BLUE_WHITE, G_BLUE_WHITE, B_BLUE_WHITE)
+    } else if T >= T_WHITE {
+        // WHITE to BLUE_WHITE: t in [T_WHITE, T_BLUE_WHITE], normalized to [0.0, 1.0]
+        let t = ((T - T_WHITE) / (T_BLUE_WHITE - T_WHITE)) as f32;
+        lerp_rgb(R_WHITE, G_WHITE, B_WHITE, R_BLUE_WHITE, G_BLUE_WHITE, B_BLUE_WHITE, t)
+    } else if T >= T_YELLOW {
+        // YELLOW to WHITE: t in [T_YELLOW, T_WHITE], normalized to [0.0, 1.0]
+        let t = ((T - T_YELLOW) / (T_WHITE - T_YELLOW)) as f32;
+        lerp_rgb(R_YELLOW, G_YELLOW, B_YELLOW, R_WHITE, G_WHITE, B_WHITE, t)
+    } else if T >= T_ORANGE {
+        // ORANGE to YELLOW: t in [T_ORANGE, T_YELLOW], normalized to [0.0, 1.0]
+        let t = ((T - T_ORANGE) / (T_YELLOW - T_ORANGE)) as f32;
+        lerp_rgb(R_ORANGE, G_ORANGE, B_ORANGE, R_YELLOW, G_YELLOW, B_YELLOW, t)
+    } else {
+        // Return orange as floor for low temperatures (<10¹²K)
+        Color::srgb(R_ORANGE, G_ORANGE, B_ORANGE)
+    }
+}
+
 /// Helper function for linear interpolation between two RGB color values.
 ///
 /// # Arguments
@@ -606,3 +679,182 @@ impl Plugin for ParticlePlugin {
 //
 // ## WHAT IS STILL NEEDED
 // ...
+
+// ============================================================================
+// UNIT TESTS
+// ============================================================================
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// Helper function to compare two Color values with floating-point tolerance.
+    ///
+    /// # Arguments
+    /// * `actual` - The actual color value returned by the function
+    /// * `expected_r` - Expected red component
+    /// * `expected_g` - Expected green component
+    /// * `expected_b` - Expected blue component
+    /// * `tolerance` - Maximum allowed difference for each component
+    fn assert_color_approx_equal(
+        actual: Color,
+        expected_r: f32,
+        expected_g: f32,
+        expected_b: f32,
+        tolerance: f32,
+    ) {
+        let actual_rgba = actual.to_srgba();
+        let diff_r = (actual_rgba.red - expected_r).abs();
+        let diff_g = (actual_rgba.green - expected_g).abs();
+        let diff_b = (actual_rgba.blue - expected_b).abs();
+
+        assert!(
+            diff_r <= tolerance,
+            "Red component out of tolerance: expected {}, got {}, diff {}",
+            expected_r,
+            actual_rgba.red,
+            diff_r
+        );
+        assert!(
+            diff_g <= tolerance,
+            "Green component out of tolerance: expected {}, got {}, diff {}",
+            expected_g,
+            actual_rgba.green,
+            diff_g
+        );
+        assert!(
+            diff_b <= tolerance,
+            "Blue component out of tolerance: expected {}, got {}, diff {}",
+            expected_b,
+            actual_rgba.blue,
+            diff_b
+        );
+    }
+
+    // ========================================
+    // EXACT THRESHOLD TESTS
+    // ========================================
+
+    /// TEST #1: Verify exact color at 1e15K threshold (blue-white)
+    #[test]
+    fn test_temperature_to_color_at_1e15() {
+        let color = temperature_to_color(1e15);
+        // BLUE_WHITE: (0.78, 0.78, 1.0)
+        assert_color_approx_equal(color, 0.78, 0.78, 1.0, 0.01);
+    }
+
+    /// TEST #2: Verify exact color at 1e14K threshold (white)
+    #[test]
+    fn test_temperature_to_color_at_1e14() {
+        let color = temperature_to_color(1e14);
+        // WHITE: (1.0, 1.0, 1.0)
+        assert_color_approx_equal(color, 1.0, 1.0, 1.0, 0.01);
+    }
+
+    /// TEST #3: Verify exact color at 1e13K threshold (yellow)
+    #[test]
+    fn test_temperature_to_color_at_1e13() {
+        let color = temperature_to_color(1e13);
+        // YELLOW: (1.0, 1.0, 0.39)
+        assert_color_approx_equal(color, 1.0, 1.0, 0.39, 0.01);
+    }
+
+    /// TEST #4: Verify exact color at 1e12K threshold (orange)
+    #[test]
+    fn test_temperature_to_color_at_1e12() {
+        let color = temperature_to_color(1e12);
+        // ORANGE: (1.0, 0.65, 0.0)
+        assert_color_approx_equal(color, 1.0, 0.65, 0.0, 0.01);
+    }
+
+    /// TEST #5: Verify exact color at 1e11K (floor - should return orange)
+    #[test]
+    fn test_temperature_to_color_at_1e11() {
+        let color = temperature_to_color(1e11);
+        // Floor: ORANGE (1.0, 0.65, 0.0)
+        assert_color_approx_equal(color, 1.0, 0.65, 0.0, 0.01);
+    }
+
+    // ========================================
+    // INTERPOLATION TESTS
+    // ========================================
+
+    /// TEST #6: Verify interpolated color at 5e14K (between 1e14 and 1e15)
+    ///
+    /// At 5e14K: t = (5e14 - 1e14) / (1e15 - 1e14) = 4e14 / 9e14 = 0.4444
+    /// R = 1.0 * (1 - 0.4444) + 0.78 * 0.4444 = 0.9
+    /// G = 1.0 * (1 - 0.4444) + 0.78 * 0.4444 = 0.9
+    /// B = 1.0 * (1 - 0.4444) + 1.0 * 0.4444 = 1.0
+    #[test]
+    fn test_temperature_to_color_interpolate_5e14() {
+        let color = temperature_to_color(5e14);
+        // Between WHITE and BLUE_WHITE
+        assert_color_approx_equal(color, 0.90, 0.90, 1.0, 0.02);
+    }
+
+    /// TEST #7: Verify interpolated color at 5e13K (between 1e13 and 1e14)
+    ///
+    /// At 5e13K: t = (5e13 - 1e13) / (1e14 - 1e13) = 4e13 / 9e13 = 0.4444
+    /// R = 1.0 * (1 - 0.4444) + 1.0 * 0.4444 = 1.0
+    /// G = 1.0 * (1 - 0.4444) + 1.0 * 0.4444 = 1.0
+    /// B = 0.39 * (1 - 0.4444) + 1.0 * 0.4444 = 0.66
+    #[test]
+    fn test_temperature_to_color_interpolate_5e13() {
+        let color = temperature_to_color(5e13);
+        // Between YELLOW and WHITE
+        assert_color_approx_equal(color, 1.0, 1.0, 0.66, 0.02);
+    }
+
+    /// TEST #8: Verify interpolated color at 5e12K (between 1e12 and 1e13)
+    ///
+    /// At 5e12K: t = (5e12 - 1e12) / (1e13 - 1e12) = 4e12 / 9e12 = 0.4444
+    /// R = 1.0 * (1 - 0.4444) + 1.0 * 0.4444 = 1.0
+    /// G = 0.65 * (1 - 0.4444) + 1.0 * 0.4444 = 0.81
+    /// B = 0.0 * (1 - 0.4444) + 0.39 * 0.4444 = 0.17
+    #[test]
+    fn test_temperature_to_color_interpolate_5e12() {
+        let color = temperature_to_color(5e12);
+        // Between ORANGE and YELLOW
+        assert_color_approx_equal(color, 1.0, 0.81, 0.17, 0.02);
+    }
+
+    // ========================================
+    // BOUNDARY TESTS
+    // ========================================
+
+    /// TEST #9: Verify very high temperature (>1e16K) returns blue-white
+    #[test]
+    fn test_temperature_to_color_very_high() {
+        let color = temperature_to_color(1e16);
+        // Should be capped at BLUE_WHITE
+        assert_color_approx_equal(color, 0.78, 0.78, 1.0, 0.01);
+    }
+
+    /// TEST #10: Verify very low temperature (<1e10K) returns orange (floor)
+    #[test]
+    fn test_temperature_to_color_very_low() {
+        let color = temperature_to_color(1e10);
+        // Should return floor ORANGE
+        assert_color_approx_equal(color, 1.0, 0.65, 0.0, 0.01);
+    }
+
+    /// TEST #11: Verify near-threshold temperatures interpolate correctly
+    #[test]
+    fn test_temperature_to_color_near_thresholds() {
+        // Just below 1e15K: should be very close to blue-white
+        let color = temperature_to_color(9.9e14);
+        assert_color_approx_equal(color, 0.78, 0.78, 1.0, 0.02);
+
+        // Just below 1e14K: should be very close to white
+        let color = temperature_to_color(9.9e13);
+        assert_color_approx_equal(color, 1.0, 1.0, 0.99, 0.02);
+
+        // Just below 1e13K: should be very close to yellow
+        let color = temperature_to_color(9.9e12);
+        assert_color_approx_equal(color, 1.0, 1.0, 0.39, 0.02);
+
+        // Just below 1e12K: should be very close to orange
+        let color = temperature_to_color(9.9e11);
+        assert_color_approx_equal(color, 1.0, 0.65, 0.0, 0.02);
+    }
+}
