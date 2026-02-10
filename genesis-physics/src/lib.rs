@@ -44,5 +44,6 @@ impl Plugin for GenesisPhysicsPlugin {
     fn build(&self, app: &mut App) {
         // Register cosmological physics
         app.add_plugins(cosmology::CosmologyPlugin);
+        app.add_plugins(inflaton::InflatonPlugin);
     }
 }

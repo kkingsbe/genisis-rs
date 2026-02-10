@@ -14,8 +14,7 @@
 ## Sprint 2 - Phase 2: Inflation & Quantum Seeds
 
 ### Physics Integration
-- [x] Implement temperature evolution model (T ∝ 1/a for adiabatic expansion, with T₀ ≈ 10²⁷ K at inflation start)
-- [ ] Create InflationPhysics resource tracking inflaton field φ, potential V(φ), and slow-roll parameters (ε, η)
+- [x] Create InflationPhysics resource tracking inflaton field φ, potential V(φ), and slow-roll parameters (ε, η)
 
 ### Density Perturbations
 - [ ] Implement Box-Muller transform for generating Gaussian random numbers (u1, u2 → normal distribution)
@@ -147,6 +146,76 @@
 - [ ] refactor: Generic RK4 integrator may be over-engineering for Phase 2 - Specific solvers (Friedmann, Rosenbrock) come in later phases
 - [ ] refactor: Scroll wheel zoom extends beyond Phase 1 camera requirements - PRD Phase 1 only specifies orbit camera (click-drag)
 - [ ] refactor: ScrubbingEvent emission may exceed Phase 1 timeline requirements - Event system more complex than simple play/pause needed
+
+---
+
+## Drift Analysis: PRD Phase 1 vs Implementation (Janitor Analysis 2026-02-10)
+
+### Phase 2+ Features Implemented in genesis-physics Crate (Unrequested for Phase 1)
+
+- [ ] refactor: Remove entire genesis-physics crate or defer to Phase 2 - genesis-physics/src/lib.rs exports CosmologyPlugin which registers resources and systems for cosmological physics that are Phase 2+ requirements, not Phase 1
+
+- [ ] refactor: Remove unrequested Friedmann equation integrator - genesis-physics/src/cosmology/mod.rs implements complete Friedmann equation physics (Hubble parameter computation, energy density components, RK4 scale factor integration) which are Phase 2 (Inflation) requirements, not Phase 1
+
+- [ ] refactor: Remove unrequested inflaton field module - genesis-physics/src/inflaton/mod.rs implements complete inflaton field physics (quadratic potential V(φ), slow-roll parameters ε and η) which are Phase 2 (Inflation) requirements, not Phase 1
+
+- [ ] refactor: Remove unrequested generic RK4 integrator - genesis-physics/src/integrator/mod.rs implements generic RK4 solver which is not required until Phase 2 (for Friedmann equations) or Phase 3 (for nucleosynthesis ODE solver)
+
+- [ ] refactor: Remove unrequested cosmic epoch system - genesis-physics/src/cosmology/mod.rs::CosmicEpoch enum defines 8 epochs (Planck through Structure) which are Phase 2+ requirements, not Phase 1 (only Singularity)
+
+- [ ] refactor: Remove unrequested CosmologyPlugin - genesis-physics/src/cosmology/mod.rs::CosmologyPlugin registers resources (ScaleFactor, HubbleParameter, EnergyDensity, Temperature) and systems for cosmological physics which are Phase 2+ features, not Phase 1
+
+- [ ] refactor: Remove unrequested epoch-based scale factor integration - genesis-physics/src/cosmology/mod.rs::update_scale_factor_by_epoch() implements exponential inflation expansion, matter-dominated post-inflation expansion, and epoch transitions which are Phase 2+ features, not Phase 1
+
+- [ ] refactor: Remove unrequested physics constants module - genesis-physics/src/cosmology/mod.rs::constants module defines Planck mass, Planck length, Planck time, and Inflation Hubble which are Phase 2+ requirements, not Phase 1
+
+- [ ] refactor: Remove unrequested curvature module - genesis-physics/src/cosmology/mod.rs::Curvature enum (Open, Flat, Closed) is Phase 2+ requirement, not Phase 1
+
+- [ ] refactor: Remove unrequested energy density module - genesis-physics/src/cosmology/mod.rs::EnergyDensity struct with matter, radiation, dark_energy, inflaton components are Phase 2+ requirements, not Phase 1
+
+- [ ] refactor: Remove unrequested scale factor module - genesis-physics/src/cosmology/mod.rs::ScaleFactor struct with epoch tracking, temperature integration, and RK4 integration are Phase 2+ requirements, not Phase 1
+
+- [ ] refactor: Remove unrequested Hubble parameter module - genesis-physics/src/cosmology/mod.rs::HubbleParameter struct with value and squared fields are Phase 2+ requirements, not Phase 1
+
+- [ ] refactor: Remove unrequested temperature module - genesis-physics/src/cosmology/mod.rs::Temperature struct with initial temperature and T(a) = T₀/a computation are Phase 2+ requirements, not Phase 1
+
+- [ ] refactor: Remove unrequested physics integration - genesis-physics/src/cosmology/mod.rs::update_scale_factor_by_epoch() is registered as a PostUpdate system and integrates scale factor each frame based on epoch, which is Phase 2+ requirement, not Phase 1
+
+### Phase 2+ Features Implemented in genesis-render Crate (Unrequested for Phase 1)
+
+- [ ] refactor: Remove unrequested scale factor coupling in particle system - genesis-render/src/particle/mod.rs::update_particles() couples particle positions to cosmology::ScaleFactor via multiplication (position = (position + velocity * delta) * scale_factor.value) which is Phase 2 requirement, not Phase 1
+
+- [ ] refactor: Remove unrequested physics imports in particle module - genesis-render/src/particle/mod.rs imports genesis_physics::cosmology::ScaleFactor which is Phase 2+ requirement, not Phase 1
+
+### Phase 2+ Features Implemented in genesis-core Crate (Unrequested for Phase 1)
+
+- [ ] refactor: Remove unrequested epoch constants - genesis-core/src/time/mod.rs defines INFLATION_START_YEARS, INFLATION_END_YEARS, and PLANCK_EPOCH_YEARS which are Phase 2+ requirements, not Phase 1
+
+### Phase 2+ Features Implemented in genesis-ui Crate (Unrequested for Phase 1)
+
+- [ ] refactor: Remove unrequested pre-1-year timeline support - genesis-ui/src/timeline/mod.rs::CosmicTime supports negative slider values representing pre-1-year timescales using MIN_YEARS (1e-40 years), which extends beyond PRD Phase 1's specified timeline of "13.8 billion years"
+
+- [ ] refactor: Remove unrequested timeline scrubbing events - genesis-ui/src/timeline/mod.rs emits ScrubbingEvent on timeline drag start/stop which is more complex than Phase 1's basic play/pause/reset functionality
+
+### PRD Alignment Issues (Features that contradict or extend beyond Phase 1 requirements)
+
+- [ ] fix: Remove scroll wheel zoom from camera system - genesis-render/src/camera/mod.rs implements handle_free_flight_zoom() and handle_orbit_zoom() systems for scroll wheel zoom, which extends beyond PRD Phase 1's specification of "Free-flight camera (WASD + mouse) and orbit camera (click-drag)"
+
+- [ ] fix: Remove camera interpolation complexity - genesis-render/src/camera/mod.rs implements interpolate_camera() system with cubic ease-in-out easing and full camera state transition, which extends beyond PRD Phase 1's "smooth interpolation" specification
+
+- [ ] fix: Remove advanced camera interpolation state - genesis-render/src/camera/mod.rs::CameraState includes interpolating, interpolation_progress, interpolation_duration, interpolation_elapsed, and start/end position/rotation/mode fields, which extends beyond Phase 1's simple mode switching requirement
+
+- [ ] fix: Remove particle synchronization system - genesis-render/src/particle/mod.rs implements sync_particle_position() system which syncs Transform back to Particle, which may not be needed for Phase 1's basic particle rendering
+
+- [ ] fix: Remove particle scrubbing system - genesis-render/src/particle/mod.rs implements update_particles_for_scrubbing() system and ScrubbingState resource for timeline scrubbing, which is more complex than Phase 1's basic play/pause timeline
+
+### Placeholder Module Comments (Documentation accuracy issues)
+
+- [ ] fix: Correct nucleosynthesis module placeholder comment - genesis-physics/src/nucleosynthesis/mod.rs comment says "Phase 5" but nucleosynthesis is actually a Phase 3 requirement per PRD (Phase 3: Nucleosynthesis & the First Elements)
+
+- [ ] fix: Correct perturbations module placeholder comment - genesis-physics/src/perturbations/mod.rs comment says "Phase 5" but density perturbations are actually a Phase 2 requirement per PRD (Phase 2: Inflation & Quantum Seeds includes "Density perturbations mapped to particle displacement")
+
+- [ ] fix: Correct gravity module placeholder comment - genesis-physics/src/gravity/mod.rs comment says "Phase 5" but N-body gravitational physics is actually a Phase 5 requirement per PRD (Phase 5: Dark Ages & First Structures includes "Direct-sum N-body gravity")
 
 ---
 
