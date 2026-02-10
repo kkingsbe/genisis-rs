@@ -40,15 +40,107 @@ The `Assets<PointSpriteMaterial>` resource needs to be registered in the app. Th
 
 ---
 
+## ⚠️ BLOCKER - Particle Rendering Not Working
+
+**Date:** 2026-02-10
+
+**Severity:** Critical
+
+**Root Cause Analysis:**
+Debug investigation identified 2 critical issues preventing particles from rendering:
+
+1. **System Registration Issue** (`genesis-render/src/particle/mod.rs`):
+   - The `extract_particle_instances` and `prepare_particle_instance_buffers` systems are never registered in `ParticlePlugin::build()`
+   - These systems are defined in the file but not added to the Bevy app
+   - Without extract, particle data is never prepared for the render world
+   - Without prepare, storage buffers are never populated with instance data
+
+2. **Material Type Mismatch** (`genesis-render/src/particle/mod.rs`):
+   - `spawn_particles()` uses `PointSpriteMaterialHandle` (custom handle type) instead of `MeshMaterial3d<PointSpriteMaterial>`
+   - Bevy's rendering pipeline expects the standard `MeshMaterial3d` component
+   - Custom handle type prevents proper material binding to entities
+
+**Impact:**
+- Particles spawn but are completely invisible on screen
+- Debug console shows no errors, making issue difficult to detect
+- Test coverage is insufficient - existing tests would NOT catch either issue
+- All particle-based visualization is blocked until resolved
+
+**Fix Tasks:**
+
+- [ ] **FIX #1**: Register extract system in `ParticlePlugin::build()`
+  - File: `genesis-render/src/particle/mod.rs`
+  - Add `add_systems(ExtractSchedule, extract_particle_instances)` to `build()` method
+  - System is defined at line ~90-110, registration needed at line ~30-60 (ParticlePlugin::build)
+  - Ensure system runs in ExtractSchedule to move particle data to render world
+
+- [ ] **FIX #2**: Register prepare system in `ParticlePlugin::build()`
+  - File: `genesis-render/src/particle/mod.rs`
+  - Add `add_systems(Render, prepare_particle_instance_buffers)` to `build()` method
+  - System is defined at line ~115-140, registration needed at line ~30-60 (ParticlePlugin::build)
+  - Ensure system runs in Render schedule to populate storage buffers
+
+- [ ] **FIX #3**: Change material component type in `spawn_particles()`
+  - File: `genesis-render/src/particle/mod.rs`
+  - Replace `PointSpriteMaterialHandle` with `MeshMaterial3d<PointSpriteMaterial>`
+  - Update function signature and implementation to use standard Bevy material component
+  - Spawn location: `spawn_particles()` function (~line 150-200)
+  - This allows Bevy's renderer to properly bind the material to the entity
+
+**Test Tasks (Critical - Would Have Prevented These Issues):**
+
+- [ ] **TEST #1**: System Registration Test
+  - File: `genesis-render/tests/particle_system_tests.rs` (new file)
+  - Create test to verify `extract_particle_instances` is registered in ExtractSchedule
+  - Create test to verify `prepare_particle_instance_buffers` is registered in Render schedule
+  - Use `app.world().get_system()` or inspect schedule to confirm registration
+  - Test should fail if systems are not registered in correct schedules
+
+- [ ] **TEST #2**: Entity Component Type Test
+  - File: `genesis-render/tests/particle_system_tests.rs` (new file)
+  - Create test that spawns particles and inspects entity components
+  - Verify spawned entities have `MeshMaterial3d<PointSpriteMaterial>` component
+  - Test should fail if wrong component type (e.g., `PointSpriteMaterialHandle`) is used
+  - Use `entity.get::<MeshMaterial3d<PointSpriteMaterial>>()` to verify
+
+- [ ] **TEST #3**: Integration Test (End-to-End Pipeline)
+  - File: `genesis-render/tests/particle_integration_tests.rs` (new file)
+  - Create test that verifies full spawn → extract → prepare → render pipeline
+  - Spawn particles in world, trigger ExtractSchedule, verify data in render world
+  - Trigger Render schedule, verify storage buffer is populated
+  - Test should catch missing extract/prepare systems
+
+- [ ] **TEST #4**: Buffer Binding Test
+  - File: `genesis-render/tests/particle_system_tests.rs` (new file)
+  - Create test to verify storage buffer is properly bound to Material pipeline
+  - Check that `StorageBuffer<ParticleInstance>` resource is created
+  - Verify buffer binding group includes correct buffer at correct binding point
+  - Test should detect if buffers are never bound to render pipeline
+
+- [ ] **TEST #5**: Run All Tests and Verify Pass
+  - Execute: `cargo test --package genesis-render`
+  - Verify all new tests pass
+  - Verify all existing tests still pass (no regressions)
+  - Document test results in `reports/` directory
+
+**Status:** Active - Implementation pending
+
+**Related Files:**
+- `genesis-render/src/particle/mod.rs` (main particle implementation)
+- `genesis-render/src/particle/instance_buffer.rs` (buffer definitions)
+- `genesis-render/tests/` (test directory)
+
+---
+
 ## Sprint 2 - Phase 2: Inflation & Quantum Seeds
 
 ### Infrastructure - genesis-physics Crate
-- [ ] Implement genesis-physics crate
-  - [ ] Create genesis-physics/Cargo.toml with dependencies: glam (for vector math), nalgebra (for scientific linear algebra), wgpu (for GPU compute), serde (for serialization)
-  - [ ] Create genesis-physics/src/lib.rs with module declarations for physics systems (gravity, inflaton, perturbations, nucleosynthesis)
-  - [ ] Add GenesisPhysicsPlugin struct implementing Plugin trait with build() method that registers physics systems
-  - [ ] Add genesis-physics to workspace Cargo.toml members list: "genesis-physics"
-  - [ ] Add genesis-physics dependency to main Cargo.toml: genesis-physics = { path = "genesis-physics" }
+- [x] Implement genesis-physics crate
+  - [x] Create genesis-physics/Cargo.toml with dependencies: glam (for vector math), nalgebra (for scientific linear algebra), wgpu (for GPU compute), serde (for serialization)
+  - [x] Create genesis-physics/src/lib.rs with module declarations for physics systems (gravity, inflaton, perturbations, nucleosynthesis)
+  - [x] Add GenesisPhysicsPlugin struct implementing Plugin trait with build() method that registers physics systems
+  - [x] Add genesis-physics to workspace Cargo.toml members list: "genesis-physics"
+  - [x] Add genesis-physics dependency to main Cargo.toml: genesis-physics = { path = "genesis-physics" }
 
 ### Physics Integration
 - [ ] Implement Friedmann equation: H² = (8πG/3)ρ - k/a² (where H = ȧ/a)
