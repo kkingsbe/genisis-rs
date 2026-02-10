@@ -4,6 +4,28 @@ This file documents patterns, decisions, and lessons learned while working on th
 
 ---
 
+## Session Date: 2026-02-10 - Bytemuck Zeroable Import Fix
+
+### Gotchas Encountered:
+- The `Zeroable` trait from `bytemuck` crate must be explicitly imported for the `zeroed()` method to work
+- `bytemuck::Pod` does not automatically include `Zeroable` - both traits must be imported separately if needed
+- The compilation error was specific to the test code at line 315, not the production code
+
+### Patterns That Work in This Codebase:
+- Bevy's GPU instancing uses `bytemuck` crate for zero-copy buffer data conversion
+- The `zeroed()` method is useful for initializing GPU-compatible buffer data structures
+- `Cargo check --package <crate-name>` is the appropriate way to verify compilation errors for a specific crate
+
+### Decisions Made and Why:
+- Added the import at line 30 (top-level imports section) rather than inline - follows Rust convention for imports
+- Fixed this blocking issue first before addressing the failing tests - following "fix compilation errors before tests" priority
+
+### Key Bevy/wgpu Patterns:
+- GPU buffers require traits like `Pod` and `Zeroable` from `bytemuck` for safe memory layout conversion
+- Storage buffers in WGSL require properly aligned, repr(C) structs in Rust
+
+---
+
 ## Session Date: 2026-02-09 - Test Suite Analysis (Bevy 0.15 Migration)
 
 ### Gotchas Encountered:
