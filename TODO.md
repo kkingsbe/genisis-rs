@@ -8,7 +8,7 @@
 ## Sprint 2 - Phase 2: Inflation & Quantum Seeds
 
 ### Physics Integration
-- [ ] Implement metric expansion during inflation (exponential: a(t) = a₀e^(Ht) where H ≈ 10¹⁴ GeV)
+- [x] Implement metric expansion during inflation (exponential: a(t) = a₀e^(Ht) where H ≈ 10¹⁴ GeV)
 - [ ] Implement decelerating expansion post-inflation (a(t) ∝ t^(2/3) for matter-dominated era)
 - [ ] Couple particle positions to scale factor a(t) (multiply positions by current a(t) in update system)
 - [ ] Add ScaleFactor resource tracking current a(t) value, ȧ, and cosmic epoch (inflation vs matter-dominated)
@@ -119,5 +119,19 @@
 - [ ] feat: Create parameter panel sidebar - Add bevy_egui panel for n_s, inflation duration, and initial energy scale controls
 - [ ] feat: Implement QGP temperature-based colors - Map temperature to color ramp: blue-white (10¹⁵K) → white (10¹⁴K) → yellow (10¹³K) → orange (10¹²K)
 - [ ] feat: Couple particle positions to scale factor a(t) - Update particle positions by multiplying with current a(t) value
+
+### Fix Items (contradictions with PRD)
+- [ ] fix: Align InflatonPlugin registration with GenesisPhysicsPlugin - InflatonPlugin is exported but never registered in the application
+- [ ] fix: Clarify "smooth interpolation" implementation scope - PRD mentions simple interpolation but code implements complex cubic ease-in-out system
+- [ ] fix: Resolve Timeline speed control implementation inconsistency - Comment says direct pass-through but UI uses logarithmic scaling
+
+### Refactor Items (unrequested features)
+- [ ] refactor: Remove or document `years_to_gev_inv()` if not needed for Phase 1 - GeV⁻¹ conversion not mentioned in Phase 1 requirements
+- [ ] refactor: Timeline pre-1-year scaling extends beyond Phase 1 scope - PRD Phase 1 specifies 13.8 billion years, not pre-1-year timescales
+- [ ] refactor: Evaluate particle scrubbing complexity vs Phase 1 scope - ScrubbingState is more advanced than Phase 1's basic play/pause
+- [ ] refactor: Reconsider `sync_particle_position()` system necessity - May not be needed since camera manipulation shouldn't modify particle transforms
+- [ ] refactor: Generic RK4 integrator may be over-engineering for Phase 2 - Specific solvers (Friedmann, Rosenbrock) come in later phases
+- [ ] refactor: Scroll wheel zoom extends beyond Phase 1 camera requirements - PRD Phase 1 only specifies orbit camera (click-drag)
+- [ ] refactor: ScrubbingEvent emission may exceed Phase 1 timeline requirements - Event system more complex than simple play/pause needed
 
 ---
