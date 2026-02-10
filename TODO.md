@@ -14,8 +14,7 @@
 ## Sprint 2 - Phase 2: Inflation & Quantum Seeds
 
 ### Physics Integration
-- [x] Couple particle positions to scale factor a(t) (multiply positions by current a(t) in update system)
-- [ ] Implement temperature evolution model (T ∝ 1/a for adiabatic expansion, with T₀ ≈ 10²⁷ K at inflation start)
+- [x] Implement temperature evolution model (T ∝ 1/a for adiabatic expansion, with T₀ ≈ 10²⁷ K at inflation start)
 - [ ] Create InflationPhysics resource tracking inflaton field φ, potential V(φ), and slow-roll parameters (ε, η)
 
 ### Density Perturbations

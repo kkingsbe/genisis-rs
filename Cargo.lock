@@ -2294,6 +2294,7 @@ dependencies = [
  "bevy",
  "bytemuck",
  "genesis-core",
+ "genesis-physics",
 ]
 
 [[package]]

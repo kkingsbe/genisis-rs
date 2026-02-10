@@ -48,7 +48,7 @@ use bevy::prelude::*;
 use bevy::time::Time;
 
 use crate::integrator::{rk4_step};
-use genesis_core::time::{TimeAccumulator, INFLATION_START_YEARS, INFLATION_END_YEARS, SECONDS_PER_YEAR};
+use genesis_core::time::{TimeAccumulator, INFLATION_END_YEARS, SECONDS_PER_YEAR};
 
 /// Cosmological constants used in Friedmann equation calculations
 pub mod constants {
@@ -199,6 +199,9 @@ pub struct ScaleFactor {
     
     /// Current cosmic epoch
     pub epoch: CosmicEpoch,
+    
+    /// Temperature of the universe
+    pub temperature: Temperature,
 }
 
 impl Default for ScaleFactor {
@@ -208,7 +211,44 @@ impl Default for ScaleFactor {
             derivative: 0.0,
             time: 0.0,
             epoch: CosmicEpoch::Planck,
+            temperature: Temperature::default(),
         }
+    }
+}
+
+/// Temperature T(t) of the universe
+///
+/// The temperature describes the thermal state of the universe over time.
+/// - During adiabatic expansion: T ∝ 1/a (temperature decreases as universe expands)
+/// - Initial temperature T₀ ≈ 10²⁷ K at the start of inflation
+#[derive(Debug, Clone, Copy, PartialEq, Resource)]
+pub struct Temperature {
+    /// Current temperature in Kelvin
+    pub value: f64,
+
+    /// Initial temperature T₀ (approximately 1e27 K at inflation start)
+    pub initial: f64,
+}
+
+impl Default for Temperature {
+    fn default() -> Self {
+        Self {
+            value: 1e27,
+            initial: 1e27,
+        }
+    }
+}
+
+impl Temperature {
+    /// Create a new temperature with specified initial temperature
+    ///
+    /// # Arguments
+    /// * `initial` - Initial temperature T₀ in Kelvin
+    ///
+    /// # Returns
+    /// A new Temperature instance with value and initial both set to the given initial temperature
+    pub fn new(initial: f64) -> Self {
+        Self { value: initial, initial }
     }
 }
 
@@ -261,6 +301,21 @@ pub fn compute_matter_dominated_scale_factor(t: f64, t_eq: f64) -> f64 {
     
     // a(t) = (t/t_eq)^(2/3)
     (t / t_eq).powf(2.0 / 3.0)
+}
+
+/// Computes the cosmic temperature at a given scale factor.
+///
+/// For adiabatic expansion, temperature scales inversely with the scale factor:
+/// T(a) = T₀ / a
+///
+/// # Arguments
+/// * `scale_factor` - The cosmological scale factor a (dimensionless)
+/// * `initial_temp` - The initial temperature T₀ at a=1 (in Kelvin)
+///
+/// # Returns
+/// The temperature in Kelvin at the given scale factor
+pub fn compute_temperature(scale_factor: f64, initial_temp: f64) -> f64 {
+    initial_temp / scale_factor
 }
 
 /// Hubble parameter H(t) of the universe
@@ -624,6 +679,10 @@ pub fn update_scale_factor_by_epoch(
         // After inflation: use RK4 integration
         cosmology.integrate_scale_factor_rk4(dt_gev_inv);
     }
+
+    // Update temperature based on scale factor: T = T₀ / a
+    let temp = compute_temperature(cosmology.scale_factor.value, cosmology.scale_factor.temperature.initial);
+    cosmology.scale_factor.temperature.value = temp;
 }
 
 pub struct CosmologyPlugin;
@@ -634,6 +693,7 @@ impl Plugin for CosmologyPlugin {
             .init_resource::<ScaleFactor>()
             .init_resource::<HubbleParameter>()
             .init_resource::<EnergyDensity>()
+            .init_resource::<Temperature>()
             .add_systems(PostUpdate, update_scale_factor_by_epoch);
     }
 }
@@ -965,6 +1025,30 @@ mod tests {
         
         // H should be non-negative (may be reduced by large curvature term)
         assert!(h >= 0.0, "Hubble parameter should be non-negative");
+    }
+    
+    #[test]
+    fn test_temperature_computation() {
+        // Test T = T₀ / a
+        let initial_temp = 100.0;
+        let scale_factor = 2.0;
+        let temp = compute_temperature(scale_factor, initial_temp);
+        assert!((temp - 50.0).abs() < 1e-10);
+    }
+    
+    #[test]
+    fn test_temperature_struct_default() {
+        let temp = Temperature::default();
+        assert_eq!(temp.initial, 1e27);
+        assert_eq!(temp.value, 1e27);
+    }
+    
+    #[test]
+    fn test_temperature_struct_new() {
+        let initial = 500.0;
+        let temp = Temperature::new(initial);
+        assert_eq!(temp.initial, initial);
+        assert_eq!(temp.value, initial);
     }
 }
 
