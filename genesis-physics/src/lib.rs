@@ -29,6 +29,7 @@ pub mod cosmology;
 
 // Re-export commonly used types
 pub use inflaton::InflatonPlugin;
+pub use crate::cosmology::{ScaleFactor, CosmicEpoch};
 
 /// Version of the physics library
 pub const VERSION: &str = env!("CARGO_PKG_VERSION");

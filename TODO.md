@@ -8,10 +8,9 @@
 ## Sprint 2 - Phase 2: Inflation & Quantum Seeds
 
 ### Physics Integration
-- [x] Implement metric expansion during inflation (exponential: a(t) = a₀e^(Ht) where H ≈ 10¹⁴ GeV)
 - [ ] Implement decelerating expansion post-inflation (a(t) ∝ t^(2/3) for matter-dominated era)
 - [ ] Couple particle positions to scale factor a(t) (multiply positions by current a(t) in update system)
-- [ ] Add ScaleFactor resource tracking current a(t) value, ȧ, and cosmic epoch (inflation vs matter-dominated)
+- [x] Add ScaleFactor resource tracking current a(t) value, ȧ, and cosmic epoch (inflation vs matter-dominated)
 - [ ] Implement temperature evolution model (T ∝ 1/a for adiabatic expansion, with T₀ ≈ 10²⁷ K at inflation start)
 - [ ] Create InflationPhysics resource tracking inflaton field φ, potential V(φ), and slow-roll parameters (ε, η)
 
@@ -109,8 +108,6 @@
 
 ### Phase 2 Implementation Items
 - [ ] feat: Implement slow-roll inflaton potential V(φ) - Add quadratic potential model V(φ) = ½m²φ² with m ~ 10¹⁶ GeV in genesis-physics/src/inflaton/mod.rs
-- [ ] feat: Implement slow-roll inflaton potential V(φ) - Add quadratic potential model V(φ) = ½m²φ² with m ~ 10¹⁶ GeV
-- [ ] feat: Implement metric expansion during inflation - Add exponential expansion a(t) = a₀e^(Ht) where H ≈ 10¹⁴ GeV
 - [ ] feat: Implement 3D Gaussian random field generator - Create system in genesis-physics/src/perturbations/mod.rs using Box-Muller transform
 - [ ] feat: Implement power spectrum P(k) ∝ k^(n_s – 1) - Add configurable spectral index n_s parameter (default 0.96)
 - [ ] feat: Implement Zel'dovich approximation - Add density-to-displacement mapping: displacement = ∇ψ where ∇²ψ = -δ

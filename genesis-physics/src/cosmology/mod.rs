@@ -159,6 +159,27 @@ impl EnergyDensity {
     }
 }
 
+/// Represents a cosmic epoch in the evolution of the universe
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Resource)]
+pub enum CosmicEpoch {
+    /// Planck boundary epoch: t < 10⁻³²s (quantum gravity dominated)
+    Planck,
+    /// Inflation epoch: 10⁻³⁶s – 10⁻³²s (exponential metric expansion)
+    Inflation,
+    /// Quark-Gluon Plasma: 10⁻³²s – 10⁻⁶s (QGP cooling, confinement)
+    QuarkGluonPlasma,
+    /// Big Bang Nucleosynthesis: 3 min – 20 min (light element formation)
+    Nucleosynthesis,
+    /// Recombination: ~380,000 yr (electron capture, CMB release)
+    Recombination,
+    /// Dark Ages: 380 Kyr – 100 Myr (gravitational collapse)
+    DarkAges,
+    /// Cosmic Dawn: 100 Myr – 1 Gyr (first stars, reionization)
+    CosmicDawn,
+    /// Structure Formation: 1 Gyr – 13.8 Gyr (galaxy assembly, cosmic web)
+    Structure,
+}
+
 /// Scale factor a(t) of the universe
 /// 
 /// The scale factor describes how the size of the universe changes over time.
@@ -175,6 +196,9 @@ pub struct ScaleFactor {
     
     /// Cosmic time in seconds
     pub time: f64,
+    
+    /// Current cosmic epoch
+    pub epoch: CosmicEpoch,
 }
 
 impl Default for ScaleFactor {
@@ -183,6 +207,7 @@ impl Default for ScaleFactor {
             value: 1.0,
             derivative: 0.0,
             time: 0.0,
+            epoch: CosmicEpoch::Planck,
         }
     }
 }
@@ -984,7 +1009,8 @@ mod exponential_tests {
         // Test that ȧ = H*a for exponential expansion
         let a0 = 1.0;
         let h = 1e14;
-        let dt = 1e-35; // Small time step
+        // Use very small time step for accurate finite difference: h*t = 0.001
+        let dt = 1e-17;
 
         // Compute a(t)
         let a1 = compute_exponential_scale_factor(a0, dt, h);
@@ -993,7 +1019,9 @@ mod exponential_tests {
         let expected_derivative = h * a0;
         let computed_derivative = (a1 - a0) / dt;
 
-        assert!((computed_derivative - expected_derivative).abs() < 1e-5);
+        // Relative tolerance due to floating point arithmetic
+        let relative_diff = (computed_derivative - expected_derivative).abs() / expected_derivative.abs();
+        assert!(relative_diff < 1e-3, "Relative difference: {}", relative_diff);
     }
 
     #[test]
@@ -1001,10 +1029,12 @@ mod exponential_tests {
         // Test that a(t) is monotonically increasing during inflation
         let a0 = 1.0;
         let h = 1e14;
+        // Use larger time step to see meaningful changes: h*t = 0.1
+        let dt = 1e-15;
 
-        let a1 = compute_exponential_scale_factor(a0, 1e-35, h);
-        let a2 = compute_exponential_scale_factor(a1, 1e-35, h);
-        let a3 = compute_exponential_scale_factor(a2, 1e-35, h);
+        let a1 = compute_exponential_scale_factor(a0, dt, h);
+        let a2 = compute_exponential_scale_factor(a1, dt, h);
+        let a3 = compute_exponential_scale_factor(a2, dt, h);
 
         assert!(a1 > a0);
         assert!(a2 > a1);
@@ -1019,7 +1049,8 @@ mod exponential_tests {
         let initial_a = c.scale_factor.value;
         let initial_time = c.scale_factor.time;
 
-        let dt = 1e-35;
+        // Use larger time step to see meaningful change: h*t = 0.1
+        let dt = 1e-15;
         c.integrate_scale_factor_inflation(dt);
 
         // Scale factor should increase
@@ -1043,7 +1074,8 @@ mod exponential_tests {
         c.scale_factor.value = 1.0;
         let h = constants::INFLATION_HUBBLE_GEV;
 
-        let dt = 1e-35;
+        // Use larger time step to see meaningful change
+        let dt = 1e-15;
         c.integrate_scale_factor_inflation(dt);
 
         // Check that the result matches compute_exponential_scale_factor
@@ -1061,7 +1093,8 @@ mod exponential_tests {
         c.scale_factor.value = 1.0;
         let h = constants::INFLATION_HUBBLE_GEV;
 
-        let dt = 1e-35;
+        // Use larger time step to see meaningful change
+        let dt = 1e-15;
         let steps = 5;
 
         // Integrate multiple steps
@@ -1096,7 +1129,8 @@ mod exponential_tests {
     fn test_exponential_with_different_hubble() {
         // Test exponential growth with different Hubble parameters
         let a0 = 1.0;
-        let t = 1e-35;
+        // Use time such that h*t = 0.1 for h=1e14
+        let t = 1e-15;
         let h_values = vec![1e13, 1e14, 1e15];
 
         for h in h_values {
