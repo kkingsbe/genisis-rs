@@ -6,6 +6,7 @@ edition.workspace = true
 [dependencies]
 bevy = { workspace = true }
 genesis-core = { path = "../genesis-core" }
+genesis-physics = { path = "../genesis-physics" }
 bytemuck = "1.21"
 
 [dev-dependencies]

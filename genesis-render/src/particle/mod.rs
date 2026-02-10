@@ -52,6 +52,7 @@ use bevy::render::RenderApp;
 use bevy::render::RenderSet;
 use genesis_core::config::ParticleConfig;
 use genesis_core::{events::ScrubbingEvent, time::TimeAccumulator};
+use genesis_physics::cosmology::ScaleFactor;
 
 mod instance_buffer;
 
@@ -349,6 +350,7 @@ pub fn spawn_particles(
 pub fn update_particles(
     mut query: Query<(&mut Particle, &mut Transform)>,
     time: Res<Time>,
+    scale_factor: Res<ScaleFactor>,
 ) {
     let delta = time.delta_secs();
 
@@ -356,8 +358,9 @@ pub fn update_particles(
         // Store velocity to avoid borrow conflicts
         let velocity = particle.velocity;
         
-        // Update position based on velocity: position += velocity * delta_time
-        particle.position += velocity * delta;
+        // Update position based on velocity and scale factor:
+        // position = (position + velocity * delta) * scale_factor.value
+        particle.position = (particle.position + velocity * delta) * scale_factor.value as f32;
         
         // Sync Particle.position to Transform.translation for rendering
         transform.translation = particle.position;
@@ -441,6 +444,7 @@ pub fn update_particles_for_scrubbing(
     mut query: Query<(&mut Particle, &mut Transform)>,
     time_accumulator: Res<TimeAccumulator>,
     scrubbing_state: Res<ScrubbingState>,
+    scale_factor: Res<ScaleFactor>,
 ) {
     // Only recalculate positions when scrubbing is active
     if !scrubbing_state.is_scrubbing {
@@ -450,8 +454,9 @@ pub fn update_particles_for_scrubbing(
     let years = time_accumulator.years as f32;
 
     for (mut particle, mut transform) in query.iter_mut() {
-        // Calculate position from initial state: position = initial_position + initial_velocity * years
-        particle.position = particle.initial_position + particle.initial_velocity * years;
+        // Calculate position from initial state and apply scale factor:
+        // position = (initial_position + initial_velocity * years) * scale_factor
+        particle.position = (particle.initial_position + particle.initial_velocity * years) * scale_factor.value as f32;
 
         // Sync Particle.position to Transform.translation for rendering
         transform.translation = particle.position;

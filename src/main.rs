@@ -38,6 +38,7 @@ use bevy::prelude::*;
 use bevy::window::{PresentMode, WindowResolution};
 use genesis_core::Config;
 use genesis_core::TimeIntegrationPlugin;
+use genesis_physics::cosmology::CosmologyPlugin;
 use genesis_render::camera::{CameraController, CameraState, OrbitController};
 use genesis_render::input::InputPlugin;
 use genesis_render::particle::ParticlePlugin;
@@ -77,6 +78,8 @@ fn main() {
         }))
         // Core simulation systems
         .add_plugins(TimeIntegrationPlugin)
+        // Cosmological physics (scale factor, expansion dynamics)
+        .add_plugins(CosmologyPlugin)
         // Input handling (WASD, mouse motion, mouse buttons)
         .add_plugins(InputPlugin)
         // Particle rendering with GPU instancing

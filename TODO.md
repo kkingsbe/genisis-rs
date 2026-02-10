@@ -14,7 +14,7 @@
 ## Sprint 2 - Phase 2: Inflation & Quantum Seeds
 
 ### Physics Integration
-- [ ] Couple particle positions to scale factor a(t) (multiply positions by current a(t) in update system)
+- [x] Couple particle positions to scale factor a(t) (multiply positions by current a(t) in update system)
 - [ ] Implement temperature evolution model (T ∝ 1/a for adiabatic expansion, with T₀ ≈ 10²⁷ K at inflation start)
 - [ ] Create InflationPhysics resource tracking inflaton field φ, potential V(φ), and slow-roll parameters (ε, η)
 
@@ -98,9 +98,6 @@
 - [ ] Update Config struct to include Phase 2 parameters (n_s, inflation_duration, initial_energy_scale)
 - [ ] Create "Standard Model" preset with Phase 2 cosmological parameters
 
-### Testing
-- [ ] SPRINT QA: Run full build and test suite. Fix ALL errors. If green, create/update '.sprint_complete' with the current date.
-
 ---
 
 ## Drift Remediation
@@ -153,3 +150,6 @@
 - [ ] refactor: ScrubbingEvent emission may exceed Phase 1 timeline requirements - Event system more complex than simple play/pause needed
 
 ---
+
+### Testing
+- [ ] SPRINT QA: Run full build and test suite. Fix ALL errors. If green, create/update '.sprint_complete' with the current date.
