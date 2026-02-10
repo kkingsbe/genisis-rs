@@ -25,16 +25,16 @@
 //! # Camera System Implementation Status
 //!
 //! - **Free-flight mode**: Fully implemented with WASD movement and mouse look
-//! - **Orbit mode**: Rotation implemented (left mouse drag), zoom and pan NOT implemented
+//! - **Orbit mode**: Rotation implemented (left mouse drag), zoom and pan implemented
 //! - **Mode switching**: Implemented via 'O' key toggle between FreeFlight and Orbit
 //! - **Camera interpolation**: NOT implemented (deferred to Phase 7)
 //!
 //! # Orbit Camera Limitations
 //!
-//! The orbit camera currently only supports rotation around the current orbit target:
+//! The orbit camera supports rotation, zoom, and pan around the current orbit target:
 //! - Left mouse drag: Rotates camera around target (spherical coordinates)
-//! - Scroll wheel zoom: NOT implemented (no handle_orbit_zoom system)
-//! - Middle/right mouse pan: NOT implemented (no handle_orbit_pan system)
+//! - Scroll wheel zoom: Implemented (handle_orbit_zoom system clamps distance [1.0, 200.0])
+//! - Middle mouse pan: Implemented (handle_orbit_pan system moves orbit target)
 //! - Orbit target: Set by CameraState.current_orbit_target (updated on mode switch)
 
 use bevy::input::keyboard::KeyCode;
@@ -592,14 +592,18 @@ mod tests {
 
         // Verify the system behavior manually
         let controller = world.get::<CameraController>(entity).unwrap();
-        let mut transform = world.get_mut::<Transform>(entity).unwrap();
         
+        // Extract needed values BEFORE mutable borrow to avoid borrow conflict
         let scroll_delta = world.get_resource::<InputState>().map(|i| i.scroll_delta).unwrap_or(0.0);
+        let forward = controller.forward();
+        let zoom_speed = controller.zoom_speed;
+        
+        // Now it's safe to create mutable borrow
+        let mut transform = world.get_mut::<Transform>(entity).unwrap();
         
         // With yaw=0, pitch=0, forward is (0, 0, 1)
         // scroll_delta=10.0, zoom_speed=1.0 => movement = 10.0
-        let forward = controller.forward();
-        let movement = forward * scroll_delta * controller.zoom_speed;
+        let movement = forward * scroll_delta * zoom_speed;
         transform.translation += movement;
         
         // Verify camera moved forward along its forward vector
@@ -654,10 +658,15 @@ mod tests {
 
         // Verify the system behavior manually
         let controller = world.get::<CameraController>(entity).unwrap();
+        
+        // Extract needed values BEFORE mutable borrow to avoid borrow conflict
+        let forward = controller.forward();
+        let zoom_speed = controller.zoom_speed;
+        
+        // Now it's safe to create mutable borrow
         let mut transform = world.get_mut::<Transform>(entity).unwrap();
         
-        let forward = controller.forward();
-        let movement = forward * (-100.0) * controller.zoom_speed;
+        let movement = forward * (-100.0) * zoom_speed;
         transform.translation += movement;
         
         // Clamp to minimum
@@ -716,10 +725,15 @@ mod tests {
 
         // Verify the system behavior manually
         let controller = world.get::<CameraController>(entity).unwrap();
+        
+        // Extract needed values BEFORE mutable borrow to avoid borrow conflict
+        let forward = controller.forward();
+        let zoom_speed = controller.zoom_speed;
+        
+        // Now it's safe to create mutable borrow
         let mut transform = world.get_mut::<Transform>(entity).unwrap();
         
-        let forward = controller.forward();
-        let movement = forward * 300.0 * controller.zoom_speed;
+        let movement = forward * 300.0 * zoom_speed;
         transform.translation += movement;
         
         // Clamp to maximum
@@ -778,10 +792,15 @@ mod tests {
 
         // Verify the system behavior manually
         let controller = world.get::<CameraController>(entity).unwrap();
+        
+        // Extract needed values BEFORE mutable borrow to avoid borrow conflict
+        let forward = controller.forward();
+        let zoom_speed = controller.zoom_speed;
+        
+        // Now it's safe to create mutable borrow
         let mut transform = world.get_mut::<Transform>(entity).unwrap();
         
-        let forward = controller.forward();
-        let movement = forward * 5.0 * controller.zoom_speed;
+        let movement = forward * 5.0 * zoom_speed;
         transform.translation += movement;
 
         // Verify camera moved using the custom zoom_speed
@@ -822,10 +841,15 @@ mod tests {
 
         // Verify the system behavior manually
         let controller = world.get::<CameraController>(entity).unwrap();
+        
+        // Extract needed values BEFORE mutable borrow to avoid borrow conflict
+        let forward = controller.forward();
+        let zoom_speed = controller.zoom_speed;
+        
+        // Now it's safe to create mutable borrow
         let mut transform = world.get_mut::<Transform>(entity).unwrap();
         
-        let forward = controller.forward();
-        let movement = forward * (-10.0) * controller.zoom_speed;
+        let movement = forward * (-10.0) * zoom_speed;
         transform.translation += movement;
 
         // Verify camera moved backward
@@ -872,10 +896,15 @@ mod tests {
 
         // Verify the system behavior manually
         let controller = world.get::<CameraController>(entity).unwrap();
+        
+        // Extract needed values BEFORE mutable borrow to avoid borrow conflict
+        let forward = controller.forward();
+        let zoom_speed = controller.zoom_speed;
+        
+        // Now it's safe to create mutable borrow
         let mut transform = world.get_mut::<Transform>(entity).unwrap();
         
-        let forward = controller.forward();
-        let movement = forward * 10.0 * controller.zoom_speed;
+        let movement = forward * 10.0 * zoom_speed;
         transform.translation += movement;
 
         // Verify camera moved along its rotated forward vector
@@ -935,10 +964,15 @@ mod tests {
 
         // Verify the system behavior manually
         let controller = world.get::<CameraController>(entity).unwrap();
+        
+        // Extract needed values BEFORE mutable borrow to avoid borrow conflict
+        let forward = controller.forward();
+        let zoom_speed = controller.zoom_speed;
+        
+        // Now it's safe to create mutable borrow
         let mut transform = world.get_mut::<Transform>(entity).unwrap();
         
-        let forward = controller.forward();
-        let movement = forward * 20.0 * controller.zoom_speed;
+        let movement = forward * 20.0 * zoom_speed;
         transform.translation += movement;
         
         // Verify camera moved forward
