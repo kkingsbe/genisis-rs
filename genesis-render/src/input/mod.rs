@@ -88,6 +88,7 @@ pub fn handle_mouse_input(
     input_state
         .mouse_buttons
         .insert(MouseButton::Left, mouse_buttons.pressed(MouseButton::Left));
+    input_state.mouse_buttons.insert(MouseButton::Middle, mouse_buttons.pressed(MouseButton::Middle));
 
     // Reset mouse delta
     input_state.mouse_delta = Vec2::ZERO;

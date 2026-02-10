@@ -332,6 +332,62 @@ pub fn handle_orbit_zoom(
     }
 }
 
+/// System to handle orbit camera pan via middle mouse button drag
+///
+/// Moves the orbit target point based on mouse drag when in ORBIT camera mode.
+/// Panning moves the target point relative to the camera's orientation.
+///
+/// # Parameters
+///
+/// * `input` - Resource containing input state including mouse_delta and mouse_buttons
+/// * `camera_state` - Resource tracking current camera mode
+/// * `camera_query` - Query for camera Transform to get orientation
+///
+/// # Behavior
+///
+/// - Only operates when CameraState.mode is ORBIT
+/// - Only operates when middle mouse button is pressed
+/// - Moves CameraState.current_orbit_target based on mouse delta
+/// - Calculates pan direction based on camera's right and up vectors
+/// - Uses pan_speed multiplier for sensitivity control (0.05)
+pub fn handle_orbit_pan(
+    input: Res<InputState>,
+    mut camera_state: ResMut<CameraState>,
+    camera_query: Query<&Transform, With<Camera3d>>,
+) {
+    // Only update when in ORBIT mode
+    if camera_state.mode != CameraMode::Orbit {
+        return;
+    }
+
+    // Only update when middle mouse button is pressed
+    if !input
+        .mouse_buttons
+        .get(&MouseButton::Middle)
+        .copied()
+        .unwrap_or(false)
+    {
+        return;
+    }
+
+    // Get camera orientation
+    if let Ok(camera_transform) = camera_query.get_single() {
+        // Calculate right and up vectors from camera orientation
+        let right = camera_transform.right();
+        let up = Vec3::Y;
+
+        // Calculate pan movement
+        // Mouse X delta moves along camera's right vector (inverted for natural feel)
+        // Mouse Y delta moves along world up vector
+        let pan_speed = 0.05;
+        let pan_movement = (right * -input.mouse_delta.x * pan_speed)
+            + (up * -input.mouse_delta.y * pan_speed);
+
+        // Update orbit target
+        camera_state.current_orbit_target += pan_movement;
+    }
+}
+
 /// System to toggle between camera modes
 ///
 /// Switches between FreeFlight and Orbit camera modes when the 'O' key is pressed.
@@ -396,6 +452,7 @@ impl Plugin for CameraPlugin {
             .add_systems(Update, toggle_camera_mode)
             .add_systems(Update, update_free_flight_camera)
             .add_systems(Update, update_orbit_camera)
-            .add_systems(Update, handle_orbit_zoom);
+            .add_systems(Update, handle_orbit_zoom)
+            .add_systems(Update, handle_orbit_pan);
     }
 }
