@@ -65,6 +65,37 @@ The passing test `test_point_mesh_initialized_before_particles_spawn` (line 364)
 
 ---
 
+## [2026-02-10] - Build Error: bind_group_layout trait method in ParticleMaterial
+
+**Severity:** High
+
+**Description:**
+Compilation error in genesis-render/src/particle/mod.rs:119 indicating that `bind_group_layout` is not a member of the `Material` trait. This is a trait method signature mismatch that prevents successful compilation of the genesis-render crate.
+
+**Error Message:**
+```
+error[E0407]: method `bind_group_layout` is not a member of trait `Material`
+   --> genesis-render/src/particle/mod.rs:119:5
+```
+
+**Location:**
+`genesis-render/src/particle/mod.rs:119`
+
+**Impact:**
+- Blocks all builds of the project
+- Prevents app execution and testing
+- Must be resolved before any development can proceed
+
+**Discovered During:**
+Genesis.toml initial_count update (2026-02-10)
+
+**Status:** Pre-existing
+
+**Note:**
+This error was discovered during a routine build verification after updating genesis.toml. The error existed prior to the initial_count change and is not caused by recent modifications. This is a pre-existing issue that needs to be addressed as a separate task.
+
+---
+
 **No other active blockers.**
 
 ---

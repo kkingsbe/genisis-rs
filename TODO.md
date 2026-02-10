@@ -4,6 +4,82 @@
 
 ---
 
+## Janitor: Flag Drift (2026-02-10)
+
+### Phase 1 PRD Contradictions
+
+- [ ] fix: Implement orbit camera zoom (scroll wheel) - PRD Phase 1 requires "orbit camera (click-drag)" with zoom controls
+  - Location: genesis-render/src/camera/mod.rs, genesis-render/src/input/mod.rs
+  - Current: handle_orbit_zoom system does not exist, scroll wheel input not tracked
+  - PRD reference: Section 5, Phase 1 deliverables
+- [ ] fix: Implement orbit camera pan - PRD Phase 1 requires complete orbit camera controls
+  - Location: genesis-render/src/camera/mod.rs, genesis-render/src/input/mod.rs
+  - Current: handle_orbit_pan system does not exist, middle/right mouse not tracked
+  - PRD reference: Section 5, Phase 1 deliverables
+- [ ] fix: Implement Q/E up/down movement for free-flight camera
+  - Location: genesis-render/src/camera/mod.rs
+  - Current: Q/E keys documented in comments but not implemented in handle_keyboard_input
+  - PRD reference: genesis-render/src/camera/mod.rs:68-71
+
+### Missing PRD-Specified Features (Phase 1)
+
+- [ ] implement: Time acceleration initial value configuration
+  - Location: genesis-core/src/config.rs TimeConfig struct
+  - Current: No initial_time_acceleration field, acceleration always starts at 1.0
+  - PRD reference: Section 5, Phase 1 deliverables - "Cosmic time system: ... with adjustable acceleration"
+- [ ] implement: Timeline reverse replay on scrubbing
+  - Location: genesis-ui/src/timeline/mod.rs
+  - Current: Timeline scrubbing updates cosmic_time but particles don't move backward
+  - PRD reference: Section 5, Phase 1 Demo Moment - "Scrub the timeline back and forth — the expansion reverses and replays"
+
+### Architecture Drift (Epoch Plugin System)
+
+- [ ] implement: EpochPlugin trait and EpochManager
+  - Location: genesis-core/src/epoch/
+  - Current: SingularityEpoch is only a marker struct; no EpochPlugin trait or EpochManager
+  - PRD reference: Section 4.1 "Epoch Plugin Architecture" - specifies each epoch as a Bevy plugin that registers systems, renderers, and UI panels
+- [ ] implement: Epoch Manager for transitions
+  - Location: genesis-core/src/epoch/mod.rs
+  - Current: No EpochManager exists
+  - PRD reference: Section 4.1 - "The manager handles transitions (crossfade blending, parameter interpolation)"
+
+### Missing Tech Stack Components
+
+- [ ] implement: Add nalgebra crate for scientific linear algebra
+  - PRD reference: Section 4 - "Math: glam + nalgebra"
+  - Current: Only glam is used; nalgebra not in Cargo.toml
+- [ ] implement: Add hdf5-rust crate for snapshot export
+  - PRD reference: Section 4 - "Serialization: serde + hdf5-rust"
+  - Current: serde present; hdf5-rust not in Cargo.toml
+- [ ] implement: Add kira (bevy_kira_audio) crate for audio
+  - PRD reference: Section 4 - "Audio: kira (bevy_kira_audio)"
+  - Current: Audio crate not present
+
+### Missing Future Phase Crates
+
+- [ ] implement: genesis-physics crate
+  - PRD reference: Section 4.2 - "First Used: Phase 2"
+  - Components: Gravity, SPH, nucleosynthesis, inflation, perturbations
+- [ ] implement: genesis-export crate
+  - PRD reference: Section 4.2 - "First Used: Phase 5"
+  - Components: HDF5, VTK, PNG/EXR, CSV export pipelines
+- [ ] implement: genesis-audio crate
+  - PRD reference: Section 4.2 - "First Used: Phase 6"
+  - Components: Procedural soundscape, epoch-aware audio mixing
+- [ ] implement: genesis-bench crate
+  - PRD reference: Section 4.2 - "First Used: Phase 7"
+  - Components: Benchmarking harness, performance regression tests
+
+### Investigate Potential Drift (Low Priority)
+
+- [ ] clarify: Verify energy_to_color() color gradient matches PRD requirements
+  - Location: genesis-render/src/particle/mod.rs
+  - Current: WHITE → YELLOW → ORANGE → RED → DARK_RED gradient
+  - PRD reference: Section 5, Phase 1 Demo Moment - "cooling from white to yellow to red"
+  - Note: PRD mentions "color-mapped by energy (white-hot core fading to red)" - current implementation seems aligned
+
+---
+
 ## Sprint 2 - Phase 1: The Singularity (Refinement)
 
 ### Critical Bug Fixes (Blockers for Demo Moment)
@@ -15,12 +91,14 @@
 - [x] This ensures update_particle_energy_colors() calculates energy from actual particle positions
 
 ### Configuration Alignment
-- [ ] clarify: Resolve genesis.toml initial_count discrepancy (GAP ANALYSIS 2026-02-10)
+- [x] clarify: Resolve genesis.toml initial_count discrepancy (GAP ANALYSIS 2026-02-10)
   - Current genesis.toml: initial_count = 1000
   - Code default (ParticleConfig::default()): initial_count = 100_000
   - PRD Phase 1: "100K–1M point sprites" capability
   - Decision needed: Should genesis.toml default be 100000 to match code default and PRD?
-- [ ] fix: Update genesis.toml initial_count based on decision (AFTER CLARIFICATION)
+  - **Resolution**: Decision made - align genesis.toml with code default and PRD requirement (100K minimum)
+- [x] fix: Update genesis.toml initial_count based on decision (AFTER CLARIFICATION)
+  - **Resolution**: Updated genesis.toml initial_count from 1000 to 100000 to match code default and PRD Phase 1 requirement
 
 ### Particle Scaling
 - [ ] feature: Scale particle system to 10K-50K particles (configurable)
